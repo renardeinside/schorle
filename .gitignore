@@ -93,3 +93,7 @@ site/
 
 typescript/node_modules/
 src/schorle/assets
+
+# ignore protobuf generated files
+src/schorle/proto_gen/*.py
+typescript/proto_gen/*
