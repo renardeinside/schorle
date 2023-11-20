@@ -1,0 +1,13 @@
+{
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild client.ts --bundle --outfile=../src/schorle/assets/bundle.js",
+    "watch": "esbuild client.ts --bundle --outfile=../src/schorle/assets/bundle.js --watch"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.17.12",
+    "typescript": "^5.2.2",
+    "yarn": "^1.22.21"
+  }
+}
