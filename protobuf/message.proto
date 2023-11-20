@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package schorle;
+
+message ReloadEvent {}
+
+
+//message Event {
+//  oneof event {
+//    ReloadEvent reload = 1;
+//  }
+//}

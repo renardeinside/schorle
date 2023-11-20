@@ -3,24 +3,24 @@ import sys
 from typing import Annotated
 
 from loguru import logger
+from schorle.app import BackendApp
+from schorle.dev import AppLoader, DevServer
+from schorle.proto_gen.schorle import ReloadEvent
 from typer import Argument, Typer
 from uvicorn import Config
 from watchfiles import awatch
-
-from schorle.app import BackendApp
-from schorle.dev import AppLoader, DevServer
 
 cli_app = Typer(name="schorle")
 
 
 @cli_app.command(name="dev")
 def dev(
-        app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
-        host: str = "0.0.0.0",
-        port: int = 4444,
+    app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
+    host: str = "0.0.0.0",
+    port: int = 4444,
 ):
     # we need two processes here - one for the app and one to watch the changes and send a reload message
-    # app is served as a uvicorn Server
+    # app is served as an uvicorn Server
     # changes are watched by watchfiles
 
     # so we can load the app from the import string
@@ -36,7 +36,6 @@ def dev(
         await dev_server.serve()
 
     async def _watch():
-
         new_instance = loader.reload_and_get_instance()
         await backend_app.reflect_routes(new_instance)
 
@@ -50,7 +49,7 @@ def dev(
             logger.info("Changes detected, reloading...")
             new_instance = loader.reload_and_get_instance()
             await backend_app.reflect_routes(new_instance)
-            await backend_app.ws.send_json({"type": "reload"})
+            await backend_app.ws.send_bytes(bytes(ReloadEvent()))
 
     async def main():
         server_task = asyncio.create_task(_serve())

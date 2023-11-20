@@ -30,6 +30,7 @@ dependencies = [
   "typer[all]",
   "loguru",
   "watchfiles",
+  "betterproto"
 ]
 
 [project.scripts]
@@ -44,7 +45,10 @@ Source = "https://github.com/unknown/schorle"
 path = "src/schorle/__about__.py"
 
 [tool.hatch.envs.default]
-dependencies = ["coverage[toml]>=6.5", "pytest"]
+dependencies = [
+  "coverage[toml]>=6.5", "pytest",
+  "betterproto[compiler]"
+]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
 test-cov = "coverage run -m pytest {args:tests}"

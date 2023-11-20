@@ -18,8 +18,9 @@ link = create_component("link")
 
 
 class Page:
-    def __init__(self, *children: VDOM):
+    def __init__(self, *children: VDOM, cls: list[str] | None = None):
         self.children = children
+        self.cls = cls
 
     def __repr__(self) -> str:
         return f"Page({[c.to_html() for c in self.children]})"
@@ -50,10 +51,10 @@ def prepare_response(func):
     async def wrapper() -> HTMLResponse:
         _page = await func()
         return HTMLResponse(
-            html(_prepared_head(), body(div(
-                *_page.children,
-                attributes={"id": "schorle-app"}
-            ))).to_html(),
+            html(
+                _prepared_head(),
+                body(div(*_page.children, attributes={"id": "schorle-app", "class": " ".join(_page.cls or [])})),
+            ).to_html(),
             status_code=200,
         )
 
@@ -80,7 +81,7 @@ class BackendApp:
         self.app.get("/_schorle/assets/bundle.js")(self._assets)
         self.app.websocket("/_schorle/ws")(self.websocket_handler)
         self.app.get("/{path:path}")(self.index)
-        self.ws = None
+        self.ws: WebSocket | None = None
         self._routes = {}
 
     async def reflect_routes(self, instance):
@@ -94,7 +95,8 @@ class BackendApp:
         await ws.accept()
         self.ws = ws
         while True:
-            _ = await ws.receive_json()
+            event = await ws.receive_bytes()
+            logger.info(f"Received event {event}")
 
     async def _assets(self) -> PlainTextResponse:
         return PlainTextResponse(_bundle.decode("utf-8"), status_code=200)
