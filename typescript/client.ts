@@ -2,6 +2,8 @@ import * as proto from "./proto_gen/protobuf/message";
 
 // create a websocket connection to the server on the origin
 const socket = new WebSocket(`ws://${window.location.host}/_schorle/ws`);
+socket.binaryType = "arraybuffer";
+
 // write a handler for the connection
 socket.onopen = () => {
     console.log("connected");
@@ -11,12 +13,12 @@ socket.onclose = () => {
 };
 
 // a handler for incoming messages
-socket.onmessage = (raw_event) => {
+socket.onmessage = async (raw_event: MessageEvent<ArrayBuffer>) => {
     // all incoming messages are protobuf encoded
     console.log(`received raw event ${raw_event.data}`);
-    let event = proto.ReloadEvent.decode(new Uint8Array(raw_event.data));
-    if (event) {
-        console.log(`reloading page ${window.location.href}`);
+    // decode the message by converting Blob to Uint8Array and then to a protobuf message
+    const event = proto.Event.decode(new Uint8Array(raw_event.data));
+    if (event.event?.reload) {
         // fetch the current page again, parse the HTML and replace the div with the id "schorle-app"
         fetch(window.location.href)
             .then((response) => response.text())
@@ -24,7 +26,6 @@ socket.onmessage = (raw_event) => {
                 const parser = new DOMParser();
                 const newDoc = parser.parseFromString(html, "text/html");
                 const app = newDoc.getElementById("schorle-app");
-                console.log(app);
                 if (app) {
                     let existingApp = document.getElementById("schorle-app");
 
@@ -38,7 +39,7 @@ socket.onmessage = (raw_event) => {
                 registerEventHandlers();
             });
     } else {
-        console.warn(`unknown event type ${raw_event.data}`);
+        console.warn(`decoded event ${JSON.stringify(event)}`);
     }
 };
 

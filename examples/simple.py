@@ -10,7 +10,7 @@ async def root():
     return Page(
         div(
             p("Example app with schorle", attributes={"class": "card-title pb-10"}),
-            # p("This is a paragraph", attributes={"class": "card-title pb-10"}),
+            p("This is a paragraph", attributes={"class": "card-title pb-10"}),
             input_(
                 attributes={
                     "id": "schorle-ranger",

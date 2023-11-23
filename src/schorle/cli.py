@@ -1,14 +1,16 @@
 import asyncio
+import datetime as dt
 import sys
 from typing import Annotated
 
 from loguru import logger
-from schorle.app import BackendApp
-from schorle.dev import AppLoader, DevServer
-from schorle.proto_gen.schorle import ReloadEvent
 from typer import Argument, Typer
 from uvicorn import Config
 from watchfiles import awatch
+
+from schorle.app import BackendApp
+from schorle.dev import AppLoader, DevServer
+from schorle.proto_gen.schorle import Event, ReloadEvent
 
 cli_app = Typer(name="schorle")
 
@@ -28,7 +30,7 @@ def dev(
     loader = AppLoader(app)
 
     backend_app = BackendApp()
-    dev_config = Config(backend_app.app, host=host, port=port, reload=False, lifespan="off")
+    dev_config = Config(backend_app.app, host=host, port=port, reload=True, lifespan="off")
     dev_server = DevServer(dev_config)
 
     async def _serve():
@@ -49,7 +51,8 @@ def dev(
             logger.info("Changes detected, reloading...")
             new_instance = loader.reload_and_get_instance()
             await backend_app.reflect_routes(new_instance)
-            await backend_app.ws.send_bytes(bytes(ReloadEvent()))
+            event = Event(reload=ReloadEvent(ts=dt.datetime.now()))
+            await backend_app.ws.send_bytes(bytes(event))
 
     async def main():
         server_task = asyncio.create_task(_serve())

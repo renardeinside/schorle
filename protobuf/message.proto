@@ -1,12 +1,16 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package schorle;
 
-message ReloadEvent {}
+message ReloadEvent {
+  google.protobuf.Timestamp ts = 1;
+}
 
 
-//message Event {
-//  oneof event {
-//    ReloadEvent reload = 1;
-//  }
-//}
+message Event {
+  oneof event {
+    ReloadEvent reload = 1;
+  }
+}
