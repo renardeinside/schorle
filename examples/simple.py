@@ -1,24 +1,39 @@
-from schorle.app import Page, Schorle
-from schorle.html import div, input_
-from schorle.proto_gen.schorle import InputChangeEvent
+from loguru import logger
+
+from schorle import Schorle, Page, div, button, p
+from schorle.html import fmt
 
 app = Schorle()
 
-
-def print_func(val: InputChangeEvent):
-    print("Received input change event", val)
+counter_signal = app.signal(0)
 
 
 @app.route("/")
-async def root():
+async def index():
+    @counter_signal.effect
+    def increment(value):
+        logger.info(f"Incrementing {value}")
+        counter_signal.set(value + 1)
+        logger.info(f"New value: {counter_signal.value}")
+
+    @counter_signal.effect
+    def clear(value):
+        logger.info(f"Clearing {value}")
+        counter_signal.set(0)
+        logger.info(f"New value: {counter_signal.value}")
+
     return Page(
         div(
-            "Sample app", cls="card-title pb-10",
+            "Sample app using Schorle",
+            div(
+                button("Click me", on_click=increment, **{"class": "btn btn-primary"}),
+                button("Clear", on_click=clear, **{"class": "btn btn-secondary"}),
+            ),
+            p(
+                fmt("Clicked {} times", counter_signal),
+                depends_on=[counter_signal],
+            ),
+            **{"class": "card w-100 bg-base-100 shadow-xl rounded-box p-10 flex h-50"}
         ),
-        input_(
-            input_type="range",
-            min="0", max="100", cls="range range-md range-primary", step="1", on_change=print_func,
-            id='schorle-range'
-        ),
-        cls="card bg-base-200 w-100 m-10 p-10",
+        **{"class": "flex flex-col items-center justify-center h-screen"}
     )

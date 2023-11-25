@@ -19,9 +19,22 @@ message InputChangeEvent {
   }
 }
 
+message ClickEvent {
+  google.protobuf.Timestamp ts = 1;
+  string id = 2;
+  string path = 3;
+}
+
+message ElementUpdateEvent {
+  string id = 1;
+  string payload = 2;
+}
+
 message Event {
   oneof event {
     ReloadEvent reload = 1;
     InputChangeEvent inputChange = 2;
+    ClickEvent click = 3;
+    ElementUpdateEvent elementUpdate = 4;
   }
 }

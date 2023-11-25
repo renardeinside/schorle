@@ -15,9 +15,10 @@ from schorle.html import (
     script,
     title,
     body,
-    Page
+    Page, Renderer, OnClickElement, BaseElement
 )
-from schorle.proto_gen.schorle import Event
+from schorle.proto_gen.schorle import Event, ElementUpdateEvent
+from schorle.signal import Signal
 
 
 def _get_integrity_hash(bundle):
@@ -43,10 +44,12 @@ def _prepared_head():
 
 def page_to_response(page: Page) -> HTMLResponse:
     _prepared = tostring(
-        html(
-            _prepared_head(),
-            body(page),
-        ).render(),
+        Renderer.render(
+            html(
+                _prepared_head(),
+                body(page),
+            )
+        ),
         pretty_print=True,
         doctype="<!DOCTYPE html>",
     ).decode("utf-8")
@@ -69,6 +72,9 @@ class Schorle:
             return func
 
         return decorator
+
+    def signal(self, init_value) -> Signal:
+        return Signal(init_value)
 
 
 class BackendApp:
@@ -94,14 +100,26 @@ class BackendApp:
         while True:
             raw_event = await ws.receive_bytes()
             event = Event().parse(raw_event)
-            if event.input_change:
-                logger.info(f"Received input change event: {event.input_change}")
-                _page = self._rendered_pages[event.input_change.path]
-                element = _page.find_by_id(event.input_change.id)
-                if element:
-                    element.on_change(event.input_change)
-                else:
-                    logger.error(f"Could not find element with id {event.input_change.id}")
+            if event.click:
+                logger.info(f"Received click event: {event.click}")
+                _page: Page = self._rendered_pages[event.click.path]
+                # find the respective element
+                element: OnClickElement = _page.find_by_id(event.click.id)
+                _signal, _func = element.on_click
+                _func(_signal.value)
+                # find dependants
+                dependants: list[BaseElement] = _page.find_dependants_of(_signal)
+                for d in dependants:
+                    logger.info(f"Found dependant: {d.element}")
+                    _rendered = tostring(Renderer.render(d)).decode("utf-8")
+                    logger.info(f"Rendered: {_rendered}")
+                    _event = Event(
+                        element_update=ElementUpdateEvent(
+                            id=d.element.attrib["id"],
+                            payload=_rendered
+                        )
+                    )
+                    await ws.send_bytes(bytes(_event))
 
     async def _assets(self) -> PlainTextResponse:
         _bundle = pkgutil.get_data("schorle", "assets/bundle.js")

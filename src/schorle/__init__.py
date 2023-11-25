@@ -1,3 +1,2 @@
-# SPDX-FileCopyrightText: 2023-present renardeinside <polarpersonal@gmail.com>
-#
-# SPDX-License-Identifier: MIT
+from schorle.app import Page, Schorle
+from schorle.html import div, button, p
