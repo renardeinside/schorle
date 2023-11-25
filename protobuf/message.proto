@@ -8,9 +8,20 @@ message ReloadEvent {
   google.protobuf.Timestamp ts = 1;
 }
 
+message InputChangeEvent {
+  google.protobuf.Timestamp ts = 1;
+  string id = 2;
+  string path = 3;
+  oneof value {
+    string text = 4;
+    int32 number = 5;
+    bool boolean = 6;
+  }
+}
 
 message Event {
   oneof event {
     ReloadEvent reload = 1;
+    InputChangeEvent inputChange = 2;
   }
 }
