@@ -7,17 +7,11 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from loguru import logger
 from lxml.etree import tostring
 
-from schorle.html import (
-    head,
-    html,
-    link,
-    meta,
-    script,
-    title,
-    body,
-    Page, Renderer, OnClickElement, BaseElement
-)
-from schorle.proto_gen.schorle import Event, ElementUpdateEvent
+from schorle.elements.base import BaseElement, OnClickElement
+from schorle.elements.html import body, head, html, link, meta, script, title
+from schorle.page import Page
+from schorle.proto_gen.schorle import ElementUpdateEvent, Event
+from schorle.renderer import Renderer
 from schorle.signal import Signal
 
 
@@ -113,12 +107,7 @@ class BackendApp:
                     logger.info(f"Found dependant: {d.element}")
                     _rendered = tostring(Renderer.render(d)).decode("utf-8")
                     logger.info(f"Rendered: {_rendered}")
-                    _event = Event(
-                        element_update=ElementUpdateEvent(
-                            id=d.element.attrib["id"],
-                            payload=_rendered
-                        )
-                    )
+                    _event = Event(element_update=ElementUpdateEvent(id=d.element.attrib["id"], payload=_rendered))
                     await ws.send_bytes(bytes(_event))
 
     async def _assets(self) -> PlainTextResponse:

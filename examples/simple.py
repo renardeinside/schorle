@@ -1,7 +1,7 @@
 from loguru import logger
 
-from schorle import Schorle, Page, div, button, p
-from schorle.html import fmt
+from schorle import Page, Schorle, button, code, div, p
+from schorle.elements.fmt import fmt
 
 app = Schorle()
 
@@ -24,16 +24,14 @@ async def index():
 
     return Page(
         div(
-            "Sample app using Schorle",
+            p("Sample app using ", code("Schorle"), **{"class": "text-center card-title"}),
             div(
                 button("Click me", on_click=increment, **{"class": "btn btn-primary"}),
                 button("Clear", on_click=clear, **{"class": "btn btn-secondary"}),
+                **{"class": "flex flex-row justify-evenly"},
             ),
-            p(
-                fmt("Clicked {} times", counter_signal),
-                depends_on=[counter_signal],
-            ),
-            **{"class": "card w-100 bg-base-100 shadow-xl rounded-box p-10 flex h-50"}
+            p(fmt("Clicked {} times", counter_signal), depends_on=[counter_signal], **{"class": "text-center"}),
+            **{"class": "card w-100 h-96 m-10 bg-base-100 shadow-xl rounded-box p-10 flex flex-column justify-between"},
         ),
-        **{"class": "flex flex-col items-center justify-center h-screen"}
+        **{"class": "flex flex-col items-center justify-center h-screen"},
     )
