@@ -1,31 +1,28 @@
-from lxml.etree import Element
+SKIP_ID_TAGS = ["html", "head", "body", "meta", "title", "link", "script"]
+
+CONTEXT = {}
 
 
 class BaseElement:
-    def __init__(self, tag, children=None, depends_on=None, **kwargs):
-        if "id" not in kwargs and tag not in ["html", "head", "body", "meta", "title", "link", "script"]:
-            kwargs["id"] = f"schorle-{tag}-{id(self)}"
-        self._element = Element(tag, **kwargs)
-        self._children = [] if children is None else children
+    def __init__(self, tag, children=None, depends_on=None, **attrs):
+
+        if "id" not in attrs and tag not in SKIP_ID_TAGS:
+            attrs["id"] = f"schorle-{tag}-{id(self)}"
+
+        self.tag = tag
+        self.children = [] if children is None else children
         self.depends_on = depends_on
+        self.attrs = attrs
 
-    @property
-    def children(self):
-        return self._children
+        if CONTEXT.get("current_element"):
+            CONTEXT["current_element"].children.append(self)
 
-    @property
-    def element(self):
-        return self._element
+    def __enter__(self):
+        CONTEXT["current_element"] = self
+        return self
 
-    def find_by_id(self, target_id):
-        if "id" in self._element.attrib and self._element.attrib["id"] == target_id:
-            return self
-
-        for child in self._children:
-            if isinstance(child, BaseElement):
-                result = child.find_by_id(target_id)
-                if result:
-                    return result
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        CONTEXT["current_element"] = None
 
 
 class OnChangeElement(BaseElement):
