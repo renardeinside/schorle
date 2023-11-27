@@ -5,6 +5,8 @@ from typing import Callable, Tuple
 from uvicorn import Server
 from uvicorn.importer import ImportFromStringError
 
+from schorle.app import Schorle
+
 
 class DevServer(Server):
     def install_signal_handlers(self) -> None:
@@ -45,9 +47,6 @@ class AppLoader:
 
         return module, instance_getter
 
-    def reload_and_get_instance(self):
+    def reload_and_get_instance(self) -> Schorle:
         _reloaded_module = importlib.reload(self.module)
         return self.instance_getter(_reloaded_module)
-
-    def load_instance(self):
-        return self.instance_getter(self.module)

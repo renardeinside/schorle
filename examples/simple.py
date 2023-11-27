@@ -5,7 +5,7 @@ from schorle.elements.fmt import fmt
 from schorle.elements.html import button, div, p
 from schorle.page import Page
 
-app = Schorle()
+app = Schorle(theme="cupcake")
 
 counter_signal = app.signal(0)
 
@@ -24,7 +24,7 @@ async def index():
         counter_signal.update(0)
         logger.info(f"New value: {counter_signal.value}")
 
-    with Page(theme="light", **{"class": "h-screen flex justify-center p-10"}) as page:
+    with Page(**{"class": "h-screen flex justify-center p-10"}) as page:
         with div(**{"class": "card h-64 w-96 bg-base-100 shadow-2xl flex justify-center"}):
             p("Schorle app", **{"class": "text-center"})
             with div(**{"class": "flex flex-row justify-evenly p-10"}):

@@ -6,6 +6,7 @@ package schorle;
 
 message ReloadEvent {
   google.protobuf.Timestamp ts = 1;
+  string theme = 2;
 }
 
 message InputChangeEvent {

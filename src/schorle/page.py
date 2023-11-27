@@ -1,49 +1,11 @@
-from typing import Iterator, Literal, Optional
+from typing import Iterator
 
 from schorle.elements.base import BaseElement
 
-Theme = Literal[
-    "light",
-    "dark",
-    "cupcake",
-    "bumblebee",
-    "emerald",
-    "corporate",
-    "synthwave",
-    "retro",
-    "cyberpunk",
-    "valentine",
-    "halloween",
-    "garden",
-    "forest",
-    "aqua",
-    "lofi",
-    "pastel",
-    "fantasy",
-    "wireframe",
-    "black",
-    "luxury",
-    "dracula",
-    "cmyk",
-    "autumn",
-    "business",
-    "acid",
-    "lemonade",
-    "night",
-    "coffee",
-    "winter",
-    "dim",
-    "nord",
-    "sunset",
-]
-
 
 class Page(BaseElement):
-    def __init__(self, theme: Optional[Theme] = None, **attrs):
+    def __init__(self, **attrs):
         attrs["id"] = "schorle-page"
-
-        if theme:
-            attrs["data-theme"] = theme
 
         super().__init__("div", **attrs)
 

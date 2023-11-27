@@ -13,13 +13,16 @@ socket.onclose = () => {
 };
 
 
-const devReload = () => {
+const devReload = (theme: string) => {
     fetch(window.location.href)
         .then((response) => response.text())
         .then((html) => {
             const parser = new DOMParser();
             const newDoc = parser.parseFromString(html, "text/html");
             const app = newDoc.getElementById("schorle-page");
+
+            // apply theme to html element data-theme attribute
+            document.documentElement.setAttribute('data-theme', theme);
             if (app) {
                 let existingApp = document.getElementById("schorle-page");
 
@@ -60,7 +63,7 @@ socket.onmessage = async (raw_event: MessageEvent<ArrayBuffer>) => {
 
     switch (event.event?.$case) {
         case 'reload':
-            devReload();
+            devReload(event.event.reload.theme);
             break;
         case 'elementUpdate':
             updateElementById(event.event.elementUpdate.id, event.event.elementUpdate.payload);

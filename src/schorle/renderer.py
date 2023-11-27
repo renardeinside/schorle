@@ -5,6 +5,7 @@ from schorle.elements.base import BaseElement
 from schorle.elements.html import body, head, html, link, meta, script, title
 from schorle.page import Page
 from schorle.signal import Signal
+from schorle.theme import Theme
 
 
 def _prepared_head():
@@ -36,14 +37,9 @@ class Renderer:
         return tostring(cls._render(base_element), pretty_print=True).decode("utf-8")
 
     @classmethod
-    def render_to_response(cls, page: Page) -> HTMLResponse:
+    def render_to_response(cls, page: Page, theme: Theme) -> HTMLResponse:
         _prepared = tostring(
-            Renderer._render(
-                html(
-                    _prepared_head(),
-                    body(page),
-                )
-            ),
+            Renderer._render(html(_prepared_head(), body(page), **{"data-theme": theme})),
             pretty_print=True,
             doctype="<!DOCTYPE html>",
         ).decode("utf-8")
