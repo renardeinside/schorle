@@ -9,9 +9,6 @@ class Page(BaseElement):
 
         super().__init__("div", **attrs)
 
-    def __call__(self, *args, **kwargs):
-        return self
-
     def find_dependants_of(self, target_signal):
         """recursive search for elements that depend on a signal"""
         dependants = []

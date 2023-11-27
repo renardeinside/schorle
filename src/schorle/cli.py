@@ -17,9 +17,9 @@ cli_app = Typer(name="schorle")
 
 @cli_app.command(name="dev")
 def dev(
-        app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
-        host: str = "0.0.0.0",
-        port: int = 4444,
+    app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
+    host: str = "0.0.0.0",
+    port: int = 4444,
 ):
     # we need two processes here - one for the app and one to watch the changes and send a reload message
     # app is served as an uvicorn Server

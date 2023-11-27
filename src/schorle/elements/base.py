@@ -1,6 +1,8 @@
+from collections import deque
+
 SKIP_ID_TAGS = ["html", "head", "body", "meta", "title", "link", "script"]
 
-CONTEXT = {}
+CONTEXT = deque()
 
 
 class BaseElement:
@@ -14,20 +16,15 @@ class BaseElement:
         self.depends_on = depends_on
         self.attrs = attrs
 
-        if CONTEXT.get("current_element"):
-            CONTEXT["current_element"].children.append(self)
+        if CONTEXT:
+            CONTEXT[-1].add(self)
 
     def __enter__(self):
-        CONTEXT["previous_element"] = CONTEXT.get("current_element")
-        CONTEXT["current_element"] = self
-        # if self.children:
-        #     msg = f"{self.tag} cannot be used with children when used as a context."
-        #     raise ValueError(msg)
+        CONTEXT.append(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        CONTEXT["current_element"] = CONTEXT.get("previous_element")
-        CONTEXT["previous_element"] = None
+        CONTEXT.pop()
 
     def add(self, *elements):
         self.children.extend(list(elements))

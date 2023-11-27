@@ -1,7 +1,7 @@
 import base64
 import hashlib
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 from schorle.signal import Signal
 from schorle.theme import Theme
