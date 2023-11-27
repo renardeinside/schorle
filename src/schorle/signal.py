@@ -8,7 +8,7 @@ class Signal:
 
         return self, wrapper
 
-    def set(self, value):
+    def update(self, value):
         self.value = value
 
     def __repr__(self):

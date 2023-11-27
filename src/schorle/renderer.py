@@ -1,7 +1,21 @@
 from lxml.etree import Element, tostring
+from starlette.responses import HTMLResponse
 
 from schorle.elements.base import BaseElement
+from schorle.elements.html import body, head, html, link, meta, script, title
+from schorle.page import Page
 from schorle.signal import Signal
+
+
+def _prepared_head():
+    return head(
+        meta(charset="utf-8"),
+        meta(name="viewport", content="width=device-width, initial-scale=1"),
+        title("Schorle"),
+        script(src="https://cdn.tailwindcss.com"),
+        script(src="/_schorle/assets/bundle.js", crossorigin="anonymous"),
+        link(href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css", rel="stylesheet", type="text/css"),
+    )
 
 
 class Renderer:
@@ -20,3 +34,21 @@ class Renderer:
     @classmethod
     def render(cls, base_element: BaseElement) -> str:
         return tostring(cls._render(base_element), pretty_print=True).decode("utf-8")
+
+    @classmethod
+    def render_to_response(cls, page: Page) -> HTMLResponse:
+        _prepared = tostring(
+            Renderer._render(
+                html(
+                    _prepared_head(),
+                    body(page),
+                )
+            ),
+            pretty_print=True,
+            doctype="<!DOCTYPE html>",
+        ).decode("utf-8")
+
+        return HTMLResponse(
+            _prepared,
+            status_code=200,
+        )

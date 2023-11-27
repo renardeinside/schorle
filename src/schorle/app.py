@@ -3,12 +3,10 @@ import hashlib
 import pkgutil
 
 from fastapi import FastAPI, WebSocket
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import PlainTextResponse
 from loguru import logger
-from lxml.etree import tostring
 
 from schorle.elements.base import BaseElement, OnClickElement
-from schorle.elements.html import body, head, html, link, meta, script, title
 from schorle.page import Page
 from schorle.proto_gen.schorle import ElementUpdateEvent, Event
 from schorle.renderer import Renderer
@@ -23,35 +21,6 @@ def _get_integrity_hash(bundle):
 
 # _bundle = pkgutil.get_data("schorle", "assets/bundle.js")
 # _integrity_hash = _get_integrity_hash(_bundle)
-
-
-def _prepared_head():
-    return head(
-        meta(charset="utf-8"),
-        meta(name="viewport", content="width=device-width, initial-scale=1"),
-        title("Schorle"),
-        script(src="https://cdn.tailwindcss.com"),
-        script(src="/_schorle/assets/bundle.js", crossorigin="anonymous"),
-        link(href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css", rel="stylesheet", type="text/css"),
-    )
-
-
-def page_to_response(page: Page) -> HTMLResponse:
-    _prepared = tostring(
-        Renderer.render(
-            html(
-                _prepared_head(),
-                body(page),
-            )
-        ),
-        pretty_print=True,
-        doctype="<!DOCTYPE html>",
-    ).decode("utf-8")
-
-    return HTMLResponse(
-        _prepared,
-        status_code=200,
-    )
 
 
 class Schorle:
@@ -98,16 +67,19 @@ class BackendApp:
                 logger.info(f"Received click event: {event.click}")
                 _page: Page = self._rendered_pages[event.click.path]
                 # find the respective element
-                element: OnClickElement = _page.find_by_id(event.click.id)
+                element: OnClickElement | None = _page.find_by_id(event.click.id)
+                if not element:
+                    logger.error(f"Could not find element with id {event.click.id}")
+                    continue
                 _signal, _func = element.on_click
                 _func(_signal.value)
                 # find dependants
                 dependants: list[BaseElement] = _page.find_dependants_of(_signal)
                 for d in dependants:
-                    logger.info(f"Found dependant: {d.element}")
-                    _rendered = tostring(Renderer.render(d)).decode("utf-8")
+                    logger.info(f"Found dependant: {d}")
+                    _rendered = Renderer.render(d)
                     logger.info(f"Rendered: {_rendered}")
-                    _event = Event(element_update=ElementUpdateEvent(id=d.element.attrib["id"], payload=_rendered))
+                    _event = Event(element_update=ElementUpdateEvent(id=d.attrs["id"], payload=_rendered))
                     await ws.send_bytes(bytes(_event))
 
     async def _assets(self) -> PlainTextResponse:
@@ -122,6 +94,6 @@ class BackendApp:
 
         page_object = await self._routes[_path]()
         self._rendered_pages[_path] = page_object
-        response = page_to_response(page_object)
+        response = Renderer.render_to_response(page_object)
         logger.info(f"Returning response: {response.body}")
         return response
