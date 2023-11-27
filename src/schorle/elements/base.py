@@ -4,12 +4,13 @@ CONTEXT = {}
 
 
 class BaseElement:
-    def __init__(self, tag, children=None, depends_on=None, **attrs):
+    def __init__(self, tag, depends_on=None, **attrs):
         if "id" not in attrs and tag not in SKIP_ID_TAGS:
             attrs["id"] = f"schorle-{tag}-{id(self)}"
 
         self.tag = tag
-        self.children = [] if children is None else list(children)
+        self.children = []
+
         self.depends_on = depends_on
         self.attrs = attrs
 
@@ -19,14 +20,17 @@ class BaseElement:
     def __enter__(self):
         CONTEXT["previous_element"] = CONTEXT.get("current_element")
         CONTEXT["current_element"] = self
-        if self.children:
-            msg = f"{self.tag} cannot be used with children when used as a context."
-            raise ValueError(msg)
+        # if self.children:
+        #     msg = f"{self.tag} cannot be used with children when used as a context."
+        #     raise ValueError(msg)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         CONTEXT["current_element"] = CONTEXT.get("previous_element")
         CONTEXT["previous_element"] = None
+
+    def add(self, *elements):
+        self.children.extend(list(elements))
 
 
 class OnChangeElement(BaseElement):
@@ -40,8 +44,8 @@ class OnChangeElement(BaseElement):
 
 
 class OnClickElement(BaseElement):
-    def __init__(self, tag, children=None, on_click=None, **kwargs):
-        super().__init__(tag, children, **kwargs)
+    def __init__(self, tag, on_click=None, **kwargs):
+        super().__init__(tag, **kwargs)
         self._on_click = on_click
 
     @property

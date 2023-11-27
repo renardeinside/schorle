@@ -1,6 +1,7 @@
 import base64
 import hashlib
-from typing import Optional
+from pathlib import Path
+from typing import Optional, List
 
 from schorle.signal import Signal
 from schorle.theme import Theme
@@ -17,9 +18,10 @@ def _get_integrity_hash(bundle):
 
 
 class Schorle:
-    def __init__(self, theme: Optional[Theme] = "dark") -> None:
+    def __init__(self, theme: Optional[Theme] = "dark", css_extras: List[Path] | None = None) -> None:
         self.routes = {}
         self.theme = theme
+        self.css_extras = css_extras
 
     def route(self, path: str):
         """Decorator to register a function as a route handler."""

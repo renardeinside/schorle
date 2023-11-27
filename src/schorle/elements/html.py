@@ -2,7 +2,17 @@ from schorle.elements.base import BaseElement, OnChangeElement, OnClickElement
 
 
 def div(*children, **attrs):
-    return BaseElement("div", children=children, **attrs)
+    element = BaseElement("div", **attrs)
+    for c in children:
+        if isinstance(c, BaseElement):
+            msg = """
+            Elements shall be added to the div using the context manager, e.g.:
+            with div():
+                p("some text")
+            """
+            raise ValueError(msg)
+    element.add(*children)
+    return element
 
 
 def input_(input_type: str, on_change, **attrs):
@@ -11,40 +21,50 @@ def input_(input_type: str, on_change, **attrs):
 
 
 def head(*children, **attrs):
-    return BaseElement("head", children=children, **attrs)
+    element = BaseElement("head", **attrs)
+    element.add(*children)
+    return element
 
 
 def html(*children, **attrs):
-    return BaseElement("html", children=children, **attrs)
+    element = BaseElement("html", **attrs)
+    element.add(*children)
+    return element
 
 
 def link(**attrs):
-    return BaseElement("link", children=None, **attrs)
+    return BaseElement("link", **attrs)
 
 
 def meta(**attrs):
-    return BaseElement("meta", children=None, **attrs)
+    return BaseElement("meta", **attrs)
 
 
 def script(**attrs):
-    return BaseElement("script", children=[""], **attrs)
+    element = BaseElement("script", **attrs)
+    element.add("")  # adding empty string to make it a proper tag
+    return element
 
 
 def title(*children, **attrs):
-    return BaseElement("title", children=children, **attrs)
+    element = BaseElement("title", **attrs)
+    element.add(*children)
+    return element
 
 
 def body(*children, **attrs):
-    return BaseElement("body", children=children, **attrs)
+    element = BaseElement("body", **attrs)
+    element.add(*children)
+    return element
 
 
 def p(*children, depends_on=None, **attrs):
-    return BaseElement("p", children=children, depends_on=depends_on, **attrs)
+    element = BaseElement("p", depends_on=depends_on, **attrs)
+    element.add(*children)
+    return element
 
 
 def button(*children, on_click, **attrs):
-    return OnClickElement("button", children=children, on_click=on_click, **attrs)
-
-
-def code(*children, **attrs):
-    return BaseElement("code", children=children, **attrs)
+    element = OnClickElement("button", on_click=on_click, **attrs)
+    element.add(*children)
+    return element

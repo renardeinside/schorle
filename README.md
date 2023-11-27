@@ -23,21 +23,11 @@ from schorle import Schorle, Page, div, button, p
 
 app = Schorle()
 
-@app.state
-class State:
-    counter: int = 0
-    
-    def increment_counter(self):
-        self.counter += 1
 
 @app.route("/")
-def index(state: State):
-    return Page(
-        div(
-            "Sample app using Schorle",
-            button("Click me", on_click=state.increment_counter),
-            p(f"You clicked me {state.counter} times")
-        ),
-        title="Hello, Schorle!",
-    )
+def index():
+    with Page() as page:
+        with div():
+            p("Hello World!")
+            button("Click me!")
 ```

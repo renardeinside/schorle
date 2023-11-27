@@ -9,14 +9,14 @@ from schorle.theme import Theme
 
 
 def _prepared_head():
-    return head(
-        meta(charset="utf-8"),
-        meta(name="viewport", content="width=device-width, initial-scale=1"),
-        title("Schorle"),
-        script(src="https://cdn.tailwindcss.com"),
-        script(src="/_schorle/assets/bundle.js", crossorigin="anonymous"),
-        link(href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css", rel="stylesheet", type="text/css"),
-    )
+    with head() as h:
+        meta(charset="utf-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1")
+        title("Schorle")
+        script(src="https://cdn.tailwindcss.com")
+        script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
+        link(href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css", rel="stylesheet", type="text/css")
+    return h
 
 
 class Renderer:
@@ -38,8 +38,14 @@ class Renderer:
 
     @classmethod
     def render_to_response(cls, page: Page, theme: Theme) -> HTMLResponse:
+        head_block = _prepared_head()
+        with html(**{"data-theme": theme}) as _html:
+            _html.add(head_block)
+            with body() as b:
+                b.add(page)
+
         _prepared = tostring(
-            Renderer._render(html(_prepared_head(), body(page), **{"data-theme": theme})),
+            Renderer._render(_html),
             pretty_print=True,
             doctype="<!DOCTYPE html>",
         ).decode("utf-8")
