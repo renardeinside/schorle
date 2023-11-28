@@ -12,8 +12,10 @@ def get_current_element():
 
 
 class BaseElement:
+    SKIP_TAGS = ["html", "head", "body", "script", "meta", "link", "title"]
+
     def __init__(self, tag, depends_on=None, **attrs):
-        if "id" not in attrs:
+        if "id" not in attrs and tag not in self.SKIP_TAGS:
             attrs["id"] = f"schorle-{tag}-{id(self)}"
 
         self._children = []
@@ -44,7 +46,7 @@ class BaseElement:
     def clear(self):
         self._children = []
 
-    def replace(self, *children):
+    def defer(self, *children):
         self.clear()
         self.add(*children)
 

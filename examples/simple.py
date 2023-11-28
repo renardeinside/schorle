@@ -4,7 +4,7 @@ from schorle.elements.html import button, div, p
 from schorle.page import Page
 from schorle.signal import Signal
 
-app = Schorle(theme="cyberpunk")
+app = Schorle(theme="dark")
 
 
 @app.route("/")
@@ -30,13 +30,27 @@ async def index():
 
         return d
 
-    with Page() as page:
+    with Page(**{"class": "h-full"}) as page:
         with div(**{"class": "text-center text-4xl m-10"}):
             p("Hello schorle!")
         with div(**{"class": "flex flex-row space-x-4 justify-center items-center"}):
             _button_group(c1)
             _button_group(c2)
-        with div(depends_on=[c1, c2]):
-            pass
+        with div(depends_on=[c1, c2], **{"class": "card m-5"}) as d:
+            def _calc():
+                return p(fmt("Sum: {}", c1.value + c2.value))
+
+            d.defer(_calc)
+
+        with div(depends_on=[c1, c2], **{"class": "card m-5"}) as d:
+            def _calc():
+                with div() as d:
+                    for i in range(c1.value):
+                        p("A")
+                    for i in range(c2.value):
+                        p("B")
+                return d
+
+            d.defer(_calc)
 
     return page
