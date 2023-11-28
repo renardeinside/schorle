@@ -3,7 +3,6 @@ import hashlib
 from pathlib import Path
 from typing import List, Optional
 
-from schorle.signal import Signal
 from schorle.theme import Theme
 
 
@@ -31,6 +30,3 @@ class Schorle:
             return func
 
         return decorator
-
-    def signal(self, init_value) -> Signal:
-        return Signal(init_value)

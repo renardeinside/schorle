@@ -1,8 +1,8 @@
 from schorle.elements.base import BaseElement, OnChangeElement, OnClickElement
 
 
-def div(*children, **attrs):
-    element = BaseElement("div", **attrs)
+def div(*children, depends_on=None, **attrs):
+    element = BaseElement("div", depends_on=depends_on, **attrs)
     for c in children:
         if isinstance(c, BaseElement):
             msg = """

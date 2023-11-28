@@ -38,6 +38,8 @@ const devReload = (theme: string) => {
 }
 
 const updateElementById = (id: string, html: string) => {
+    console.log(`updating element with id ${id} with payload ${html}`);
+
     const parser = new DOMParser();
     const newDoc = parser.parseFromString(html, "text/html");
     const element = newDoc.getElementById(id);

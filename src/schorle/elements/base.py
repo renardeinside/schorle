@@ -1,38 +1,51 @@
-from collections import deque
+from contextvars import ContextVar
+from typing import Optional
 
-SKIP_ID_TAGS = ["html", "head", "body", "meta", "title", "link", "script"]
+current_element: ContextVar[Optional["BaseElement"]] = ContextVar("current_element", default=None)
 
-CONTEXT = deque()
+
+def get_current_element():
+    try:
+        return current_element.get()
+    except LookupError:
+        return None
 
 
 class BaseElement:
     def __init__(self, tag, depends_on=None, **attrs):
-        if "id" not in attrs and tag not in SKIP_ID_TAGS:
+
+        if "id" not in attrs:
             attrs["id"] = f"schorle-{tag}-{id(self)}"
 
+        self._children = []
         self.tag = tag
-        self.children = []
-
-        self.depends_on = depends_on
         self.attrs = attrs
+        self.depends_on = depends_on
+        self.context = get_current_element()
 
-        if CONTEXT:
-            CONTEXT[-1].add(self)
+        if not self.context:
+            current_element.set(self)
+        else:
+            self.context.children.append(self)
+
+    @property
+    def children(self):
+        return self._children
 
     def __enter__(self):
-        CONTEXT.append(self)
+        current_element.set(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        CONTEXT.pop()
+        current_element.set(self.context)
 
-    def add(self, *elements):
-        self.children.extend(list(elements))
+    def add(self, *children):
+        self._children.extend(children)
 
 
 class OnChangeElement(BaseElement):
-    def __init__(self, tag, children=None, on_change=None, **kwargs):
-        super().__init__(tag, children, **kwargs)
+    def __init__(self, tag, on_change=None, **kwargs):
+        super().__init__(tag, **kwargs)
         self._on_change = on_change
 
     @property

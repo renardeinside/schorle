@@ -6,7 +6,6 @@ from schorle.elements.base import BaseElement
 class Page(BaseElement):
     def __init__(self, **attrs):
         attrs["id"] = "schorle-page"
-
         super().__init__("div", **attrs)
 
     def find_dependants_of(self, target_signal):
