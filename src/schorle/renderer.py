@@ -28,6 +28,12 @@ class Renderer:
                 element.append(cls._render(child))
             elif isinstance(child, Signal):
                 element.text = str(child.value)
+            elif callable(child):
+                _called = child()
+                if isinstance(_called, BaseElement):
+                    element.append(cls._render(_called))
+                else:
+                    element.text = str(_called)
             else:
                 element.text = str(child)
         return element

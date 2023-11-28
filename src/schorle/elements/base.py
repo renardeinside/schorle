@@ -13,7 +13,6 @@ def get_current_element():
 
 class BaseElement:
     def __init__(self, tag, depends_on=None, **attrs):
-
         if "id" not in attrs:
             attrs["id"] = f"schorle-{tag}-{id(self)}"
 
@@ -41,6 +40,13 @@ class BaseElement:
 
     def add(self, *children):
         self._children.extend(children)
+
+    def clear(self):
+        self._children = []
+
+    def replace(self, *children):
+        self.clear()
+        self.add(*children)
 
 
 class OnChangeElement(BaseElement):
