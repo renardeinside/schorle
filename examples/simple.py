@@ -1,12 +1,10 @@
-from pathlib import Path
-
 from schorle.app import Schorle
 from schorle.elements.fmt import fmt
 from schorle.elements.html import button, div, p
 from schorle.page import Page
 from schorle.signal import Signal
 
-app = Schorle(theme="synthwave", css_extras=[Path("./styles.css")])
+app = Schorle(theme="synthwave")
 
 counter_signal = Signal(0)
 
