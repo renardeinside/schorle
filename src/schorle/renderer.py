@@ -21,17 +21,20 @@ def _prepared_head():
 
 class Renderer:
     @classmethod
-    def _render(cls, base_element: BaseElement) -> Element:
+    async def _render(cls, base_element: BaseElement) -> Element:
         element = Element(base_element.tag, **base_element.attrs)
         for child in base_element.children:
             if isinstance(child, BaseElement):
-                element.append(cls._render(child))
+                _r = await cls._render(child)
+                element.append(_r)
             elif isinstance(child, Signal):
                 element.text = str(child.value)
             elif callable(child):
-                _called = child()
+                _called = await child()
                 if isinstance(_called, BaseElement):
-                    element.append(cls._render(_called))
+                    _r = await cls._render(_called)
+                    child.consistent_id = _r.attrib["id"]
+                    element.append(_r)
                 else:
                     element.text = str(_called)
             else:
@@ -39,19 +42,22 @@ class Renderer:
         return element
 
     @classmethod
-    def render(cls, base_element: BaseElement) -> str:
-        return tostring(cls._render(base_element), pretty_print=True).decode("utf-8")
+    async def render(cls, base_element: BaseElement) -> str:
+        payload = await cls._render(base_element)
+        return tostring(payload, pretty_print=True).decode("utf-8")
 
     @classmethod
-    def render_to_response(cls, page: Page, theme: Theme) -> HTMLResponse:
+    async def render_to_response(cls, page: Page, theme: Theme) -> HTMLResponse:
         head_block = _prepared_head()
         with html(**{"data-theme": theme}) as _html:
             _html.add(head_block)
             with body() as b:
                 b.add(page)
 
+        rendered = await cls._render(_html)
+
         _prepared = tostring(
-            Renderer._render(_html),
+            rendered,
             pretty_print=True,
             doctype="<!DOCTYPE html>",
         ).decode("utf-8")

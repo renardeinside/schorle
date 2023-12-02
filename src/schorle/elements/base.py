@@ -1,7 +1,8 @@
 from contextvars import ContextVar
-from typing import Optional
+from typing import ClassVar, Optional
 
 current_element: ContextVar[Optional["BaseElement"]] = ContextVar("current_element", default=None)
+target_to_func: ContextVar[dict] = ContextVar("target_to_func", default={})
 
 
 def get_current_element():
@@ -11,17 +12,26 @@ def get_current_element():
         return None
 
 
-class BaseElement:
-    SKIP_TAGS = ["html", "head", "body", "script", "meta", "link", "title"]
+def dynamic(func):
+    element = get_current_element()
+    if element:
+        element.add(func)
+    else:
+        raise ValueError("dynamic can only be used within an element context")
 
-    def __init__(self, tag, depends_on=None, **attrs):
+
+class BaseElement:
+    SKIP_TAGS: ClassVar[list[str]] = ["html", "head", "body", "script", "meta", "link", "title"]
+
+    def __init__(self, tag, **attrs):
         if "id" not in attrs and tag not in self.SKIP_TAGS:
             attrs["id"] = f"schorle-{tag}-{id(self)}"
+        if "cls" in attrs:
+            attrs["class"] = attrs.pop("cls")
 
         self._children = []
         self.tag = tag
         self.attrs = attrs
-        self.depends_on = depends_on
         self.context = get_current_element()
 
         if not self.context:
@@ -43,12 +53,15 @@ class BaseElement:
     def add(self, *children):
         self._children.extend(children)
 
-    def clear(self):
-        self._children = []
+    def __repr__(self):
+        return f"<{self.tag} {self._children} {self.attrs}>"
 
-    def defer(self, *children):
-        self.clear()
-        self.add(*children)
+    def traverse(self):
+        yield self
+        for child in self.children:
+            yield child
+            if isinstance(child, BaseElement):
+                yield from child.traverse()
 
 
 class OnChangeElement(BaseElement):
@@ -65,6 +78,9 @@ class OnClickElement(BaseElement):
     def __init__(self, tag, on_click=None, **kwargs):
         super().__init__(tag, **kwargs)
         self._on_click = on_click
+        mapper = target_to_func.get()
+        mapper[self.attrs["id"]] = on_click
+        target_to_func.set(mapper)
 
     @property
     def on_click(self):

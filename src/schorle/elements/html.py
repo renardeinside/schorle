@@ -1,8 +1,8 @@
 from schorle.elements.base import BaseElement, OnChangeElement, OnClickElement
 
 
-def div(*children, depends_on=None, **attrs):
-    element = BaseElement("div", depends_on=depends_on, **attrs)
+def div(*children, cls=None, **attrs):
+    element = BaseElement("div", cls=cls, **attrs)
     for c in children:
         if isinstance(c, BaseElement):
             msg = """
@@ -13,11 +13,6 @@ def div(*children, depends_on=None, **attrs):
             raise ValueError(msg)
     element.add(*children)
     return element
-
-
-def input_(input_type: str, on_change, **attrs):
-    attrs["type"] = input_type
-    return OnChangeElement("input", children=None, on_change=on_change, **attrs)
 
 
 def head(*children, **attrs):
@@ -58,13 +53,13 @@ def body(*children, **attrs):
     return element
 
 
-def p(*children, depends_on=None, **attrs):
-    element = BaseElement("p", depends_on=depends_on, **attrs)
+def p(*children, **attrs):
+    element = BaseElement("p", **attrs)
     element.add(*children)
     return element
 
 
-def button(*children, on_click, **attrs):
-    element = OnClickElement("button", on_click=on_click, **attrs)
+def button(*children, on_click, cls=None, **attrs):
+    element = OnClickElement("button", on_click=on_click, cls=cls, **attrs)
     element.add(*children)
     return element

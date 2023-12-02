@@ -51,6 +51,8 @@ const updateElementById = (id: string, html: string) => {
         } else {
             document.body.appendChild(element);
         }
+        // re-register all event handlers
+        registerEventHandlers();
     } else {
         console.error(`could not find element with id ${id}`);
     }
