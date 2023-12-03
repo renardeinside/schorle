@@ -2,7 +2,6 @@ from contextvars import ContextVar
 from typing import ClassVar, Optional
 
 current_element: ContextVar[Optional["BaseElement"]] = ContextVar("current_element", default=None)
-target_to_func: ContextVar[dict] = ContextVar("target_to_func", default={})
 
 
 def get_current_element():
@@ -17,7 +16,8 @@ def dynamic(func):
     if element:
         element.add(func)
     else:
-        raise ValueError("dynamic can only be used within an element context")
+        msg = "dynamic can only be used within an element context"
+        raise ValueError(msg)
 
 
 class BaseElement:
@@ -78,9 +78,8 @@ class OnClickElement(BaseElement):
     def __init__(self, tag, on_click=None, **kwargs):
         super().__init__(tag, **kwargs)
         self._on_click = on_click
-        mapper = target_to_func.get()
-        mapper[self.attrs["id"]] = on_click
-        target_to_func.set(mapper)
+        self.attrs["schorle-signal-id"] = self._on_click.signal_id
+        self.attrs["schorle-effect-id"] = self._on_click.__name__
 
     @property
     def on_click(self):

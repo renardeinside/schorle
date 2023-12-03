@@ -20,7 +20,8 @@ class AppLoader:
     @staticmethod
     def import_from_string(import_str: str) -> Tuple[ModuleType, Callable]:
         if not isinstance(import_str, str):
-            raise Exception("App coordinates should be provided as a string!")
+            msg = "Import string must be a string. Got {import_str!r} instead."
+            raise Exception(msg.format(import_str=import_str))
 
         module_str, _, attrs_str = import_str.partition(":")
         if not module_str or not attrs_str:

@@ -33,14 +33,19 @@ async def index():
             cls = "btn btn-secondary" + (" btn-disabled" if counter.value == 0 else "")
             return button("Clear", on_click=clear, cls=cls)
 
+        async def button_group():
+            with div(cls="card-actions justify-end") as d:
+                button("Increment", on_click=increment, cls="btn btn-primary")
+                dynamic(clear_button)
+            return d
+
         with div(cls="card bg-base-400 shadow-2xl p-4") as d:
             with div(cls="card-body items-center text-center"):
                 div("Hello schorle!", cls="card-title")
                 with div(cls="text-center"):
                     dynamic(view)
-                with div(cls="card-actions justify-end"):
-                    button("Increment", on_click=increment, cls="btn btn-primary")
-                    dynamic(clear_button)
+                dynamic(button_group)
+
         return d
 
     @depends(c1, c2)

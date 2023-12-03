@@ -87,16 +87,16 @@ socket.onmessage = async (raw_event: MessageEvent<ArrayBuffer>) => {
 
 
 // List of all possible events
-const events = [
-    'click',
-    // 'click', 'dblclick',
-    // 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'mouseenter', 'mouseleave',
-    // 'keydown', 'keyup', 'keypress',
-    // 'submit', 'change',
-    // 'focus', 'blur', 'copy', 'cut', 'paste',
-    // 'drag', 'dragstart', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop',
-    // 'resize', 'scroll', 'select', 'load', 'unload'
-];
+// const events = [
+//     'click',
+//     // 'click', 'dblclick',
+//     // 'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'mouseenter', 'mouseleave',
+//     // 'keydown', 'keyup', 'keypress',
+//     // 'submit', 'change',
+//     // 'focus', 'blur', 'copy', 'cut', 'paste',
+//     // 'drag', 'dragstart', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop',
+//     // 'resize', 'scroll', 'select', 'load', 'unload'
+// ];
 
 const sendEventToWebSocket = (event: MouseEvent) => {
     let target = event.target as HTMLButtonElement;
@@ -106,6 +106,8 @@ const sendEventToWebSocket = (event: MouseEvent) => {
                 $case: 'click',
                 click: {
                     id: target.id,
+                    signalId: target.getAttribute('schorle-signal-id')!,
+                    effectId: target.getAttribute('schorle-effect-id')!,
                     ts: new Date(),
                     path: window.location.pathname,
                 }

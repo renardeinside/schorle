@@ -1,4 +1,4 @@
-from schorle.elements.base import BaseElement, OnChangeElement, OnClickElement
+from schorle.elements.base import BaseElement, OnClickElement
 
 
 def div(*children, cls=None, **attrs):

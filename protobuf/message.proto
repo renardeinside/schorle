@@ -24,6 +24,8 @@ message ClickEvent {
   google.protobuf.Timestamp ts = 1;
   string id = 2;
   string path = 3;
+  string signalId = 4;
+  string effectId = 5;
 }
 
 message ElementUpdateEvent {
