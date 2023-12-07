@@ -1,14 +1,17 @@
+import asyncio
 import pkgutil
 
 from fastapi import FastAPI
 from loguru import logger
+from lxml.etree import tostring
 from starlette.responses import PlainTextResponse
 from starlette.websockets import WebSocket
 
 from schorle.app import Schorle
-from schorle.proto_gen.schorle import ElementUpdateEvent, Event
+from schorle.elements.base import BaseElement
+from schorle.handlers import ClickHandler
+from schorle.proto_gen.schorle import Event, FullUpdateEvent
 from schorle.renderer import Renderer
-from schorle.signal import SIGNALS
 
 
 class BackendApp:
@@ -43,34 +46,10 @@ class BackendApp:
         while True:
             raw_event = await ws.receive_bytes()
             event = Event().parse(raw_event)
-            if event.click:
+            logger.info(f"Received event: {event}")
+            if event.click.target_id:
                 logger.info(f"Received click event: {event.click}")
-                signals = SIGNALS.get()
-
-                logger.debug(f"Signals: {signals}")
-                signal = signals.get(event.click.signal_id)
-                logger.debug(f"Signal: {signal}")
-
-                effect = signal.effects.get(event.click.effect_id)
-
-                logger.debug(f"Effect: {effect}, executing")
-
-                await effect()
-
-                logger.debug(f"Effect: {effect}, executed")
-
-                for dependant in signal.dependants:
-                    logger.debug(f"Dependant: {dependant}")
-                    element_id = dependant.consistent_id
-                    recomputed_element = await dependant()
-                    recomputed_element.attrs["id"] = element_id
-                    logger.debug(f"Recomputed element: {recomputed_element}")
-                    logger.info(f"Sending update event for {element_id}")
-                    new_element = await Renderer.render(recomputed_element)
-                    logger.debug(f"New element: {new_element}")
-                    update_event = Event(element_update=ElementUpdateEvent(id=element_id, payload=new_element))
-                    logger.debug(f"Update event: {update_event}")
-                    await ws.send_bytes(bytes(update_event))
+                await ClickHandler.handle(event.click)
 
     async def _assets(self) -> PlainTextResponse:
         _bundle = pkgutil.get_data("schorle", "assets/bundle.js")
@@ -84,6 +63,20 @@ class BackendApp:
 
         page_object = await self._routes[_path]()
         self._rendered_pages[_path] = page_object
-        response = await Renderer.render_to_response(page_object, self._theme)
-        logger.info(f"Returning response: {response.body}")
+
+        async def _observer(element: BaseElement):
+            while not self.ws:
+                await asyncio.sleep(0.1)
+                logger.warning(f"Observer called for element: {element} but no websocket is available")
+
+            logger.info(f"Observer called for element: {element}")
+            rendered = await Renderer.render(element)
+            _prepared = tostring(rendered, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
+
+            event = Event(full_update=FullUpdateEvent(id=element.attrs["id"], html=_prepared))
+
+            logger.info(f"Sending event: {event}")
+            await self.ws.send_bytes(bytes(event))
+
+        response = await Renderer.render_to_response(page_object, self._theme, _observer)
         return response

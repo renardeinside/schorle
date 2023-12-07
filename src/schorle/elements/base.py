@@ -1,54 +1,40 @@
 from contextvars import ContextVar
-from typing import ClassVar, Optional
+from typing import Callable, ClassVar
 
-current_element: ContextVar[Optional["BaseElement"]] = ContextVar("current_element", default=None)
+from loguru import logger
 
+from schorle.reactive import Reactive
 
-def get_current_element():
-    try:
-        return current_element.get()
-    except LookupError:
-        return None
-
-
-def dynamic(func):
-    element = get_current_element()
-    if element:
-        element.add(func)
-    else:
-        msg = "dynamic can only be used within an element context"
-        raise ValueError(msg)
+onclick_mapper: ContextVar[dict[str, Callable]] = ContextVar("onclick_mapper", default={})
 
 
 class BaseElement:
     SKIP_TAGS: ClassVar[list[str]] = ["html", "head", "body", "script", "meta", "link", "title"]
 
+    @staticmethod
+    def _cls_to_class(**attrs):
+        if "cls" in attrs:
+            attrs["class"] = attrs.pop("cls")
+        return attrs
+
     def __init__(self, tag, **attrs):
         if "id" not in attrs and tag not in self.SKIP_TAGS:
             attrs["id"] = f"schorle-{tag}-{id(self)}"
-        if "cls" in attrs:
-            attrs["class"] = attrs.pop("cls")
-
         self._children = []
         self.tag = tag
-        self.attrs = attrs
-        self.context = get_current_element()
-
-        if not self.context:
-            current_element.set(self)
-        else:
-            self.context.children.append(self)
+        self.attrs = self._cls_to_class(**attrs)
+        self._subscribers = []
 
     @property
     def children(self):
         return self._children
 
     def __enter__(self):
-        current_element.set(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        current_element.set(self.context)
+        pass
+        # current_element.set(self.context)
 
     def add(self, *children):
         self._children.extend(children)
@@ -56,12 +42,30 @@ class BaseElement:
     def __repr__(self):
         return f"<{self.tag} {self._children} {self.attrs}>"
 
+    def subscribe(self, callback: Callable):
+        self._subscribers.append(callback)
+
     def traverse(self):
         yield self
         for child in self.children:
             yield child
             if isinstance(child, BaseElement):
                 yield from child.traverse()
+
+    async def update(self, *children, **attrs):
+        logger.info(f"Updating {self} with {children} and {attrs}")
+
+        if children:
+            self._children = []
+            self.add(*children)
+
+        if attrs:
+            new_attrs = self._cls_to_class(**attrs)
+            self.attrs.update(new_attrs)
+
+        logger.info(f"Notifying subscribers {self._subscribers}")
+        for sub in self._subscribers:
+            await sub(self)
 
 
 class OnChangeElement(BaseElement):
@@ -78,9 +82,15 @@ class OnClickElement(BaseElement):
     def __init__(self, tag, on_click=None, **kwargs):
         super().__init__(tag, **kwargs)
         self._on_click = on_click
-        self.attrs["schorle-signal-id"] = self._on_click.signal_id
-        self.attrs["schorle-effect-id"] = self._on_click.__name__
+        onclick_mapper.get()[self.attrs["id"]] = on_click
 
     @property
     def on_click(self):
         return self._on_click
+
+
+class InputElement(BaseElement):
+    def __init__(self, bind: Reactive, **kwargs):
+        super().__init__("input", **kwargs)
+        self.bind = bind
+        self.attrs["schorle-bind"] = bind.reactive_id

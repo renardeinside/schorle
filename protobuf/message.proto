@@ -11,26 +11,34 @@ message ReloadEvent {
 
 message InputChangeEvent {
   google.protobuf.Timestamp ts = 1;
-  string id = 2;
-  string path = 3;
-  oneof value {
-    string text = 4;
-    int32 number = 5;
-    bool boolean = 6;
-  }
+  string targetId = 2;
+  string reactiveId = 3;
+  string value = 4;
 }
 
 message ClickEvent {
   google.protobuf.Timestamp ts = 1;
-  string id = 2;
-  string path = 3;
-  string signalId = 4;
-  string effectId = 5;
+  string targetId = 2;
 }
 
-message ElementUpdateEvent {
+message AttributesUpdateEvent {
   string id = 1;
-  string payload = 2;
+  map<string, string> attributes = 2;
+}
+
+message TextContentUpdateEvent {
+  string id = 1;
+  string textContent = 2;
+}
+
+message ValueUpdateEvent {
+  string id = 1;
+  string value = 2;
+}
+
+message FullUpdateEvent {
+  string id = 1;
+  string html = 2;
 }
 
 message Event {
@@ -38,6 +46,9 @@ message Event {
     ReloadEvent reload = 1;
     InputChangeEvent inputChange = 2;
     ClickEvent click = 3;
-    ElementUpdateEvent elementUpdate = 4;
+    AttributesUpdateEvent attributesUpdate = 4;
+    TextContentUpdateEvent textContentUpdate = 5;
+    ValueUpdateEvent valueUpdate = 6;
+    FullUpdateEvent fullUpdate = 7;
   }
 }

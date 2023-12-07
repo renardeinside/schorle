@@ -1,60 +1,56 @@
+from typing import Callable, Optional
+
 from lxml.etree import Element, tostring
 from starlette.responses import HTMLResponse
 
+from schorle.component import Component
 from schorle.elements.base import BaseElement
 from schorle.elements.html import body, head, html, link, meta, script, title
 from schorle.page import Page
-from schorle.signal import Signal
 from schorle.theme import Theme
 
 
 def _prepared_head():
     with head() as h:
-        meta(charset="utf-8")
-        meta(name="viewport", content="width=device-width, initial-scale=1")
-        title("Schorle")
-        script(src="https://cdn.tailwindcss.com")
-        script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
-        link(href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css", rel="stylesheet", type="text/css")
+        h.add(meta(charset="utf-8"))
+        h.add(meta(name="viewport", content="width=device-width, initial-scale=1"))
+        h.add(title("Schorle"))
+        h.add(script(src="https://cdn.tailwindcss.com"))
+        h.add(script(src="/_schorle/assets/bundle.js", crossorigin="anonymous"))
+        h.add(
+            link(href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css", rel="stylesheet", type="text/css")
+        )
     return h
 
 
 class Renderer:
     @classmethod
-    async def _render(cls, base_element: BaseElement) -> Element:
-        element = Element(base_element.tag, **base_element.attrs)
+    async def render(cls, base_element: BaseElement, observer: Optional[Callable] = None) -> Element:
+        _cleansed_attrs = {k: v for k, v in base_element.attrs.items() if v is not None}
+        element = Element(base_element.tag, **_cleansed_attrs)
         for child in base_element.children:
             if isinstance(child, BaseElement):
-                _r = await cls._render(child)
+                if observer:
+                    child.subscribe(observer)
+
+                _r = await cls.render(child, observer)
+
                 element.append(_r)
-            elif isinstance(child, Signal):
-                element.text = str(child.value)
-            elif callable(child):
-                _called = await child()
-                if isinstance(_called, BaseElement):
-                    _r = await cls._render(_called)
-                    child.consistent_id = _r.attrib["id"]
-                    element.append(_r)
-                else:
-                    element.text = str(_called)
+            elif isinstance(child, Component):
+                _pre_rendered = await child.render()
+                _r = await cls.render(_pre_rendered, observer)
+                element.append(_r)
+
             else:
                 element.text = str(child)
         return element
 
     @classmethod
-    async def render(cls, base_element: BaseElement) -> str:
-        payload = await cls._render(base_element)
-        return tostring(payload, pretty_print=True).decode("utf-8")
+    async def render_to_response(cls, page: Page, theme: Theme, observer: Optional[Callable] = None) -> HTMLResponse:
+        _head = _prepared_head()
+        _html = html(_head, body(page), **{"data-theme": theme})
 
-    @classmethod
-    async def render_to_response(cls, page: Page, theme: Theme) -> HTMLResponse:
-        head_block = _prepared_head()
-        with html(**{"data-theme": theme}) as _html:
-            _html.add(head_block)
-            with body() as b:
-                b.add(page)
-
-        rendered = await cls._render(_html)
+        rendered = await cls.render(_html, observer)
 
         _prepared = tostring(
             rendered,

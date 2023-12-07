@@ -37,52 +37,65 @@ const devReload = (theme: string) => {
         });
 }
 
-const updateElementById = (id: string, html: string) => {
-    console.log(`updating element with id ${id} with payload ${html}`);
-
-    const parser = new DOMParser();
-    const newDoc = parser.parseFromString(html, "text/html");
-    const element = newDoc.getElementById(id);
+const updateAttributesById = (id: string, attributes: { [key: string]: string }) => {
+    const element = document.getElementById(id);
     if (element) {
-        let existingElement = document.getElementById(id);
-
-        if (existingElement) {
-            existingElement.replaceWith(element);
-        } else {
-            document.body.appendChild(element);
-        }
-        // re-register all event handlers
-        registerEventHandlers();
-    } else {
-        console.error(`could not find element with id ${id}`);
+        Object.entries(attributes).forEach(([key, value]) => {
+            element.setAttribute(key, value);
+        });
     }
+
+}
+
+const updateTextContentById = (id: string, content: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = content;
+    }
+}
+
+const updateValueById = (id: string, value: string) => {
+    const element = document.getElementById(id) as HTMLInputElement;
+    if (element) {
+        element.value = value;
+    }
+}
+
+const updateHtmlById = (id: string, html: string) => {
+    console.log(`updating html for ${id}`);
+    const element = document.getElementById(id)!;
+    const newElement = new DOMParser().parseFromString(html, "text/html").getElementById(id)!;
+    element.replaceWith(newElement);
+    // re-register all event handlers
+    registerEventHandlers();
+    console.log(`done updating html for ${id}`);
 }
 
 // a handler for incoming messages
 socket.onmessage = async (raw_event: MessageEvent<ArrayBuffer>) => {
     // all incoming messages are protobuf encoded
-    console.log(`received raw event ${raw_event.data}`);
     // decode the message by converting Blob to Uint8Array and then to a protobuf message
     const event = proto.Event.decode(new Uint8Array(raw_event.data));
-
+    console.log(`received event ${JSON.stringify(event)}`);
     switch (event.event?.$case) {
         case 'reload':
             devReload(event.event.reload.theme);
             break;
-        case 'elementUpdate':
-            updateElementById(event.event.elementUpdate.id, event.event.elementUpdate.payload);
+        case 'attributesUpdate':
+            updateAttributesById(event.event.attributesUpdate.id, event.event.attributesUpdate.attributes);
+            break;
+        case 'textContentUpdate':
+            updateTextContentById(event.event.textContentUpdate.id, event.event.textContentUpdate.textContent);
+            break;
+        case 'valueUpdate':
+            updateValueById(event.event.valueUpdate.id, event.event.valueUpdate.value);
+            break;
+        case 'fullUpdate':
+            updateHtmlById(event.event.fullUpdate.id, event.event.fullUpdate.html);
             break;
         default:
             console.warn(`decoded event ${JSON.stringify(event)}`);
     }
-
-
-    // if (event.event?.$case === 'reload') {
-    //     // fetch the current page again, parse the HTML and replace the div with the id "schorle-app"
-    //     devReload();
-    // } else {
-    //     console.warn(`decoded event ${JSON.stringify(event)}`);
-    // }
 };
 
 
@@ -98,18 +111,15 @@ socket.onmessage = async (raw_event: MessageEvent<ArrayBuffer>) => {
 //     // 'resize', 'scroll', 'select', 'load', 'unload'
 // ];
 
-const sendEventToWebSocket = (event: MouseEvent) => {
+const sendClickEvent = (event: MouseEvent) => {
     let target = event.target as HTMLButtonElement;
     let encodedEvent = proto.Event.encode(
         {
             event: {
                 $case: 'click',
                 click: {
-                    id: target.id,
-                    signalId: target.getAttribute('schorle-signal-id')!,
-                    effectId: target.getAttribute('schorle-effect-id')!,
+                    targetId: target.id,
                     ts: new Date(),
-                    path: window.location.pathname,
                 }
             }
         }
@@ -118,6 +128,26 @@ const sendEventToWebSocket = (event: MouseEvent) => {
     socket.send(encodedEvent);
 };
 
+const sendInputEvent = (event: Event) => {
+    let target = event.target as HTMLInputElement;
+
+    let encodedEvent = proto.Event.encode(
+        {
+            event: {
+                $case: 'inputChange',
+                inputChange: {
+                    targetId: target.id,
+                    reactiveId: target.getAttribute('schorle-bind')!,
+                    ts: new Date(),
+                    value: target.value,
+                }
+            }
+        }
+    ).finish();
+
+    socket.send(encodedEvent);
+
+}
 const registerEventHandlers = () => {
     console.log('registering event handlers');
     document
@@ -125,9 +155,11 @@ const registerEventHandlers = () => {
         // filter only input elements
         .forEach(element => {
             if (element instanceof HTMLButtonElement) {
-                element.onclick = (event) => {
-                    sendEventToWebSocket(event);
-                };
+                console.log(`registering click handler for ${element.id}`);
+                element.onclick = sendClickEvent;
+            } else if (element.getAttribute('schorle-bind') && element instanceof HTMLInputElement) {
+                console.log(`registering input handler for ${element.id}`);
+                element.oninput = sendInputEvent;
             }
         });
     console.log('done registering event handlers');

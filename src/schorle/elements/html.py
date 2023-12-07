@@ -1,4 +1,5 @@
-from schorle.elements.base import BaseElement, OnClickElement
+from schorle.elements.base import BaseElement, InputElement, OnClickElement
+from schorle.reactive import Reactive
 
 
 def div(*children, cls=None, **attrs):
@@ -41,6 +42,12 @@ def script(**attrs):
     return element
 
 
+def span(cls=None, **attrs):
+    element = BaseElement("span", cls=cls, **attrs)
+    element.add("")
+    return element
+
+
 def title(*children, **attrs):
     element = BaseElement("title", **attrs)
     element.add(*children)
@@ -61,5 +68,15 @@ def p(*children, **attrs):
 
 def button(*children, on_click, cls=None, **attrs):
     element = OnClickElement("button", on_click=on_click, cls=cls, **attrs)
+    element.add(*children)
+    return element
+
+
+def text_input(*children, bind: Reactive, cls=None, **attrs):
+    cls = cls + " input w-full max-w-xs" if cls else "input w-full max-w-xs"
+    attrs.update({"placeholder": "Type here"})
+    attrs.update({"type": "text"})
+    attrs.update({"class": cls})
+    element = InputElement(bind, **attrs)
     element.add(*children)
     return element
