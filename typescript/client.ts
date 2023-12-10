@@ -71,6 +71,14 @@ const updateHtmlById = (id: string, html: string) => {
     console.log(`done updating html for ${id}`);
 }
 
+const deleteElementById = (id: string) => {
+    const element = document.getElementById(id);
+    console.log(`deleting element ${id} => ${element}`)
+    if (element) {
+        element.remove();
+    }
+}
+
 // a handler for incoming messages
 socket.onmessage = async (raw_event: MessageEvent<ArrayBuffer>) => {
     // all incoming messages are protobuf encoded
@@ -93,9 +101,13 @@ socket.onmessage = async (raw_event: MessageEvent<ArrayBuffer>) => {
         case 'fullUpdate':
             updateHtmlById(event.event.fullUpdate.id, event.event.fullUpdate.html);
             break;
+        case 'elementDelete':
+            deleteElementById(event.event.elementDelete.id);
+            break;
         default:
             console.warn(`decoded event ${JSON.stringify(event)}`);
     }
+    registerEventHandlers();
 };
 
 

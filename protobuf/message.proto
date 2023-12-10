@@ -41,6 +41,10 @@ message FullUpdateEvent {
   string html = 2;
 }
 
+message ElementDeleteEvent {
+  string id = 1;
+}
+
 message Event {
   oneof event {
     ReloadEvent reload = 1;
@@ -50,5 +54,6 @@ message Event {
     TextContentUpdateEvent textContentUpdate = 5;
     ValueUpdateEvent valueUpdate = 6;
     FullUpdateEvent fullUpdate = 7;
+    ElementDeleteEvent elementDelete = 8;
   }
 }

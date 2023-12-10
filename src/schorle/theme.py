@@ -1,36 +1,36 @@
-from typing import Literal
+from enum import Enum
 
-Theme = Literal[
-    "light",
-    "dark",
-    "cupcake",
-    "bumblebee",
-    "emerald",
-    "corporate",
-    "synthwave",
-    "retro",
-    "cyberpunk",
-    "valentine",
-    "halloween",
-    "garden",
-    "forest",
-    "aqua",
-    "lofi",
-    "pastel",
-    "fantasy",
-    "wireframe",
-    "black",
-    "luxury",
-    "dracula",
-    "cmyk",
-    "autumn",
-    "business",
-    "acid",
-    "lemonade",
-    "night",
-    "coffee",
-    "winter",
-    "dim",
-    "nord",
-    "sunset",
-]
+
+class Theme(str, Enum):
+    LIGHT = "light"
+    DARK = "dark"
+    CUPCAKE = "cupcake"
+    BUMBLEBEE = "bumblebee"
+    EMERALD = "emerald"
+    CORPORATE = "corporate"
+    SYNTHWAVE = "synthwave"
+    RETRO = "retro"
+    CYBERPUNK = "cyberpunk"
+    VALENTINE = "valentine"
+    HALLOWEEN = "halloween"
+    GARDEN = "garden"
+    FOREST = "forest"
+    AQUA = "aqua"
+    LOFI = "lofi"
+    PASTEL = "pastel"
+    FANTASY = "fantasy"
+    WIREFRAME = "wireframe"
+    BLACK = "black"
+    LUXURY = "luxury"
+    DRACULA = "dracula"
+    CMYK = "cmyk"
+    AUTUMN = "autumn"
+    BUSINESS = "business"
+    ACID = "acid"
+    LEMONADE = "lemonade"
+    NIGHT = "night"
+    COFFEE = "coffee"
+    WINTER = "winter"
+    DIM = "dim"
+    NORD = "nord"
+    SUNSET = "sunset"

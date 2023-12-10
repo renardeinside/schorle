@@ -51,8 +51,9 @@ def dev(
             logger.info("Changes detected, reloading...")
             new_instance = loader.reload_and_get_instance()
             await backend_app.reflect(new_instance)
-            event = Event(reload=ReloadEvent(ts=dt.datetime.now(), theme=new_instance.theme))
+            event = Event(reload=ReloadEvent(ts=dt.datetime.now(), theme=new_instance.theme.value))
             await backend_app.ws.send_bytes(bytes(event))
+            logger.info("Reloaded")
 
     async def main():
         server_task = asyncio.create_task(_serve())
