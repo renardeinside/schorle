@@ -1,26 +1,25 @@
-import asyncio
+from pydantic import Field, computed_field
 
 from schorle.app import Schorle
-from schorle.components import Card
-from schorle.elements.html import button, p
-from schorle.page import Page
-from schorle.renderer import Renderer
-from schorle.theme import Theme
+from schorle.elements.html import Button, Page, Span
 
-app = Schorle(theme=Theme.DARK)
+app = Schorle()
 
 
-@app.route("/")
-async def index():
-    with Page() as page:
-        with page.layout:
-            with Card() as card:
-                with card.container.layout:
-                    with card.body.layout:
-                        with card.title.layout:
-                            p("Hello world").add()
-                        p("hey there").add()
-                        with card.actions.layout:
-                            button("Click me too", cls="btn btn-primary").add()
+class PageWithButton(Page):
+    second_btn: Button = Field(default_factory=Button.factory(text="Go to second page", classes="btn btn-secondary"))
+    home_btn: Button = Field(default_factory=Button.factory(text="Go to home page", classes="btn btn-primary"))
+    counter_value: int = 0
 
-    return page
+    @computed_field
+    @property
+    def counter(self) -> Span:
+        return Span(text=str(self.counter_value), classes="invisible")
+
+    def on_click(self):
+        self.counter_value += 1
+
+
+@app.get("/")
+def home() -> PageWithButton:
+    return PageWithButton()

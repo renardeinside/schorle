@@ -1,5 +1,4 @@
 import asyncio
-import datetime as dt
 import sys
 from typing import Annotated
 
@@ -10,16 +9,15 @@ from watchfiles import awatch
 
 from schorle.backend import BackendApp
 from schorle.dev import AppLoader, DevServer
-from schorle.proto_gen.schorle import Event, ReloadEvent
 
 cli_app = Typer(name="schorle")
 
 
 @cli_app.command(name="dev")
 def dev(
-    app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
-    host: str = "0.0.0.0",
-    port: int = 4444,
+        app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
+        host: str = "0.0.0.0",
+        port: int = 4444,
 ):
     # we need two processes here - one for the app and one to watch the changes and send a reload message
     # app is served as an uvicorn Server
@@ -39,21 +37,19 @@ def dev(
 
     async def _watch():
         new_instance = loader.reload_and_get_instance()
-        await backend_app.reflect(new_instance)
+        backend_app.reflect(new_instance)
 
-        while not backend_app.ws:
-            logger.info("Waiting for websocket connection")
-            await asyncio.sleep(1)
-
-        logger.info("Websocket connection established")
-
-        async for _ in awatch(".", recursive=True):
-            logger.info("Changes detected, reloading...")
+        async for _ in awatch("."):
+            logger.info("Reloading app due to changes")
             new_instance = loader.reload_and_get_instance()
-            await backend_app.reflect(new_instance)
-            event = Event(reload=ReloadEvent(ts=dt.datetime.now(), theme=new_instance.theme.value))
-            await backend_app.ws.send_bytes(bytes(event))
-            logger.info("Reloaded")
+            backend_app.reflect(new_instance)
+
+            if backend_app.dev_ws:
+                _path = backend_app.dev_ws.query_params.get("path")
+                page = new_instance.routes.get(_path)
+                await backend_app.dev_ws.send_text(page.render())
+            else:
+                logger.warning("No dev websocket connected, cannot send reload message")
 
     async def main():
         server_task = asyncio.create_task(_serve())

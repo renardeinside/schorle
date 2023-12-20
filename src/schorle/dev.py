@@ -34,7 +34,7 @@ class AppLoader:
             if exc.name != module_str:
                 raise exc from None
             message = 'Could not import module "{module_str}".'
-            raise ImportFromStringError(message.format(module_str=module_str))
+            raise ImportFromStringError(message.format(module_str=module_str)) from None
 
         def instance_getter(instance: ModuleType):
             try:
@@ -42,7 +42,7 @@ class AppLoader:
                     instance = getattr(instance, attr_str)
             except AttributeError:
                 message = 'Attribute "{attrs_str}" not found in module "{module_str}".'
-                raise ImportFromStringError(message.format(attrs_str=attrs_str, module_str=module_str))
+                raise ImportFromStringError(message.format(attrs_str=attrs_str, module_str=module_str)) from None
 
             return instance
 

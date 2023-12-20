@@ -1,85 +1,61 @@
-import asyncio
 import pkgutil
 
 from fastapi import FastAPI
 from loguru import logger
-from lxml.etree import tostring
-from starlette.responses import PlainTextResponse
+from starlette.responses import HTMLResponse, PlainTextResponse
 from starlette.websockets import WebSocket
 
 from schorle.app import Schorle
-from schorle.elements.base import Element
-from schorle.proto_gen.schorle import ElementDeleteEvent, Event, FullUpdateEvent
-from schorle.renderer import Renderer
-from schorle.theme import Theme
+from schorle.elements.html import BodyWithPageAndDeveloperTools
 
 
 class BackendApp:
-    def __init__(self) -> None:
-        self.app = FastAPI()
+    def __init__(self, app: FastAPI | None = None) -> None:
+        self.app = FastAPI() if app is None else app
         self.app.get("/_schorle/assets/bundle.js")(self._assets)
-        self.app.websocket("/_schorle/ws")(self.websocket_handler)
-        self.app.get("/{path:path}")(self.index)
-        self.ws: WebSocket | None = None
-        self._routes = {}
-        self._rendered_pages = {}
-        self._theme: Theme | None = None
-
-    async def reflect(self, instance: Schorle):
-        await self.reflect_routes(instance)
-        await self.reflect_theme(instance)
-
-    async def reflect_routes(self, instance: Schorle):
-        logger.info("Reflecting routes")
-        self._routes = {}
-        for path, func in instance.routes.items():
-            logger.info(f"Reflecting route {path} -> {func} with id {id(func)}")
-            self._routes[path] = func
-
-    async def reflect_theme(self, instance: Schorle):
-        logger.debug("Reflecting theme")
-        self._theme = instance.theme
-
-    async def websocket_handler(self, ws: WebSocket):
-        await ws.accept()
-        self.ws = ws
-        while True:
-            raw_event = await ws.receive_bytes()
-            event = Event().parse(raw_event)
-            logger.debug(f"Received event: {event}")
+        self.app.get("/{path:path}")(self._dynamic_handler)
+        self.app.websocket("/_schorle/devtools")(self._devtools_handler)
+        self._instance: Schorle | None = None
+        self.dev_ws: WebSocket | None = None
 
     @staticmethod
     async def _assets() -> PlainTextResponse:
         _bundle = pkgutil.get_data("schorle", "assets/bundle.js")
         return PlainTextResponse(_bundle.decode("utf-8"), status_code=200)
 
-    async def index(self, path: str):
-        _path = path or "/"
+    def reflect(self, new_instance: Schorle) -> None:
+        logger.debug(f"Reflecting new instance with routes: {new_instance.routes}...")
+        self._instance = new_instance
 
-        if _path not in self._routes:
-            return PlainTextResponse("Not found", status_code=404)
+    def _dynamic_handler(self, path: str) -> HTMLResponse:
+        """
+        Since FastAPI doesn't support dynamically changing routes, we have to
+        cover them with a catch-all route and handle them ourselves.
+        :param path:
+        :return:
+        """
+        _path = f"/{path}"
 
-        page_object = await self._routes[_path]()
-        self._rendered_pages[_path] = page_object
+        if self._instance is None:
+            msg = "No instance to handle dynamic path."
+            raise Exception(msg)
 
-        async def _observer(element: Element, delete: bool = False):
-            while not self.ws:
-                await asyncio.sleep(0.1)
-                logger.warning(f"Observer called for element: {element} but no websocket is available")
+        page = self._instance.routes.get(_path)
 
-            logger.debug(f"Observer called for element: {element} with delete={delete}")
+        if page is None:
+            return HTMLResponse(f"404 - Page not found: {_path}", status_code=404)
 
-            if delete:
-                event = Event(element_delete=ElementDeleteEvent(id=element.attrs["id"]))
-                await self.ws.send_bytes(bytes(event))
-            else:
-                rendered = await Renderer.render(element, _observer)
-                _prepared = tostring(rendered, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
+        return page.render_to_response(body_class=BodyWithPageAndDeveloperTools)
 
-                event = Event(full_update=FullUpdateEvent(id=element.attrs["id"], html=_prepared))
+    async def _devtools_handler(self, ws: WebSocket) -> None:
+        if self._instance is None:
+            msg = "No instance to handle devtools."
+            raise Exception(msg)
 
-                logger.info(f"Sending event: {event}")
-                await self.ws.send_bytes(bytes(event))
+        await ws.accept()
+        self.dev_ws = ws
 
-        response = Renderer.render_to_response(page_object, self._theme, _observer)
-        return response
+        async for message in self.dev_ws.iter_json():
+            logger.debug(f"Received message: {message}")
+
+        logger.debug("Closing websocket...")

@@ -11,6 +11,6 @@
     "yarn": "^1.22.21"
   },
   "dependencies": {
-    "ts-proto": "^1.164.0"
+    "htmx.org": "^1.9.9"
   }
 }
