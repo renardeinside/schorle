@@ -140,10 +140,15 @@ esbuild@^0.17.12:
     "@esbuild/win32-ia32" "0.17.19"
     "@esbuild/win32-x64" "0.17.19"
 
-htmx.org@^1.9.9:
-  version "1.9.9"
-  resolved "https://registry.yarnpkg.com/htmx.org/-/htmx.org-1.9.9.tgz#e9f94cb3e39ab249430244dc9ae168b47d610920"
-  integrity sha512-PDEZU1me7UGLzQk98LyfLvwFgdtn9mrCVMmAxv1/UjshUnxsc+rouu+Ot2QfFZxsY4mBCoOed5nK7m9Nj2Tu7g==
+htmx.org@^1.9.10:
+  version "1.9.10"
+  resolved "https://registry.yarnpkg.com/htmx.org/-/htmx.org-1.9.10.tgz#63c67e1e7a447086a3119c156f08722c624aacac"
+  integrity sha512-UgchasltTCrTuU2DQLom3ohHrBvwr7OqpwyAVJ9VxtNBng4XKkVsqrv0Qr3srqvM9ZNI3f1MmvVQQqK7KW/bTA==
+
+idiomorph@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/idiomorph/-/idiomorph-0.3.0.tgz#f6675bc5bef1a72c94021e43141a3f605d2d6288"
+  integrity sha512-UhV1Ey5xCxIwR9B+OgIjQa+1Jx99XQ1vQHUsKBU1RpQzCx1u+b+N6SOXgf5mEJDqemUI/ffccu6+71l2mJUsRA==
 
 typescript@^5.2.2:
   version "5.2.2"

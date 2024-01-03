@@ -15,9 +15,9 @@ cli_app = Typer(name="schorle")
 
 @cli_app.command(name="dev")
 def dev(
-        app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
-        host: str = "0.0.0.0",
-        port: int = 4444,
+    app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
+    host: str = "0.0.0.0",
+    port: int = 4444,
 ):
     # we need two processes here - one for the app and one to watch the changes and send a reload message
     # app is served as an uvicorn Server
@@ -47,6 +47,7 @@ def dev(
             if backend_app.dev_ws:
                 _path = backend_app.dev_ws.query_params.get("path")
                 page = new_instance.routes.get(_path)
+                page.set_subscriber(backend_app.subscriber)
                 await backend_app.dev_ws.send_text(page.render())
             else:
                 logger.warning("No dev websocket connected, cannot send reload message")

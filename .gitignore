@@ -93,3 +93,5 @@ site/
 
 typescript/node_modules/
 src/schorle/assets
+
+.dev.log.md

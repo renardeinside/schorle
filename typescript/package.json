@@ -11,6 +11,7 @@
     "yarn": "^1.22.21"
   },
   "dependencies": {
-    "htmx.org": "^1.9.9"
+    "htmx.org": "^1.9.10",
+    "idiomorph": "^0.3.0"
   }
 }
