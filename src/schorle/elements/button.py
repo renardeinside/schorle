@@ -28,8 +28,10 @@ class Button(ElementWithGeneratedId):
         If the callback is not a coroutine, it will be wrapped in one.
         """
         if not iscoroutinefunction(callback):
+
             async def _callback():
                 callback()
+
         else:
             _callback = callback
         self.on_click = _callback

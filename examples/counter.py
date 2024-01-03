@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 from schorle.app import Schorle
 from schorle.elements.button import Button
-from schorle.elements.html import Attribute, Page, Paragraph
+from schorle.elements.html import Page, Paragraph
 
 app = Schorle()
 
@@ -19,7 +19,6 @@ class State(BaseModel):
 
 class PageWithButton(Page):
     state: State = State()
-    # hx_swap: str = Attribute(default="morph:innerHTML", alias="hx-swap")
     classes: str = "space-y-4 h-screen flex flex-col justify-center items-center"
     increment_button: Button.provide(text="Increment", classes="btn btn-primary")
     decrement_button: Button.provide(text="Decrement", classes="btn btn-secondary", disabled=True)
