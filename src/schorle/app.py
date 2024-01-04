@@ -1,6 +1,6 @@
 from typing import Dict
 
-from schorle.elements.html import Page
+from schorle.elements.page import Page
 from schorle.theme import Theme
 
 

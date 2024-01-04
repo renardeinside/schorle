@@ -1,16 +1,33 @@
 import asyncio
 import pkgutil
 from asyncio import CancelledError
+from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI
 from loguru import logger
 from starlette.responses import HTMLResponse, PlainTextResponse
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocket, WebSocketState
 
 from schorle.app import Schorle
-from schorle.elements.base import Element
-from schorle.elements.html import BodyWithPageAndDeveloperTools
+from schorle.elements.base import Subscriber
+from schorle.elements.html import (
+    BodyClasses,
+    BodyWithPage,
+    BodyWithPageAndDeveloperTools,
+    EventHandler,
+    Html,
+    MorphWrapper,
+)
+from schorle.elements.page import Page
 from schorle.models import HtmxMessage
+
+
+def render_to_response(page: Page, body_class: Optional[BodyClasses] = BodyWithPage) -> HTMLResponse:
+    handler = EventHandler(content=page)
+    body = body_class(wrapper=MorphWrapper(handler=handler))
+    html = Html(body=body)
+    response = HTMLResponse(html.render(), status_code=200)
+    return response
 
 
 class BackendApp:
@@ -20,6 +37,7 @@ class BackendApp:
         self.app.get("/{path:path}")(self._dynamic_handler)
         self.app.websocket("/_schorle/devtools")(self._devtools_handler)
         self.app.websocket("/_schorle/events")(self._events_handler)
+        self.app.background_tasks = BackgroundTasks()
         self._instance: Schorle | None = None
         self.dev_ws: WebSocket | None = None
         self.events_ws: WebSocket | None = None
@@ -32,17 +50,6 @@ class BackendApp:
     def reflect(self, new_instance: Schorle) -> None:
         logger.debug(f"Reflecting new instance with routes: {new_instance.routes}...")
         self._instance = new_instance
-
-    async def subscriber(self, element: Element) -> None:
-        logger.debug(f"Event subscription called for {element.element_id}")
-
-        while not self.events_ws:
-            await asyncio.sleep(0.1)
-            logger.debug("Waiting for events websocket to be ready...")
-
-        logger.debug(f"Sending update for {element.element_id} to events websocket...")
-        new_render = element.render()
-        await self.events_ws.send_text(new_render)
 
     def _dynamic_handler(self, path: str) -> HTMLResponse:
         """
@@ -62,9 +69,7 @@ class BackendApp:
         if page is None:
             return HTMLResponse(f"404 - Page not found: {_path}", status_code=404)
 
-        page.set_subscriber(self.subscriber)
-
-        return page.render_to_response(body_class=BodyWithPageAndDeveloperTools)
+        return render_to_response(page, body_class=BodyWithPageAndDeveloperTools)
 
     async def _devtools_handler(self, ws: WebSocket) -> None:
         if self._instance is None:
@@ -89,25 +94,50 @@ class BackendApp:
         await ws.accept()
         self.events_ws = ws
 
-        try:
-            async for raw_message in self.events_ws.iter_json():
-                logger.debug(f"Received message in events socket: {raw_message}")
-                message = HtmxMessage(**raw_message)
-                _path = self.events_ws.query_params.get("path")
-                page = self._instance.routes.get(_path)
-                if page is None:
-                    logger.warning(f"Page not found: {_path}")
+        _path = self.events_ws.query_params.get("path")
+        page = self._instance.routes.get(_path)
 
-                _button = page.find_by_id(message.headers.trigger)
-                if _button is None:
-                    logger.warning(f"Button not found: {message.headers.trigger}")
+        async def _incoming_handler():
+            try:
+                async for raw_message in self.events_ws.iter_json():
+                    logger.debug(f"Received message in events socket: {raw_message}")
+                    message = HtmxMessage(**raw_message)
 
-                if _button.on_click is not None:
-                    logger.debug(f"Calling on_click handlers for button {_button.element_id}")
-                    await _button.on_click()
-                else:
-                    logger.warning(f"Button {_button} has no on_click handler")
+                    if page is None:
+                        logger.warning(f"Page not found: {_path}")
 
-        except CancelledError:
-            logger.debug("Keyboard interrupt received, closing events websocket...")
-            await self.events_ws.close()
+                    _button = page.find_by_id(message.headers.trigger)
+                    if _button is None:
+                        logger.warning(f"Button not found: {message.headers.trigger}")
+
+                    if _button.on_click is not None:
+                        logger.debug(f"Calling on_click handlers for button {_button.element_id}")
+                        await _button.on_click()
+                    else:
+                        logger.warning(f"Button {_button} has no on_click handler")
+
+            except CancelledError:
+                logger.debug("Keyboard interrupt received, closing events websocket...")
+                await self.events_ws.close()
+
+        async def _updates_handler():
+            event_subscriber = Subscriber()
+            page.subscribe(event_subscriber)
+
+            for element in page.traverse_elements(nested=True):
+                element.subscribe(event_subscriber)
+
+            async def event_subscription():
+                logger.debug("Starting event subscription...")
+
+                logger.debug("Events websocket ready, starting event sourcing...")
+
+                while self.events_ws.client_state != WebSocketState.DISCONNECTED:
+                    async for updated_element in event_subscriber:
+                        logger.debug(f"Received update for {updated_element.element_id}")
+                        new_render = updated_element.render()
+                        await self.events_ws.send_text(new_render)
+
+            await event_subscription()
+
+        await asyncio.gather(_incoming_handler(), _updates_handler())

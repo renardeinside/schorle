@@ -1,9 +1,9 @@
-from typing import Optional, Union
+from typing import Union
 
 from pydantic import Field
-from starlette.responses import HTMLResponse
 
-from schorle.elements.base import Element, ElementWithGeneratedId, Subscriber
+from schorle.elements.base import Element, ElementWithGeneratedId
+from schorle.elements.page import Page
 from schorle.elements.tags import HTMLTag
 from schorle.theme import Theme
 
@@ -85,7 +85,7 @@ class EventHandler(Element):
     element_id: str = "schorle-event-handler"
     hx_ws: str = Attribute(default="ws", alias="hx-ext")
     ws_connect: str = Attribute(default="/_schorle/events", alias="ws-connect")
-    content: "Page"
+    content: Page
 
 
 class MorphWrapper(Element):
@@ -111,29 +111,6 @@ class BodyWithPageAndDeveloperTools(BodyWithPage):
 
 
 BodyClasses = Union[type[Body], type[BodyWithPage], type[BodyWithPageAndDeveloperTools]]
-
-
-class Page(Element):
-    tag: HTMLTag = HTMLTag.DIV
-    element_id: str = "schorle-page"
-
-    def render_to_response(self, body_class: Optional[BodyClasses] = BodyWithPage) -> HTMLResponse:
-        handler = EventHandler(content=self)
-        body = body_class(wrapper=MorphWrapper(handler=handler))
-        html = Html(body=body)
-        response = HTMLResponse(html.render(), status_code=200)
-        return response
-
-    def find_by_id(self, element_id: str) -> Optional[Element]:
-        for child in self._traverse_elements(nested=True):
-            if child.element_id == element_id:
-                return child
-        return None
-
-    def set_subscriber(self, subscriber: Subscriber):
-        self._subscriber = subscriber
-        for child in self._traverse_elements(nested=True):
-            child._subscriber = subscriber
 
 
 class Paragraph(ElementWithGeneratedId):

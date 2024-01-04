@@ -1,13 +1,13 @@
-from pydantic import BaseModel
-
 from schorle.app import Schorle
+from schorle.elements.base import ObservableModel
 from schorle.elements.button import Button
-from schorle.elements.html import Page, Paragraph
+from schorle.elements.html import Div, Paragraph
+from schorle.elements.page import Page
 
 app = Schorle()
 
 
-class State(BaseModel):
+class State(ObservableModel):
     counter: int = 0
 
     def increment(self):
@@ -17,39 +17,35 @@ class State(BaseModel):
         self.counter -= 1
 
 
+class Buttons(Div):
+    classes: str = "space-x-4"
+    inc: Button.provide(text="Increment", classes="btn btn-primary")
+    dec: Button.provide(text="Decrement", classes="btn btn-secondary")
+
+
 class PageWithButton(Page):
-    state: State = State()
     classes: str = "space-y-4 h-screen flex flex-col justify-center items-center"
-    increment_button: Button.provide(text="Increment", classes="btn btn-primary")
-    decrement_button: Button.provide(text="Decrement", classes="btn btn-secondary", disabled=True)
-    counter_view: Paragraph.provide()
-
-    @property
-    def message(self):
-        return f"Clicked {self.state.counter} times"
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self.increment_button.set_callback(self._inc)
-        self.decrement_button.set_callback(self._dec)
-        self.counter_view.text = self.message
-
-    async def _inc(self):
-        self.state.increment()
-        self.counter_view.text = self.message
-        if self.state.counter > 0:
-            self.decrement_button.enable()
-        await self.update()
-
-    async def _dec(self):
-        self.state.decrement()
-        self.counter_view.text = self.message
-        if self.state.counter <= 0:
-            self.decrement_button.disable()
-        await self.update()
+    buttons: Buttons.provide()
+    counter_view: Paragraph.provide(classes="text-6xl")
 
 
 @app.get("/")
 def index():
+    state = State()
     page = PageWithButton()
+
+    async def _inc():
+        state.increment()
+        page.counter_view.text = f"Counter: {state.counter}"
+        if state.counter > 0:
+            page.buttons.dec.enable()
+
+    async def _dec():
+        state.decrement()
+        page.counter_view.text = f"Counter: {state.counter}"
+        if state.counter <= 0:
+            page.buttons.dec.disable()
+
+    page.buttons.inc.set_callback(_inc)
+    page.buttons.dec.set_callback(_dec)
     return page

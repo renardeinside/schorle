@@ -1,5 +1,6 @@
+from asyncio import Queue
 from functools import partial
-from typing import Annotated, Awaitable, Callable, Iterator, Type
+from typing import Annotated, AsyncIterator, Iterator, Type
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -9,11 +10,33 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 from schorle.elements.tags import HTMLTag
 
-# str is a key for the event, Any is the value
-Subscriber = Callable[["Element"], Awaitable[None]]
+
+class Subscriber:
+    def __init__(self):
+        self.queue: Queue = Queue()
+
+    async def __aiter__(self) -> AsyncIterator["Element"]:
+        while True:
+            yield await self.queue.get()
 
 
-class Element(BaseModel):
+class ObservableModel(BaseModel):
+    _subscribers: list[Subscriber] = PrivateAttr(default_factory=list)
+    _FIELDS_TO_SUBSCRIBE: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id"])
+
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if name in self._FIELDS_TO_SUBSCRIBE:
+            for subscriber in self._subscribers:
+                logger.info(f"Sending update to {subscriber} from {self} on {name}")
+                subscriber.queue.put_nowait(self)
+
+    def subscribe(self, subscriber: Subscriber):
+        logger.info(f"Subscribing {subscriber} to {self}")
+        self._subscribers.append(subscriber)
+
+
+class Element(ObservableModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     classes: str | None = None
     tag: HTMLTag
@@ -21,7 +44,6 @@ class Element(BaseModel):
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
     _lxml_element: LxmlElement = PrivateAttr()
-    _subscriber: Subscriber | None = PrivateAttr(default=None)
     _last_rendered: str | None = PrivateAttr(default=None)
 
     def __init__(self, **data):
@@ -47,20 +69,20 @@ class Element(BaseModel):
     def provide(cls, *args, **kwargs) -> Type["Element"]:
         return Annotated[cls, Field(default_factory=partial(cls, *args, **kwargs))]
 
-    def _traverse_elements(self, nested: bool) -> Iterator["Element"]:
+    def traverse_elements(self, *, nested: bool) -> Iterator["Element"]:
         for k, v in self.model_fields.items():
             if isinstance(v.annotation, type) and issubclass(v.annotation, Element):
                 element = getattr(self, k)
                 yield element
                 if nested:
-                    yield from element._traverse_elements(nested)
+                    yield from element.traverse_elements(nested=nested)
 
         for k, v in self.model_computed_fields.items():
             if issubclass(v.return_type, Element):
                 element = getattr(self, k)
                 yield element
                 if nested:
-                    yield from element._traverse_elements(nested)
+                    yield from element.traverse_elements(nested=nested)
 
     def render(self) -> str:
         self._lxml_element.clear()
@@ -72,7 +94,7 @@ class Element(BaseModel):
         if self.text is not None:
             self._lxml_element.text = self.text
         else:
-            for child in self._traverse_elements(nested=False):
+            for child in self.traverse_elements(nested=False):
                 child.render()
                 self._lxml_element.append(child._lxml_element)
         self._last_rendered = tostring(self._lxml_element).decode("utf-8")
@@ -81,12 +103,8 @@ class Element(BaseModel):
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.tag.value}>"
 
-    async def update(self):
-        await self._subscriber(self)
-
-    def set_subscriber(self, subscriber: Subscriber):
-        logger.debug(f"Setting subscriber for {self.element_id}")
-        self._subscriber = subscriber
+    def update_text(self, text: str):
+        self.text = text
 
 
 class ElementWithGeneratedId(Element):
