@@ -1,3 +1,4 @@
+import asyncio
 import pkgutil
 from typing import Callable
 
@@ -6,6 +7,7 @@ from loguru import logger
 from starlette.responses import HTMLResponse, PlainTextResponse
 from starlette.websockets import WebSocket
 
+from schorle.elements.base import Subscriber
 from schorle.elements.html import BodyClasses, BodyWithPageAndDeveloperTools, EventHandler, Html, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
@@ -29,7 +31,7 @@ class Schorle:
         return decorator
 
     def render_to_response(
-        self, page: Page, path: str, body_class: BodyClasses = BodyWithPageAndDeveloperTools
+            self, page: Page, path: str, body_class: BodyClasses = BodyWithPageAndDeveloperTools
     ) -> HTMLResponse:
         handler = EventHandler(content=page)
         body = body_class(wrapper=MorphWrapper(handler=handler))
@@ -55,23 +57,85 @@ class Schorle:
 
     async def _events_handler(self, ws: WebSocket) -> None:
         await ws.accept()
+
         _path = ws.query_params.get("path")
-        logger.info(f"Events connected to path: {_path}")
-        async for raw_message in ws.iter_json():
-            message = HtmxMessage(**raw_message)
-            logger.info(f"Events received message: {message}")
+
+        async def _incoming_handler():
+            logger.info(f"Events connected to path: {_path}")
+            async for raw_message in ws.iter_json():
+                message = HtmxMessage(**raw_message)
+                logger.info(f"Events received message: {message}")
+                _page = self._pages.get(_path)
+                if _page is None:
+                    logger.error(f"No page found for path: {_path}")
+                    continue
+
+                _element = _page.find_by_id(message.headers.trigger)
+                if _element is None:
+                    logger.error(f"No element found for trigger: {message.headers.trigger}")
+                    continue
+
+                if _element.on_click is not None:
+                    logger.info(f"Calling on_click handlers for element {_element.element_id}")
+                    await _element.on_click()
+
+        async def _page_updates_emitter(page: Page):
+            subscriber = Subscriber()
+
+            page.subscribe(subscriber)
+
+            for element in page.traverse_elements(nested=True):
+                element.subscribe(subscriber)
+
+            async for element in subscriber:
+                logger.info(f"Sending update for element: {element.element_id}")
+                await ws.send_text(element.render())
+
+        async def _page_binding_updates_emitter(page: Page):
+            page_routines = page.get_binds()
+            child_routines = []
+
+            for element in page.traverse_elements(nested=True):
+                child_routines.extend(element.get_binds())
+
+            binding_routines = page_routines + child_routines
+            logger.info(f"Got binding tasks: {binding_routines}")
+            binding_tasks = [asyncio.create_task(routine()) for routine in binding_routines]
+            logger.info(f"Created binding tasks: {binding_tasks}")
+            try:
+                await asyncio.gather(*binding_tasks)
+            except asyncio.CancelledError:
+                logger.info("Binding cancelled.")
+                for task in binding_tasks:
+                    task.cancel()
+
+        async def _updates_emitter():
             _page = self._pages.get(_path)
-            if _page is None:
-                logger.error(f"No page found for path: {_path}")
-                continue
+            emitter_task = asyncio.create_task(_page_updates_emitter(_page))
+            binding_task = asyncio.create_task(_page_binding_updates_emitter(_page))
+            while True:
+                try:
+                    await asyncio.sleep(0.01)  # prevent blocking
+                    _page_candidate = self._pages.get(_path)
+                    if _page != _page_candidate:
+                        logger.info(f"Page changed to {_page_candidate}")
+                        _page = _page_candidate
 
-            _element = _page.find_by_id(message.headers.trigger)
-            if _element is None:
-                logger.error(f"No element found for trigger: {message.headers.trigger}")
-                continue
+                        # cancel old tasks
+                        emitter_task.cancel()
+                        binding_task.cancel()
 
-            if _element.on_click is not None:
-                logger.info(f"Calling on_click handlers for element {_element.element_id}")
-                await _element.on_click()
+                        # create new tasks
+                        emitter_task = asyncio.create_task(_page_updates_emitter(_page))
+                        binding_task = asyncio.create_task(_page_binding_updates_emitter(_page))
+                except asyncio.CancelledError:
+                    emitter_task.cancel()
+                    binding_task.cancel()
+                    break
+
+        try:
+            await asyncio.gather(_incoming_handler(), _updates_emitter())
+        except asyncio.CancelledError:
+            logger.info("Events cancelled.")
 
         logger.info("Events disconnected.")

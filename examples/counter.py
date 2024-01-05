@@ -24,21 +24,19 @@ class Buttons(Div):
     dec: Button.provide(text="Decrement", classes="btn btn-secondary")
 
 
-class CounterView(Paragraph):
-    classes: str = "text-4xl"
-    text: str = "hey"
-
-
 class PageWithButton(Page):
     classes: str = "space-y-4 h-screen flex flex-col justify-center items-center"
     buttons: Buttons.provide()
-    counter: CounterView.provide()
+    counter: Paragraph.provide(text="Counter: 0", classes="text-6xl")
 
 
 @app.get("/")
 def index():
     state = State()
     page = PageWithButton()
+
     page.buttons.inc.set_callback(state.increment)
     page.buttons.dec.set_callback(state.decrement)
+    page.counter.bind(state, lambda s: page.counter.update_text(f"Counter: {s.counter}"))
+    page.buttons.dec.bind(state, lambda s: page.buttons.dec.disable() if s.counter <= 0 else page.buttons.dec.enable())
     return page

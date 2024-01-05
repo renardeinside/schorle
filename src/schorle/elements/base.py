@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import Queue, iscoroutinefunction
 from functools import partial
 from typing import Annotated, AsyncIterator, Callable, Iterator, Type
@@ -17,26 +18,39 @@ class Subscriber:
 
     async def __aiter__(self) -> AsyncIterator["Element"]:
         while True:
-            yield await self.queue.get()
+            try:
+                new = await asyncio.wait_for(self.queue.get(), 0.001)
+                yield new
+            except asyncio.TimeoutError:
+                continue
 
 
 class ObservableModel(BaseModel):
-    _subscribers: list[Subscriber] = PrivateAttr(default_factory=list)
-    _FIELDS_TO_SUBSCRIBE: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id"])
+    _selected_fields: list[str] = PrivateAttr(default=None)
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._subscribers: list[Subscriber] = []
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
-        if name in self._FIELDS_TO_SUBSCRIBE:
+        if not self._selected_fields or name in self._selected_fields:
             for subscriber in self._subscribers:
                 logger.info(f"Sending update to {subscriber} from {self} on {name}")
                 subscriber.queue.put_nowait(self)
+        else:
+            logger.info(f"Skipping update to {self} on {name}")
 
     def subscribe(self, subscriber: Subscriber):
         logger.info(f"Subscribing {subscriber} to {self}")
         self._subscribers.append(subscriber)
 
 
-class Element(ObservableModel):
+class ObservableElement(ObservableModel):
+    _selected_fields: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id"])
+
+
+class Element(ObservableElement):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     classes: str | None = None
     tag: HTMLTag
@@ -107,23 +121,32 @@ class Element(ObservableModel):
     def update_text(self, text: str):
         self.text = text
 
-    def bind(self, observable: ObservableModel, effect: Callable):
+    def _wrap_in_coroutine(self, effect: Callable[[ObservableModel], None]):
         # wrap the effect in a coroutine if it isn't one
-        if not iscoroutinefunction(effect):
 
-            async def _effect():
-                effect()
+        if not iscoroutinefunction(effect):
+            async def _effect(obs: ObservableModel):
+                effect(obs)
 
         else:
             _effect = effect
+        return _effect
+
+    def bind(self, observable: ObservableModel, effect: Callable):
+        # wrap the effect in a coroutine if it isn't one
+        _effect = self._wrap_in_coroutine(effect)
+
+        logger.info(f"Binding {observable} to {self} with effect {effect}")
+        subscriber = Subscriber()
+        observable.subscribe(subscriber)
 
         async def _effect_subscriber():
-            subscriber = Subscriber()
-            observable.subscribe(subscriber)
+            logger.info(f"Subscribing {observable} to {self} with effect {effect}")
             logger.info(f"Observing {observable} with effect {effect}")
             async for _ in subscriber:
                 logger.info(f"Calling effect {effect} with {observable}")
                 await _effect(observable)
+                logger.info(f"Called effect {effect} with {observable}")
             logger.info(f"Unsubscribing {observable} from {effect}")
 
         logger.info(f"Binding {observable} to {self} with effect {effect}")
