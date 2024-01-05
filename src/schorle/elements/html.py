@@ -99,11 +99,24 @@ class BodyWithPage(Body):
     wrapper: MorphWrapper.provide()
 
 
+class ToastAlert(Div):
+    element_id: str = "schorle-dev-status"
+    classes: str = "alert text-sm"
+    role: str = "alert"
+
+
+class Toast(Div):
+    classes: str = "toast toast-bottom toast-end text-center"
+    alert: ToastAlert.provide()
+
+
 class DeveloperTools(Element):
     tag: HTMLTag = HTMLTag.DIV
     element_id: str = "schorle-developer-tools"
     hx_ws: str = Attribute(default="ws", alias="hx-ext")
     ws_connect: str = Attribute(default="/_schorle/devtools", alias="ws-connect")
+    classes: str = "fixed bottom-0 right-0"
+    loading_indicator: Toast.provide()
 
 
 class BodyWithPageAndDeveloperTools(BodyWithPage):

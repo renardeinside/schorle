@@ -5,7 +5,7 @@ from schorle.elements.html import Div, Paragraph
 from schorle.elements.page import Page
 from schorle.theme import Theme
 
-app = Schorle(theme=Theme.CYBERPUNK)
+app = Schorle(theme=Theme.WINTER)
 
 
 class State(ObservableModel):
@@ -21,32 +21,24 @@ class State(ObservableModel):
 class Buttons(Div):
     classes: str = "space-x-4"
     inc: Button.provide(text="Increment", classes="btn btn-primary")
-    dec: Button.provide(text="Decrement", classes="btn btn-secondary", disabled=True)
+    dec: Button.provide(text="Decrement", classes="btn btn-secondary")
+
+
+class CounterView(Paragraph):
+    classes: str = "text-4xl"
+    text: str = "hey"
 
 
 class PageWithButton(Page):
     classes: str = "space-y-4 h-screen flex flex-col justify-center items-center"
     buttons: Buttons.provide()
-    counter_view: Paragraph.provide(classes="text-2xl", text="Counter: 0")
+    counter: CounterView.provide()
 
 
 @app.get("/")
 def index():
     state = State()
     page = PageWithButton()
-
-    async def _inc():
-        state.increment()
-        page.counter_view.text = f"Counter: {state.counter}"
-        if state.counter > 0:
-            page.buttons.dec.enable()
-
-    async def _dec():
-        state.decrement()
-        page.counter_view.text = f"Counter: {state.counter}"
-        if state.counter <= 0:
-            page.buttons.dec.disable()
-
-    page.buttons.inc.set_callback(_inc)
-    page.buttons.dec.set_callback(_dec)
+    page.buttons.inc.set_callback(state.increment)
+    page.buttons.dec.set_callback(state.decrement)
     return page

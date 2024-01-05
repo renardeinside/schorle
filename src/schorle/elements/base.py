@@ -1,6 +1,6 @@
-from asyncio import Queue
+from asyncio import Queue, iscoroutinefunction
 from functools import partial
-from typing import Annotated, AsyncIterator, Iterator, Type
+from typing import Annotated, AsyncIterator, Iterator, Type, Callable
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -49,6 +49,7 @@ class Element(ObservableModel):
     def __init__(self, **data):
         super().__init__(**data)
         self._lxml_element = LxmlElementFactory(self.tag.value)
+        self._binds: list[Callable] = []
 
     def __apply_attrs(self, attrs: dict[str, str]):
         for k, v in attrs.items():
@@ -105,6 +106,29 @@ class Element(ObservableModel):
 
     def update_text(self, text: str):
         self.text = text
+
+    def bind(self, observable: ObservableModel, effect: Callable):
+        # wrap the effect in a coroutine if it isn't one
+        if not iscoroutinefunction(effect):
+            async def _effect():
+                effect()
+        else:
+            _effect = effect
+
+        async def _effect_subscriber():
+            subscriber = Subscriber()
+            observable.subscribe(subscriber)
+            logger.info(f"Observing {observable} with effect {effect}")
+            async for _ in subscriber:
+                logger.info(f"Calling effect {effect} with {observable}")
+                await _effect(observable)
+            logger.info(f"Unsubscribing {observable} from {effect}")
+
+        logger.info(f"Binding {observable} to {self} with effect {effect}")
+        self._binds.append(_effect_subscriber)
+
+    def get_binds(self):
+        return self._binds
 
 
 class ElementWithGeneratedId(Element):
