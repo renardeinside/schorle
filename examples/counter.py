@@ -3,8 +3,9 @@ from schorle.elements.base import ObservableModel
 from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
 from schorle.elements.page import Page
+from schorle.theme import Theme
 
-app = Schorle()
+app = Schorle(theme=Theme.CYBERPUNK)
 
 
 class State(ObservableModel):
@@ -20,13 +21,13 @@ class State(ObservableModel):
 class Buttons(Div):
     classes: str = "space-x-4"
     inc: Button.provide(text="Increment", classes="btn btn-primary")
-    dec: Button.provide(text="Decrement", classes="btn btn-secondary")
+    dec: Button.provide(text="Decrement", classes="btn btn-secondary", disabled=True)
 
 
 class PageWithButton(Page):
     classes: str = "space-y-4 h-screen flex flex-col justify-center items-center"
     buttons: Buttons.provide()
-    counter_view: Paragraph.provide(classes="text-6xl")
+    counter_view: Paragraph.provide(classes="text-5xl", text="Counter: 0")
 
 
 @app.get("/")

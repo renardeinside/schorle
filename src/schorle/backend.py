@@ -1,33 +1,19 @@
 import asyncio
 import pkgutil
 from asyncio import CancelledError
-from typing import Optional
 
 from fastapi import BackgroundTasks, FastAPI
 from loguru import logger
 from starlette.responses import HTMLResponse, PlainTextResponse
-from starlette.websockets import WebSocket, WebSocketState
+from starlette.websockets import WebSocket
 
 from schorle.app import Schorle
 from schorle.elements.base import Subscriber
 from schorle.elements.html import (
-    BodyClasses,
-    BodyWithPage,
     BodyWithPageAndDeveloperTools,
-    EventHandler,
-    Html,
-    MorphWrapper,
 )
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
-
-
-def render_to_response(page: Page, body_class: Optional[BodyClasses] = BodyWithPage) -> HTMLResponse:
-    handler = EventHandler(content=page)
-    body = body_class(wrapper=MorphWrapper(handler=handler))
-    html = Html(body=body)
-    response = HTMLResponse(html.render(), status_code=200)
-    return response
 
 
 class BackendApp:
@@ -69,7 +55,7 @@ class BackendApp:
         if page is None:
             return HTMLResponse(f"404 - Page not found: {_path}", status_code=404)
 
-        return render_to_response(page, body_class=BodyWithPageAndDeveloperTools)
+        return self._instance.render_to_response(page=page, body_class=BodyWithPageAndDeveloperTools)
 
     async def _devtools_handler(self, ws: WebSocket) -> None:
         if self._instance is None:
@@ -87,6 +73,7 @@ class BackendApp:
             await self.dev_ws.close()
 
     async def _events_handler(self, ws: WebSocket) -> None:
+        logger.debug("Starting events handler...")
         if self._instance is None:
             msg = "No instance to handle events"
             raise Exception(msg)
@@ -95,14 +82,13 @@ class BackendApp:
         self.events_ws = ws
 
         _path = self.events_ws.query_params.get("path")
-        page = self._instance.routes.get(_path)
 
         async def _incoming_handler():
             try:
                 async for raw_message in self.events_ws.iter_json():
                     logger.debug(f"Received message in events socket: {raw_message}")
                     message = HtmxMessage(**raw_message)
-
+                    page = self._instance.routes.get(_path)
                     if page is None:
                         logger.warning(f"Page not found: {_path}")
 
@@ -115,29 +101,44 @@ class BackendApp:
                         await _button.on_click()
                     else:
                         logger.warning(f"Button {_button} has no on_click handler")
-
             except CancelledError:
-                logger.debug("Keyboard interrupt received, closing events websocket...")
+                logger.debug("Keyboard interrupt received, closing incoming events handler...")
                 await self.events_ws.close()
 
         async def _updates_handler():
-            event_subscriber = Subscriber()
-            page.subscribe(event_subscriber)
+            """
+            Subscribe to updates and send them to the client.
 
-            for element in page.traverse_elements(nested=True):
-                element.subscribe(event_subscriber)
+            Logic:
+            1. Listen for changes in the page instance
+            2. When page changes, stop the current subscription and add a new one
+            3. When a new update is received, send it to the client
+            """
 
-            async def event_subscription():
-                logger.debug("Starting event subscription...")
+            _current_page = self._instance.routes.get(_path)
 
-                logger.debug("Events websocket ready, starting event sourcing...")
+            async def _subscription(page: Page):
+                subscriber = Subscriber()
+                page.subscribe_to_all(subscriber)
 
-                while self.events_ws.client_state != WebSocketState.DISCONNECTED:
-                    async for updated_element in event_subscriber:
-                        logger.debug(f"Received update for {updated_element.element_id}")
-                        new_render = updated_element.render()
-                        await self.events_ws.send_text(new_render)
+                async for updated_element in subscriber:
+                    logger.debug(f"Sending update to client: {updated_element}")
+                    await self.events_ws.send_text(updated_element.render())
 
-            await event_subscription()
+            subscription_task = asyncio.create_task(_subscription(_current_page))
 
-        await asyncio.gather(_incoming_handler(), _updates_handler())
+            while True:
+                await asyncio.sleep(0.001)  # prevent blocking
+                _new_page = self._instance.routes.get(_path)
+                if _new_page != _current_page:
+                    logger.debug("Page changed, updating subscription...")
+                    _current_page = _new_page
+                    subscription_task.cancel()
+                    subscription_task = asyncio.create_task(_subscription(_current_page))
+
+        try:
+            await asyncio.gather(_incoming_handler(), _updates_handler())
+        except CancelledError:
+            logger.debug("Keyboard interrupt received, closing events websocket...")
+
+        logger.debug("Event handling websocket closed.")

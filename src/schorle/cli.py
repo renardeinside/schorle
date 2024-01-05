@@ -15,9 +15,9 @@ cli_app = Typer(name="schorle")
 
 @cli_app.command(name="dev")
 def dev(
-        app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
-        host: str = "0.0.0.0",
-        port: int = 4444,
+    app: Annotated[str, Argument(..., help='App import string in format "<module>:<attribute>')],
+    host: str = "0.0.0.0",
+    port: int = 4444,
 ):
     # we need two processes here - one for the app and one to watch the changes and send a reload message
     # app is served as an uvicorn Server
@@ -36,20 +36,19 @@ def dev(
         await dev_server.serve()
 
     async def _watch():
+        """Watch for changes in the current directory and reload the app if there are any.
+        """
+
+        # initial load
         new_instance = loader.reload_and_get_instance()
         backend_app.reflect(new_instance)
 
+        # watch for changes
         async for _ in awatch("."):
+            # reload app on change
             logger.info("Reloading app due to changes")
             new_instance = loader.reload_and_get_instance()
             backend_app.reflect(new_instance)
-
-            if backend_app.dev_ws:
-                _path = backend_app.dev_ws.query_params.get("path")
-                page = new_instance.routes.get(_path)
-                await backend_app.dev_ws.send_text(page.render())
-            else:
-                logger.warning("No dev websocket connected, cannot send reload message")
 
     async def main():
         server_task = asyncio.create_task(_serve())

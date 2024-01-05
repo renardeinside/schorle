@@ -67,7 +67,7 @@ class Body(Element):
 
 class Html(Element):
     tag: HTMLTag = HTMLTag.HTML
-    theme: Theme = Attribute(default=Theme.DARK, alias="data-theme")
+    theme: Theme = Attribute(..., alias="data-theme")
     head: Head.provide()
     body: Body.provide()
 

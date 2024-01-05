@@ -1,6 +1,6 @@
 from typing import Optional
 
-from schorle.elements.base import Element
+from schorle.elements.base import Element, Subscriber
 from schorle.elements.tags import HTMLTag
 
 
@@ -14,5 +14,10 @@ class Page(Element):
                 return child
         return None
 
-    def get_binding_tasks(self) -> list:
-        return self._binding_tasks
+    def subscribe_to_all(self, subscriber: Subscriber) -> None:
+        """
+        Subscribe to the page and all its children.
+        """
+        self.subscribe(subscriber)
+        for child in self.traverse_elements(nested=True):
+            child.subscribe(subscriber)
