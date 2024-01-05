@@ -3,7 +3,7 @@ from typing import Dict
 from loguru import logger
 from starlette.responses import HTMLResponse
 
-from schorle.elements.html import BodyClasses, BodyWithPage, EventHandler, MorphWrapper, Html
+from schorle.elements.html import BodyClasses, BodyWithPage, EventHandler, Html, MorphWrapper
 from schorle.elements.page import Page
 from schorle.theme import Theme
 

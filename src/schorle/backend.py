@@ -89,6 +89,7 @@ class BackendApp:
                     logger.debug(f"Received message in events socket: {raw_message}")
                     message = HtmxMessage(**raw_message)
                     page = self._instance.routes.get(_path)
+                    logger.info(f"Page: {page} with id: {id(page)}")
                     if page is None:
                         logger.warning(f"Page not found: {_path}")
 
@@ -118,6 +119,7 @@ class BackendApp:
             _current_page = self._instance.routes.get(_path)
 
             async def _subscription(page: Page):
+                logger.info(f"Subscribing to page: {page}")
                 subscriber = Subscriber()
                 page.subscribe_to_all(subscriber)
 
@@ -131,8 +133,12 @@ class BackendApp:
                 await asyncio.sleep(0.001)  # prevent blocking
                 _new_page = self._instance.routes.get(_path)
                 if _new_page != _current_page:
-                    logger.debug("Page changed, updating subscription...")
                     _current_page = _new_page
+                    logger.info(f"Page changed, sending new page: {_current_page}")
+                    _full_rerender = self._instance.render_to_response(
+                        page=_new_page, body_class=BodyWithPageAndDeveloperTools
+                    )
+                    await self.dev_ws.send_text(_full_rerender.body.decode("utf-8"))
                     subscription_task.cancel()
                     subscription_task = asyncio.create_task(_subscription(_current_page))
 

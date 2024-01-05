@@ -36,8 +36,7 @@ def dev(
         await dev_server.serve()
 
     async def _watch():
-        """Watch for changes in the current directory and reload the app if there are any.
-        """
+        """Watch for changes in the current directory and reload the app if there are any."""
 
         # initial load
         new_instance = loader.reload_and_get_instance()
