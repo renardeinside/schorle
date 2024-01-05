@@ -41,7 +41,7 @@ class Script(Element):
     tag: HTMLTag = HTMLTag.SCRIPT
     src: str = Attribute(default=None)
     crossorigin: str = Attribute(default=None)
-    text: str = ""
+    text: str = ""  # we always want to have a closing tag
     defer: str | None = Attribute(default=None)
 
 

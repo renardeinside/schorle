@@ -28,8 +28,9 @@ class Schorle:
 
         return decorator
 
-    def render_to_response(self, page: Page, path: str,
-                           body_class: BodyClasses = BodyWithPageAndDeveloperTools) -> HTMLResponse:
+    def render_to_response(
+        self, page: Page, path: str, body_class: BodyClasses = BodyWithPageAndDeveloperTools
+    ) -> HTMLResponse:
         handler = EventHandler(content=page)
         body = body_class(wrapper=MorphWrapper(handler=handler))
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")

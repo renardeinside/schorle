@@ -1,6 +1,6 @@
 from asyncio import Queue, iscoroutinefunction
 from functools import partial
-from typing import Annotated, AsyncIterator, Iterator, Type, Callable
+from typing import Annotated, AsyncIterator, Callable, Iterator, Type
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -110,8 +110,10 @@ class Element(ObservableModel):
     def bind(self, observable: ObservableModel, effect: Callable):
         # wrap the effect in a coroutine if it isn't one
         if not iscoroutinefunction(effect):
+
             async def _effect():
                 effect()
+
         else:
             _effect = effect
 

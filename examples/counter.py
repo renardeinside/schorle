@@ -5,7 +5,7 @@ from schorle.elements.html import Div, Paragraph
 from schorle.elements.page import Page
 from schorle.theme import Theme
 
-app = Schorle(theme=Theme.WINTER)
+app = Schorle(theme=Theme.DARK)
 
 
 class State(ObservableModel):
