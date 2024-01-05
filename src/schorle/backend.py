@@ -130,6 +130,7 @@ class BackendApp:
             subscription_task = asyncio.create_task(_subscription(_current_page))
 
             while True:
+                # todo - fix the way how page is reloaded, esp. the data-theme attribute
                 await asyncio.sleep(0.001)  # prevent blocking
                 _new_page = self._instance.routes.get(_path)
                 if _new_page != _current_page:
