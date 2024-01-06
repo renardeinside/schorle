@@ -1,10 +1,11 @@
 from asyncio import iscoroutinefunction
+from contextlib import contextmanager
 from typing import Awaitable, Callable, Optional
 
 from pydantic import Field
 
 from schorle.elements.base import ElementWithGeneratedId
-from schorle.elements.html import Attribute
+from schorle.elements.html import Attribute, Span
 from schorle.elements.tags import HTMLTag
 
 OnClick = Callable[..., Awaitable]
@@ -44,3 +45,11 @@ class Button(ElementWithGeneratedId):
     def enable(self):
         self.disabled = False
         self.classes = self.classes.replace(" btn-disabled", "")
+
+    @contextmanager
+    def suspend(self, suspense: Span = Span(classes="loading loading-lg loading-infinity")):
+        _callback = self.on_click
+        self.set_callback(lambda: None)
+        with super().suspend(suspense):
+            yield self
+        self.set_callback(_callback)

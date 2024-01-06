@@ -11,7 +11,7 @@ from starlette.responses import HTMLResponse, PlainTextResponse
 from starlette.websockets import WebSocket
 
 from schorle.elements.base import Subscriber
-from schorle.elements.html import BodyClasses, BodyWithPageAndDeveloperTools, EventHandler, Html, MorphWrapper
+from schorle.elements.html import BodyWithPage, EventHandler, Html, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
 from schorle.theme import Theme
@@ -22,7 +22,6 @@ class Schorle:
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name}")(self._assets)
-        self.backend.websocket("/_schorle/devtools")(self._devtools_handler)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
         self.theme: Theme = theme
 
@@ -37,9 +36,7 @@ class Schorle:
 
         return decorator
 
-    async def render_to_response(
-        self, page: Page, body_class: BodyClasses = BodyWithPageAndDeveloperTools
-    ) -> HTMLResponse:
+    async def render_to_response(self, page: Page) -> HTMLResponse:
         logger.info(f"Rendering page: {page}...")
         on_load_tasks = page.get_all_on_load_tasks()
 
@@ -53,10 +50,11 @@ class Schorle:
                     task.cancel()
 
         handler = EventHandler(content=page)
-        body = body_class(wrapper=MorphWrapper(handler=handler))
+        body = BodyWithPage(wrapper=MorphWrapper(handler=handler))
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
         html = Html(body=body, **{"data-theme": self.theme})
         response = HTMLResponse(html.render(), status_code=200)
+        logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
         self._pages[html.head.csrf_meta.content] = page
         logger.debug("Page rendered.")
         return response
@@ -65,22 +63,6 @@ class Schorle:
     async def _assets(file_name: str) -> PlainTextResponse:
         _bundle = pkgutil.get_data("schorle", f"assets/{file_name}")
         return PlainTextResponse(_bundle.decode("utf-8"), status_code=200)
-
-    async def _devtools_handler(self, ws: WebSocket) -> None:
-        token = ws.query_params.get("token")
-
-        if token not in self._pages:
-            logger.error(f"No page found for token: {token}")
-            await ws.close()
-            return
-
-        await ws.accept()
-
-        # just keep the connection open
-        async for _ in ws.iter_text():
-            await asyncio.sleep(0.01)  # prevent blocking
-
-        logger.info("Devtools disconnected.")
 
 
 class EventsEndpoint(WebSocketEndpoint):
@@ -99,27 +81,13 @@ class EventsEndpoint(WebSocketEndpoint):
 
         logger.info("Starting the page updates emitter...")
         async for element in subscriber:
-            logger.info("Sending page updates to client...")
-            await ws.send_text(element.render())
+            rendered = element.render()
+            logger.info(f"Sending page updates to client: {rendered}")
+            await ws.send_text(rendered)
 
     async def _binding_updates_emitter(self) -> None:
         binding_tasks = self._page.get_all_binding_tasks()
-        logger.info(f"Got binding tasks: {binding_tasks}, starting...")
         await asyncio.gather(*binding_tasks)
-
-    async def _events_handler(self, ws: WebSocket) -> None:
-        await ws.accept()
-        token = ws.query_params.get("token")
-
-        logger.info(f"Main events handler triggered with token: {token}")
-        page = self._pages.get(token)
-
-        if not page:
-            logger.error(f"No page found for token: {token}")
-            await ws.close()
-            return
-
-        logger.info("Events disconnected.")
 
     async def on_connect(self, websocket: WebSocket) -> None:
         token = websocket.query_params.get("token")
@@ -136,7 +104,7 @@ class EventsEndpoint(WebSocketEndpoint):
         logger.info("Events connected.")
 
     async def on_receive(self, _: WebSocket, data: str) -> None:
-        logger.info(f"Events received message: {data}")
+        logger.warning(f"Events received message: {data}")
         message = HtmxMessage(**json.loads(data))
 
         _element = self._page.find_by_id(message.headers.trigger)

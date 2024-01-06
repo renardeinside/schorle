@@ -1,5 +1,6 @@
 import asyncio
 from asyncio import Queue, iscoroutinefunction
+from contextlib import contextmanager
 from functools import partial
 from typing import Annotated, Callable, Iterator, Type
 
@@ -33,16 +34,14 @@ class ObservableModel(BaseModel):
         super().__setattr__(name, value)
         if not self._selected_fields or name in self._selected_fields:
             for subscriber in self._subscribers:
-                logger.info(f"Sending update to {subscriber} from {self} on {name}")
                 subscriber.queue.put_nowait(self)
 
     def subscribe(self, subscriber: Subscriber):
-        logger.info(f"Subscribing {subscriber} to {self}")
         self._subscribers.append(subscriber)
 
 
 class ObservableElement(ObservableModel):
-    _selected_fields: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id"])
+    _selected_fields: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id", "_suspend"])
 
 
 class Element(ObservableElement):
@@ -52,29 +51,22 @@ class Element(ObservableElement):
     text: str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
-    _lxml_element: LxmlElement = PrivateAttr()
     _last_rendered: str | None = PrivateAttr(default=None)
 
     def __init__(self, **data):
         super().__init__(**data)
-        self._lxml_element = LxmlElementFactory(self.tag.value)
+        self._suspense = None
         self._binds: list[Callable] = []
         self._on_loads: list[Callable] = []
+        self._suspend: bool = False
 
-    def __apply_attrs(self, attrs: dict[str, str]):
-        for k, v in attrs.items():
-            if v is not None:
-                self._lxml_element.set(k, v)
-
-    def _find_and_apply_attrs(self):
-        _attrs = {
+    @property
+    def attrs(self):
+        return {
             v.alias if v.alias else k: getattr(self, k)
             for k, v in self.model_fields.items()
             if v.json_schema_extra and v.json_schema_extra.get("attribute")
         }
-        self.__apply_attrs(_attrs)
-        if self.classes is not None:
-            self._lxml_element.set("class", self.classes)
 
     @classmethod
     def provide(cls, *args, **kwargs) -> Type["Element"]:
@@ -95,20 +87,47 @@ class Element(ObservableElement):
                 if nested:
                     yield from element.traverse_elements(nested=nested)
 
-    def render(self) -> str:
-        self._lxml_element.clear()
+    @contextmanager
+    def suspend(self, suspense: "Element"):
+        # todo - passing suspense as an element through the instance state is a bit hacky
+        logger.debug(f"Suspending {self}")
+        self._suspend = True
+        self._suspense = suspense
+        yield self
+        logger.debug(f"Un-suspending {self}")
+        self._suspend = False
+
+    def get_element(self, *, suspended: bool = False) -> LxmlElement:
+        element = LxmlElementFactory(self.tag.value)
+
         if self.element_id is not None:
-            self._lxml_element.set("id", self.element_id)
+            element.set("id", self.element_id)
+
         if self.style is not None:
-            self._lxml_element.set("style", ";".join([f"{k}:{v}" for k, v in self.style.items()]))
-        self._find_and_apply_attrs()
-        if self.text is not None:
-            self._lxml_element.text = self.text
+            element.set("style", ";".join([f"{k}:{v}" for k, v in self.style.items()]))
+
+        if self.classes is not None:
+            element.set("class", self.classes)
+
+        if suspended:
+            element.append(self._suspense.get_element())
         else:
-            for child in self.traverse_elements(nested=False):
-                child.render()
-                self._lxml_element.append(child._lxml_element)
-        self._last_rendered = tostring(self._lxml_element).decode("utf-8")
+            for k, v in self.attrs.items():
+                if v is not None:
+                    element.set(k, v)
+            if self.text is not None:
+                element.text = self.text
+            else:
+                for child in self.traverse_elements(nested=False):
+                    element.append(child.get_element())
+
+        return element
+
+    def render(self) -> str:
+        logger.info(f"Rendering element {self}")
+        element = self.get_element(suspended=self._suspend)
+        self._last_rendered = tostring(element).decode("utf-8")
+        logger.info(f"Rendered element {self} to {self._last_rendered}")
         return self._last_rendered
 
     def __repr__(self):
@@ -138,13 +157,13 @@ class Element(ObservableElement):
         observable.subscribe(subscriber)
 
         async def _effect_subscriber():
-            logger.info(f"Subscribing {observable} to {self} with effect {effect}")
-            logger.info(f"Observing {observable} with effect {effect}")
+            # logger.info(f"Subscribing {observable} to {self} with effect {effect}")
+            # logger.info(f"Observing {observable} with effect {effect}")
             async for _ in subscriber:
                 logger.info(f"Calling effect {effect} with {observable}")
                 await _effect(observable)
                 logger.info(f"Called effect {effect} with {observable}")
-            logger.info(f"Unsubscribing {observable} from {effect}")
+            # logger.info(f"Unsubscribing {observable} from {effect}")
 
         self._binds.append(_effect_subscriber)
 

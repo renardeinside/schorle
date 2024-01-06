@@ -1,4 +1,3 @@
-from typing import Union
 from uuid import uuid4
 
 from pydantic import Field
@@ -63,7 +62,7 @@ class Head(Element):
     )
     tailwind: Script.provide(src="https://cdn.tailwindcss.com")
     htmx: Script.provide(src="/_schorle/assets/htmx.js", crossorigin="anonymous")
-    htmx_ws: Script.provide(src="https://unpkg.com/htmx.org/dist/ext/ws.js", crossorigin="anonymous")
+    htmx_ws: Script.provide(src="_schorle/assets/ws.js", crossorigin="anonymous")
     idiomorph: Script.provide(src="/_schorle/assets/idiomorph.js", crossorigin="anonymous")
     idiomorph_htmx: Script.provide(src="/_schorle/assets/idiomorph-htmx.js", crossorigin="anonymous")
     bundle: Script.provide(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
@@ -82,10 +81,6 @@ class Html(Element):
 
 class Div(ElementWithGeneratedId):
     tag: HTMLTag = HTMLTag.DIV
-
-
-class Span(ElementWithGeneratedId):
-    tag: HTMLTag = HTMLTag.SPAN
 
 
 class EventHandler(Element):
@@ -107,32 +102,9 @@ class BodyWithPage(Body):
     wrapper: MorphWrapper.provide()
 
 
-class ToastAlert(Div):
-    element_id: str = "schorle-dev-status"
-    classes: str = "alert text-sm"
-    role: str = "alert"
-
-
-class Toast(Div):
-    classes: str = "toast toast-bottom toast-end text-center"
-    alert: ToastAlert.provide()
-
-
-class DeveloperTools(Element):
-    tag: HTMLTag = HTMLTag.DIV
-    element_id: str = "schorle-developer-tools"
-    hx_ws: str = Attribute(default="ws", alias="hx-ext")
-    ws_connect: str = Attribute(default="/_schorle/devtools", alias="ws-connect")
-    classes: str = "fixed bottom-0 right-0"
-    loading_indicator: Toast.provide()
-
-
-class BodyWithPageAndDeveloperTools(BodyWithPage):
-    developer_tools: DeveloperTools.provide()
-
-
-BodyClasses = Union[type[Body], type[BodyWithPage], type[BodyWithPageAndDeveloperTools]]
-
-
 class Paragraph(ElementWithGeneratedId):
     tag: HTMLTag = HTMLTag.P
+
+
+class Span(ElementWithGeneratedId):
+    tag: HTMLTag = HTMLTag.SPAN
