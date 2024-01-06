@@ -1,4 +1,5 @@
 from typing import Union
+from uuid import uuid4
 
 from pydantic import Field
 
@@ -45,10 +46,17 @@ class Script(Element):
     defer: str | None = Attribute(default=None)
 
 
+class CSRFMeta(Meta):
+    tag: HTMLTag = HTMLTag.META
+    name: str = Attribute(default="schorle-csrf-token")
+    content: str = Attribute(default_factory=lambda: str(uuid4()))
+
+
 class Head(Element):
     tag: HTMLTag = HTMLTag.HEAD
     charset_meta: Meta.provide(charset="utf-8")
     viewport_meta: Meta.provide(name="viewport", content="width=device-width, initial-scale=1")
+    csrf_meta: CSRFMeta.provide()
     title: Title.provide()
     daisy_ui: Link.provide(
         href="https://cdn.jsdelivr.net/npm/daisyui@4.4.22/dist/full.min.css", rel="stylesheet", type="text/css"

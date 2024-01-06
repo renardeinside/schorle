@@ -1,7 +1,7 @@
 import asyncio
 from asyncio import Queue, iscoroutinefunction
 from functools import partial
-from typing import Annotated, AsyncIterator, Callable, Iterator, Type
+from typing import Annotated, Callable, Iterator, Type
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -16,13 +16,10 @@ class Subscriber:
     def __init__(self):
         self.queue: Queue = Queue()
 
-    async def __aiter__(self) -> AsyncIterator["Element"]:
+    async def __aiter__(self):
         while True:
-            try:
-                new = await asyncio.wait_for(self.queue.get(), 0.001)
-                yield new
-            except asyncio.TimeoutError:
-                continue
+            await asyncio.sleep(0)  # prevent blocking
+            yield await self.queue.get()
 
 
 class ObservableModel(BaseModel):
@@ -38,8 +35,6 @@ class ObservableModel(BaseModel):
             for subscriber in self._subscribers:
                 logger.info(f"Sending update to {subscriber} from {self} on {name}")
                 subscriber.queue.put_nowait(self)
-        else:
-            logger.info(f"Skipping update to {self} on {name}")
 
     def subscribe(self, subscriber: Subscriber):
         logger.info(f"Subscribing {subscriber} to {self}")
@@ -64,6 +59,7 @@ class Element(ObservableElement):
         super().__init__(**data)
         self._lxml_element = LxmlElementFactory(self.tag.value)
         self._binds: list[Callable] = []
+        self._on_loads: list[Callable] = []
 
     def __apply_attrs(self, attrs: dict[str, str]):
         for k, v in attrs.items():
@@ -125,6 +121,7 @@ class Element(ObservableElement):
         # wrap the effect in a coroutine if it isn't one
 
         if not iscoroutinefunction(effect):
+
             async def _effect(obs: ObservableModel):
                 effect(obs)
 
@@ -132,11 +129,11 @@ class Element(ObservableElement):
             _effect = effect
         return _effect
 
-    def bind(self, observable: ObservableModel, effect: Callable):
+    def bind(self, observable: ObservableModel, effect: Callable, *, on_load: bool = False):
         # wrap the effect in a coroutine if it isn't one
         _effect = self._wrap_in_coroutine(effect)
 
-        logger.info(f"Binding {observable} to {self} with effect {effect}")
+        # logger.info(f"Binding {observable} to {self} with effect {effect}")
         subscriber = Subscriber()
         observable.subscribe(subscriber)
 
@@ -149,11 +146,16 @@ class Element(ObservableElement):
                 logger.info(f"Called effect {effect} with {observable}")
             logger.info(f"Unsubscribing {observable} from {effect}")
 
-        logger.info(f"Binding {observable} to {self} with effect {effect}")
         self._binds.append(_effect_subscriber)
+
+        if on_load:
+            self._on_loads.append(partial(_effect, observable))
 
     def get_binds(self):
         return self._binds
+
+    def get_on_loads(self):
+        return self._on_loads
 
 
 class ElementWithGeneratedId(Element):
