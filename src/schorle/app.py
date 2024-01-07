@@ -1,6 +1,8 @@
 import asyncio
 import json
 import pkgutil
+import sys
+from enum import Enum
 from functools import partial
 from typing import Callable
 
@@ -11,10 +13,24 @@ from starlette.responses import HTMLResponse, PlainTextResponse
 from starlette.websockets import WebSocket
 
 from schorle.elements.base import Subscriber
-from schorle.elements.html import BodyWithPage, EventHandler, Html, MorphWrapper
+from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
 from schorle.theme import Theme
+
+
+class RunningMode(str, Enum):
+    UVICORN_DEV = "uvicorn_dev"
+    PRODUCTION = "production"
+
+
+def _get_running_mode() -> RunningMode:
+    # if uvicorn and --reload are in sys.argv, we are running in uvicorn dev mode
+    _joined_argv = " ".join(sys.argv)
+    if "uvicorn" in _joined_argv and "--reload" in _joined_argv:
+        return RunningMode.UVICORN_DEV
+    else:
+        return RunningMode.PRODUCTION
 
 
 class Schorle:
@@ -24,6 +40,16 @@ class Schorle:
         self.backend.get("/_schorle/assets/{file_name:path}")(self._assets)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
         self.theme: Theme = theme
+        self._running_mode: RunningMode = _get_running_mode()
+        logger.info(f"Running in mode: {self._running_mode}")
+        if self._running_mode == RunningMode.UVICORN_DEV:
+            self.backend.websocket("/_schorle/dev/ws")(self._dev_handler)
+
+    async def _dev_handler(self, ws: WebSocket):
+        logger.info("Dev websocket connected.")
+        await ws.accept()
+        async for _ in ws.iter_text():
+            await asyncio.sleep(0.1)  # keep connection alive
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
@@ -50,9 +76,15 @@ class Schorle:
         body = BodyWithPage(wrapper=MorphWrapper(handler=handler))
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
         html = Html(body=body, **{"data-theme": self.theme})
+
+        if self._running_mode == RunningMode.UVICORN_DEV:
+            logger.info("Adding dev meta tags...")
+            html.head.dev_meta = Meta(name="schorle-dev", content=self._running_mode.value)
+
         response = HTMLResponse(html.render(), status_code=200)
         logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
         self._pages[html.head.csrf_meta.content] = page
+
         logger.debug("Page rendered.")
 
         return response

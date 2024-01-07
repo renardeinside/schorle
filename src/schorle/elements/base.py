@@ -2,13 +2,16 @@ import asyncio
 from asyncio import Queue, iscoroutinefunction
 from contextlib import contextmanager
 from functools import partial
-from typing import Annotated, Callable, Iterator, Literal, Optional, Type
+from inspect import isclass
+from types import UnionType
+from typing import Annotated, Callable, Iterator, Literal, Optional, Type, get_origin
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
 from lxml.etree import _Element as LxmlElement
 from lxml.etree import tostring
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from pydantic.fields import FieldInfo
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.tags import HTMLTag
@@ -52,7 +55,6 @@ class Element(ObservableElement):
     text: str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
-    hx_swap: str = Attribute(default="morph", alias="hx-swap-oob")
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -74,13 +76,28 @@ class Element(ObservableElement):
     def provide(cls, *args, **kwargs) -> Type["Element"]:
         return Annotated[cls, Field(default_factory=partial(cls, *args, **kwargs))]
 
+    def _check_annotation_args(self, anno: UnionType):
+        for arg in anno.__args__:
+            if isclass(arg) and get_origin(arg) not in [list, dict] and issubclass(arg, Element):
+                return True
+            elif isinstance(arg, UnionType):
+                return self._check_annotation_args(arg)
+
+    def _related_to_element(self, field: FieldInfo) -> bool:
+        anno = field.annotation
+        if isclass(anno) and issubclass(anno, Element):
+            return True
+        elif isinstance(anno, UnionType) and self._check_annotation_args(anno):
+            return True
+
     def traverse_elements(self, *, nested: bool) -> Iterator["Element"]:
         for k, v in self.model_fields.items():
-            if isinstance(v.annotation, type) and issubclass(v.annotation, Element):
+            if self._related_to_element(v):
                 element = getattr(self, k)
-                yield element
-                if nested:
-                    yield from element.traverse_elements(nested=nested)
+                if isinstance(element, Element):
+                    yield element
+                    if nested:
+                        yield from element.traverse_elements(nested=nested)
 
         for k, v in self.model_computed_fields.items():
             if issubclass(v.return_type, Element):
@@ -133,7 +150,7 @@ class Element(ObservableElement):
     def render(self) -> str:
         logger.info(f"Rendering element {self}")
         element = self.get_element(suspended=self._suspend)
-        return tostring(element).decode("utf-8")
+        return tostring(element, pretty_print=True).decode("utf-8")
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.tag.value}>"
@@ -194,6 +211,8 @@ class Element(ObservableElement):
 
 
 class ElementWithGeneratedId(Element):
+    hx_swap: str = Attribute(default="morph", alias="hx-swap-oob")
+
     def __init__(self, **data):
         super().__init__(**data)
         self.element_id = f"schorle-{self.tag.value.lower()}-{id(self)}" if self.element_id is None else self.element_id

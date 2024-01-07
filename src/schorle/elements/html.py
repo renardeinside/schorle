@@ -45,6 +45,7 @@ class Head(Element):
     charset_meta: Meta.provide(charset="utf-8")
     viewport_meta: Meta.provide(name="viewport", content="width=device-width, initial-scale=1")
     csrf_meta: CSRFMeta.provide()
+    dev_meta: Meta | None = None
     title: Title.provide()
     # css-related
     daisy_ui: Link.provide(
@@ -55,7 +56,8 @@ class Head(Element):
     htmx: Script.provide(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
     htmx_ws: Script.provide(src="https://unpkg.com/htmx.org/dist/ext/ws.js")
     idiomorph: Script.provide(src="https://unpkg.com/idiomorph@0.3.0")
-    idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
+    # todo: use idiomorph-htmx when bug is fixed
+    # idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
     # client-side bundle
     bundle: Script.provide(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
 
