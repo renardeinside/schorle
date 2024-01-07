@@ -2,7 +2,7 @@ import asyncio
 from asyncio import Queue, iscoroutinefunction
 from contextlib import contextmanager
 from functools import partial
-from typing import Annotated, Callable, Iterator, Type
+from typing import Annotated, Callable, Iterator, Type, Optional
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -88,7 +88,7 @@ class Element(ObservableElement):
                     yield from element.traverse_elements(nested=nested)
 
     @contextmanager
-    def suspend(self, suspense: "Element"):
+    def suspend(self, suspense: Optional["Element"] = None):
         # todo - passing suspense as an element through the instance state is a bit hacky
         logger.debug(f"Suspending {self}")
         self._suspend = True
@@ -110,7 +110,13 @@ class Element(ObservableElement):
             element.set("class", self.classes)
 
         if suspended:
-            element.append(self._suspense.get_element())
+
+            if self._suspense is None:
+                _suspense = Element(tag=HTMLTag.SPAN, classes="loading loading-lg loading-infinity")
+            else:
+                _suspense = self._suspense
+
+            element.append(_suspense.get_element())
         else:
             for k, v in self.attrs.items():
                 if v is not None:

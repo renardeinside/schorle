@@ -25,11 +25,11 @@ class ButtonWithState(Button):
     def __init__(self, **data):
         super().__init__(**data)
         self.set_callback(self.state.increment)
-        self.bind(self.state, self.on_update)
+        self.bind(self.state, self.on_update, on_load=True)
 
     async def on_update(self, state: State):
         with self.suspend():
-            await asyncio.sleep(0.1 + self.state.counter * 0.1)
+            await asyncio.sleep(2 + self.state.counter * 0.1)
 
         self.update_text(f"Counter: {state.counter}")
 

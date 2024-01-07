@@ -4,8 +4,8 @@ from typing import Awaitable, Callable, Optional
 
 from pydantic import Field
 
-from schorle.elements.base import ElementWithGeneratedId
-from schorle.elements.html import Attribute, Span
+from schorle.elements.base import ElementWithGeneratedId, Element
+from schorle.elements.html import Attribute
 from schorle.elements.tags import HTMLTag
 
 OnClick = Callable[..., Awaitable]
@@ -47,7 +47,7 @@ class Button(ElementWithGeneratedId):
         self.classes = self.classes.replace(" btn-disabled", "")
 
     @contextmanager
-    def suspend(self, suspense: Span = Span(classes="loading loading-lg loading-infinity")):
+    def suspend(self, suspense: Optional[Element] = None):
         _callback = self.on_click
         self.set_callback(lambda: None)
         with super().suspend(suspense):
