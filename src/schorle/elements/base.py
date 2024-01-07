@@ -51,7 +51,6 @@ class Element(ObservableElement):
     text: str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
-    _last_rendered: str | None = PrivateAttr(default=None)
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -132,9 +131,7 @@ class Element(ObservableElement):
     def render(self) -> str:
         logger.info(f"Rendering element {self}")
         element = self.get_element(suspended=self._suspend)
-        self._last_rendered = tostring(element).decode("utf-8")
-        logger.info(f"Rendered element {self} to {self._last_rendered}")
-        return self._last_rendered
+        return tostring(element).decode("utf-8")
 
     def __repr__(self):
         return f"<{self.__class__.__name__} {self.tag.value}>"
