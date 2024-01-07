@@ -2,7 +2,7 @@ import asyncio
 from asyncio import Queue, iscoroutinefunction
 from contextlib import contextmanager
 from functools import partial
-from typing import Annotated, Callable, Iterator, Type, Optional
+from typing import Annotated, Callable, Iterator, Literal, Optional, Type
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -58,6 +58,7 @@ class Element(ObservableElement):
         self._suspense = None
         self._binds: list[Callable] = []
         self._on_loads: list[Callable] = []
+        self._pre_renders: list[Callable] = []
         self._suspend: bool = False
 
     @property
@@ -110,7 +111,6 @@ class Element(ObservableElement):
             element.set("class", self.classes)
 
         if suspended:
-
             if self._suspense is None:
                 _suspense = Element(tag=HTMLTag.SPAN, classes="loading loading-lg loading-infinity")
             else:
@@ -154,7 +154,13 @@ class Element(ObservableElement):
             _effect = effect
         return _effect
 
-    def bind(self, observable: ObservableModel, effect: Callable, *, on_load: bool = False):
+    def bind(
+        self,
+        observable: ObservableModel,
+        effect: Callable,
+        *,
+        bootstrap: Literal["on_load", "before_render"] | None = None,
+    ):
         # wrap the effect in a coroutine if it isn't one
         _effect = self._wrap_in_coroutine(effect)
 
@@ -173,14 +179,19 @@ class Element(ObservableElement):
 
         self._binds.append(_effect_subscriber)
 
-        if on_load:
+        if bootstrap == "on_load":
             self._on_loads.append(partial(_effect, observable))
+        elif bootstrap == "before_render":
+            self._pre_renders.append(partial(_effect, observable))
 
     def get_binds(self):
         return self._binds
 
     def get_on_loads(self):
         return self._on_loads
+
+    def get_pre_renders(self):
+        return self._pre_renders
 
 
 class ElementWithGeneratedId(Element):

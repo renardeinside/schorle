@@ -4,7 +4,7 @@ from typing import Awaitable, Callable, Optional
 
 from pydantic import Field
 
-from schorle.elements.base import ElementWithGeneratedId, Element
+from schorle.elements.base import Element, ElementWithGeneratedId
 from schorle.elements.html import Attribute
 from schorle.elements.tags import HTMLTag
 

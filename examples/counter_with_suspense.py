@@ -25,11 +25,11 @@ class ButtonWithState(Button):
     def __init__(self, **data):
         super().__init__(**data)
         self.set_callback(self.state.increment)
-        self.bind(self.state, self.on_update, on_load=True)
+        self.bind(self.state, self.on_update, bootstrap="on_load")
 
     async def on_update(self, state: State):
         with self.suspend():
-            await asyncio.sleep(2 + self.state.counter * 0.1)
+            await asyncio.sleep(3)
 
         self.update_text(f"Counter: {state.counter}")
 
@@ -37,8 +37,8 @@ class ButtonWithState(Button):
 class PageWithButton(Page):
     classes: str = "gap-2 h-screen flex flex-col justify-center items-center"
     btn1: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
-    btn2: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
-    btn3: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
+    # btn2: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
+    # btn3: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
 
 
 @app.get("/")

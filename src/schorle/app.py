@@ -27,26 +27,23 @@ class Schorle:
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
-            async def _route_wrapper() -> HTMLResponse:
-                _page = func()
-                return await self.render_to_response(page=_page)
-
-            self.backend.get(path, response_class=HTMLResponse)(_route_wrapper)
+            self.backend.get(path, response_class=HTMLResponse)(partial(self.render_to_response, func))
             return func
 
         return decorator
 
-    async def render_to_response(self, page: Page) -> HTMLResponse:
+    async def render_to_response(self, page_provider: Callable[..., Page]) -> HTMLResponse:
+        page = page_provider()
         logger.info(f"Rendering page: {page}...")
-        on_load_tasks = page.get_all_on_load_tasks()
+        before_render_tasks = page.get_all_pre_render_tasks()
 
-        if on_load_tasks:
-            logger.info(f"Running on_loads: {on_load_tasks}")
+        if before_render_tasks:
+            logger.info(f"Running pre-renders: {before_render_tasks}")
             try:
-                await asyncio.gather(*on_load_tasks)
+                await asyncio.gather(*before_render_tasks)
             except asyncio.CancelledError:
-                logger.info("Bootstrapping cancelled.")
-                for task in on_load_tasks:
+                logger.info("Pre-rendering tasks cancelled.")
+                for task in before_render_tasks:
                     task.cancel()
 
         handler = EventHandler(content=page)
@@ -57,6 +54,7 @@ class Schorle:
         logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
         self._pages[html.head.csrf_meta.content] = page
         logger.debug("Page rendered.")
+
         return response
 
     @staticmethod
@@ -101,6 +99,14 @@ class EventsEndpoint(WebSocketEndpoint):
         self._page = page
         self._page_updates_task = asyncio.create_task(self._page_updates_emitter(websocket))
         self._page_binding_task = asyncio.create_task(self._binding_updates_emitter())
+
+        on_load_tasks = self._page.get_all_on_loads()
+        logger.info(f"Provided on_loads: {on_load_tasks}")
+        if on_load_tasks:
+            logger.info(f"Adding on_loads: {on_load_tasks}")
+            tasks = [asyncio.create_task(t()) for t in on_load_tasks]
+            await asyncio.gather(*tasks)
+
         logger.info("Events connected.")
 
     async def on_receive(self, _: WebSocket, data: str) -> None:

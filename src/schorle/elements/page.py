@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional
+from typing import Callable, Optional
 
 from schorle.elements.base import Element
 from schorle.elements.tags import HTMLTag
@@ -15,12 +15,17 @@ class Page(Element):
                 return child
         return None
 
-    def get_all_on_load_tasks(self) -> list[asyncio.Task]:
+    def get_all_on_loads(self) -> list[Callable]:
         all_on_loads = self.get_on_loads()
         for element in self.traverse_elements(nested=True):
             all_on_loads.extend(element.get_on_loads())
+        return all_on_loads
 
-        tasks = [asyncio.create_task(t()) for t in all_on_loads]
+    def get_all_pre_render_tasks(self) -> list[asyncio.Task]:
+        all_pre_renders = self.get_pre_renders()
+        for element in self.traverse_elements(nested=True):
+            all_pre_renders.extend(element.get_pre_renders())
+        tasks = [asyncio.create_task(t()) for t in all_pre_renders]
         return tasks
 
     def subscribe_all_elements(self, subscriber):
