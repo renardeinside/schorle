@@ -92,6 +92,5 @@ site/
 .ruff_cache/
 
 typescript/node_modules/
-src/schorle/assets
-
+src/schorle/assets/dependencies
 .dev.log.md

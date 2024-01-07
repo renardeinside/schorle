@@ -23,7 +23,7 @@ class ButtonWithState(Button):
         self.bind(
             self.state,
             lambda s: self.update_text(f"Counter: {s.counter}"),
-            on_load=True,
+            bootstrap="before_render",
         )
 
 

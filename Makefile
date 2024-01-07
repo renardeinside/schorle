@@ -1,19 +1,11 @@
-client-build:
-	cd typescript && yarn build
+HTMX_VERSION=1.9.10
+IDIOMORPH_VERSION=0.3.0
+HTMX_DEPS_DIR=src/schorle/assets/dependencies
 
-
-client-watch:
-	cd typescript && yarn watch
-
-python-protogen:
-	protoc -I=. --python_betterproto_out=src/schorle/proto_gen protobuf/*.proto
-
-ts-protogen:
-	protoc -I=. \
-		--plugin=typescript/node_modules/.bin/protoc-gen-ts_proto \
-		--ts_proto_out=typescript/proto_gen \
-		--ts_proto_opt=oneof=unions \
-		protobuf/*.proto
-
-all-protogen: python-protogen ts-protogen
-	@echo "Generated protobuf files"
+download-htmx-dev-deps:
+	rm -rf $(HTMX_DEPS_DIR)
+	mkdir -p $(HTMX_DEPS_DIR)
+	cd $(HTMX_DEPS_DIR) && wget https://raw.githubusercontent.com/bigskysoftware/htmx/v$(HTMX_VERSION)/src/htmx.js
+	cd $(HTMX_DEPS_DIR) && wget https://raw.githubusercontent.com/bigskysoftware/htmx/v$(HTMX_VERSION)/src/ext/ws.js
+	cd $(HTMX_DEPS_DIR) && wget https://raw.githubusercontent.com/bigskysoftware/idiomorph/v$(IDIOMORPH_VERSION)/src/idiomorph-htmx.js
+	cd $(HTMX_DEPS_DIR) && wget https://raw.githubusercontent.com/bigskysoftware/idiomorph/v$(IDIOMORPH_VERSION)/src/idiomorph.js

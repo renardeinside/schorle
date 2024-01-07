@@ -4,8 +4,8 @@ from typing import Awaitable, Callable, Optional
 
 from pydantic import Field
 
+from schorle.elements.attribute import Attribute
 from schorle.elements.base import Element, ElementWithGeneratedId
-from schorle.elements.html import Attribute
 from schorle.elements.tags import HTMLTag
 
 OnClick = Callable[..., Awaitable]
@@ -17,6 +17,7 @@ class Button(ElementWithGeneratedId):
     disabled: bool = Field(default=False)
     classes: str = Field(default="btn")
     send: str = Attribute(default="", alias="ws-send", private=True)
+    hx_swap: str = Attribute(default="morph", alias="hx-swap-oob")
 
     def __init__(self, **data):
         super().__init__(**data)

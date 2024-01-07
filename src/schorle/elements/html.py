@@ -1,21 +1,10 @@
 from uuid import uuid4
 
-from pydantic import Field
-
+from schorle.elements.attribute import Attribute
 from schorle.elements.base import Element, ElementWithGeneratedId
 from schorle.elements.page import Page
 from schorle.elements.tags import HTMLTag
 from schorle.theme import Theme
-
-
-def Attribute(*args, **kwargs):  # noqa: N802
-    """
-    This is a helper function to make it easier to annotate attributes on elements.
-    :param args: same as pydantic.Field
-    :param kwargs: same as pydantic.Field
-    """
-    kwargs["attribute"] = True
-    return Field(*args, **kwargs)
 
 
 class Meta(Element):
@@ -57,14 +46,17 @@ class Head(Element):
     viewport_meta: Meta.provide(name="viewport", content="width=device-width, initial-scale=1")
     csrf_meta: CSRFMeta.provide()
     title: Title.provide()
+    # css-related
     daisy_ui: Link.provide(
         href="https://cdn.jsdelivr.net/npm/daisyui@4.4.22/dist/full.min.css", rel="stylesheet", type="text/css"
     )
     tailwind: Script.provide(src="https://cdn.tailwindcss.com")
-    htmx: Script.provide(src="/_schorle/assets/htmx.js", crossorigin="anonymous")
-    htmx_ws: Script.provide(src="_schorle/assets/ws.js", crossorigin="anonymous")
-    idiomorph: Script.provide(src="/_schorle/assets/idiomorph.js", crossorigin="anonymous")
-    idiomorph_htmx: Script.provide(src="/_schorle/assets/idiomorph-htmx.js", crossorigin="anonymous")
+    # htmx
+    htmx: Script.provide(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
+    htmx_ws: Script.provide(src="https://unpkg.com/htmx.org/dist/ext/ws.js")
+    idiomorph: Script.provide(src="https://unpkg.com/idiomorph@0.3.0")
+    idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
+    # client-side bundle
     bundle: Script.provide(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
 
 

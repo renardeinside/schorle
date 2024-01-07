@@ -37,8 +37,11 @@ def index():
 
     page.buttons.inc.set_callback(state.increment)
     page.buttons.dec.set_callback(state.decrement)
-    page.counter.bind(state, lambda s: page.counter.update_text(f"Counter: {s.counter}"), on_load=True)
+    # page.counter.bind(state, lambda s: page.counter.update_text(f"Counter: {s.counter}"), bootstrap="before_render")
     page.buttons.dec.bind(
-        state, lambda s: page.buttons.dec.disable() if s.counter <= 0 else page.buttons.dec.enable(), on_load=True
+        state,
+        lambda s: page.buttons.dec.disable() if s.counter <= 0 else page.buttons.dec.enable(),
+        bootstrap="before_render",
     )
+
     return page

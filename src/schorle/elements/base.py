@@ -10,6 +10,7 @@ from lxml.etree import _Element as LxmlElement
 from lxml.etree import tostring
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
+from schorle.elements.attribute import Attribute
 from schorle.elements.tags import HTMLTag
 
 
@@ -51,6 +52,7 @@ class Element(ObservableElement):
     text: str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
+    hx_swap: str = Attribute(default="morph", alias="hx-swap-oob")
 
     def __init__(self, **data):
         super().__init__(**data)

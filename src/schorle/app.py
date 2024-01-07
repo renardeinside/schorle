@@ -21,7 +21,7 @@ class Schorle:
     def __init__(self, theme: Theme = Theme.DARK) -> None:
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
-        self.backend.get("/_schorle/assets/{file_name}")(self._assets)
+        self.backend.get("/_schorle/assets/{file_name:path}")(self._assets)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
         self.theme: Theme = theme
 
