@@ -23,7 +23,7 @@
 
     // TODO: remove this once bug in htmx is fixed
     htmx.defineExtension('morph', {
-        isInlineSwap: function(swapStyle) {
+        isInlineSwap: function (swapStyle) {
             let config = createMorphConfig(swapStyle);
             return config.swapStyle === "outerHTML" || config.swapStyle == null;
         },
@@ -39,6 +39,23 @@
         return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
     }
 
+
+    let fetchAndReload = () => {
+        setTimeout(() => fetch(window.location.href)
+                .then((response) => {
+                    if (response.status === 200) {
+                        console.log(`%c server is responding, reloading page`, `color: #ff9800; font-weight: bold;`);
+                        window.location.reload();
+                    } else {
+                        console.log(`%c server is not responding, waiting for updates`, `color: #ff9800; font-weight: bold;`);
+                    }
+                })
+                .catch((error) => {
+                    console.warn(`%c server is not responding, waiting for updates`, `color: #ff9800; font-weight: bold;`);
+                })
+            , 100);
+    }
+
     switch (getDevMode()) {
         case 'uvicorn_dev':
             console.log(`%cSchorle is running in Uvicorn dev mode.`, `color: #ff9800; font-weight: bold;`);
@@ -52,15 +69,7 @@
 
             devWs.onclose = () => {
                 console.log(`%cSchorle dev websocket disconnected.`, `color: #ff9800; font-weight: bold;`);
-                fetch(window.location.href)
-                    .then((response) => {
-                        if (response.status === 200) {
-                            console.log(`%c server is responding, reloading page`, `color: #ff9800; font-weight: bold;`);
-                            window.location.reload();
-                        } else {
-                            console.log(`%c server is not responding, waiting for updates`, `color: #ff9800; font-weight: bold;`);
-                        }
-                    })
+                setInterval(fetchAndReload, 1000);
             }
             break;
         default:
