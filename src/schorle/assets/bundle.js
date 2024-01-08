@@ -1,5 +1,6 @@
 (function () {
 
+    let loadingElementId = "schorle-loading";
     let getToken = () => {
         return document.querySelector('meta[name="schorle-csrf-token"]').getAttribute('content');
     }
@@ -7,22 +8,34 @@
     htmx.createWebSocket = (url) => {
         let urlWithPathAndToken = `${url}?token=${getToken()}&path=${window.location.pathname}`;
         return new WebSocket(urlWithPathAndToken, []);
-    }
+    };
 
     let getDevMode = () => {
         return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
     }
 
-    htmx.logAll();
+    if (getDevMode() === "true") {
+        htmx.logAll();
+    }
+
 
     htmx.on("htmx:wsBeforeMessage", (evt) => {
         if (getDevMode() === "true") {
             if (evt.detail.message === "reload") {
-                // todo - how to make it a soft reload, specifically for the htmx part?
-                window.location.reload();
+                devReload();
             }
         }
     });
+
+    htmx.on("htmx:wsClose", (evt) => {
+        makeLoadingVisible();
+    });
+
+    let makeLoadingVisible = () => {
+        if (document.getElementById(loadingElementId)) {
+            document.getElementById(loadingElementId).classList.remove("invisible");
+        }
+    }
 
     // TODO: remove this once bug in htmx is fixed
     function createMorphConfig(swapStyle) {
@@ -51,5 +64,49 @@
         }
     });
 
+
+    let devReload = () => {
+        fetch(window.location.href)
+            .then((response) => {
+                response.text().then((html) => {
+                    let parser = new DOMParser();
+                    let newDocument = parser.parseFromString(html, "text/html");
+                    // appy the theme
+                    let currentTheme = document.querySelector('html').getAttribute("data-theme")
+                    let newTheme = newDocument.querySelector('html').getAttribute("data-theme")
+                    if (currentTheme !== newTheme) {
+                        document.querySelector('html').setAttribute('data-theme', newTheme);
+                    }
+                    // we need to explicitly remove the event handler, otherwise htmx ws will not reinitialize
+                    document.getElementById("schorle-event-handler").remove();
+                    // first we morph the head to provide new csrf token
+                    Idiomorph.morph(document.head, newDocument.head, {morphStyle: "outerHTML"});
+                    // then we morph the body to provide new content
+                    Idiomorph.morph(document.body, newDocument.body, {morphStyle: "outerHTML"});
+                    // finally we need to reinitialize htmx
+                    htmx.process(document.body);
+                    applyLoadingElement();
+                })
+            })
+    }
+
+
+    let applyLoadingElement = () => {
+        let loadingElement = prepareLoadingElement();
+        if (document.getElementById(loadingElementId)) {
+            document.getElementById(loadingElementId).remove();
+        }
+        document.getElementById("schorle-footer").appendChild(loadingElement);
+    }
+
+    if (getDevMode() === "true") {
+        document.addEventListener("DOMContentLoaded", applyLoadingElement);
+    }
+    let prepareLoadingElement = () => {
+        let element = document.createElement("span");
+        element.classList.add("loading", "loading-lg", "text-info", "loading-infinity", "fixed", "right-[50vw]", "bottom-2", "invisible");
+        element.id = loadingElementId;
+        return element;
+    }
 
 })()

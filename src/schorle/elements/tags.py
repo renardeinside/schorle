@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class HTMLTag(str, Enum):
+    FOOTER = "footer"
     HTML = "html"
     HEAD = "head"
     BODY = "body"

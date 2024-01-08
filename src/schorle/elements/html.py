@@ -66,11 +66,16 @@ class Body(Element):
     tag: HTMLTag = HTMLTag.BODY
 
 
+class Footer(Element):
+    tag: HTMLTag = HTMLTag.FOOTER
+
+
 class Html(Element):
     tag: HTMLTag = HTMLTag.HTML
     theme: Theme = Attribute(..., alias="data-theme")
     head: Head.provide()
     body: Body.provide()
+    footer: Footer.provide(element_id="schorle-footer")
 
 
 class Div(ElementWithGeneratedId):
