@@ -9,7 +9,7 @@ from typing import Callable
 from fastapi import FastAPI
 from loguru import logger
 from starlette.endpoints import WebSocketEndpoint
-from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse
+from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.websockets import WebSocket
 
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
@@ -32,7 +32,7 @@ class Schorle:
     def _favicon(self):
         loader: SourceFileLoader | None = pkgutil.get_loader("schorle")
         if loader is None:
-            raise RuntimeError("Could not find loader for schorle package.")
+            return HTMLResponse("No favicon found.", status_code=404)
         else:
             loader_path = Path(loader.path).parent / "assets" / "logo.svg"
             return FileResponse(loader_path, media_type="image/svg+xml")
