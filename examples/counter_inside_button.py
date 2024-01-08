@@ -1,7 +1,7 @@
 from schorle.app import Schorle
-from schorle.elements.base import ObservableModel
 from schorle.elements.button import Button
 from schorle.elements.page import Page
+from schorle.observable import ObservableModel
 from schorle.theme import Theme
 
 app = Schorle(theme=Theme.DARK)

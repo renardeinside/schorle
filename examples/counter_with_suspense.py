@@ -3,9 +3,9 @@ import asyncio
 from loguru import logger
 
 from schorle.app import Schorle
-from schorle.elements.base import ObservableModel
 from schorle.elements.button import Button
 from schorle.elements.page import Page
+from schorle.observable import ObservableModel
 from schorle.theme import Theme
 
 app = Schorle(theme=Theme.DARK)
@@ -25,7 +25,7 @@ class ButtonWithState(Button):
     def __init__(self, **data):
         super().__init__(**data)
         self.set_callback(self.state.increment)
-        self.bind(self.state, self.on_update, bootstrap="on_load")
+        self.bind(self.state, self.on_update)
 
     async def on_update(self, state: State):
         with self.suspend():
@@ -36,9 +36,9 @@ class ButtonWithState(Button):
 
 class PageWithButton(Page):
     classes: str = "gap-2 h-screen flex flex-col justify-center items-center"
-    btn1: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
-    btn2: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
-    btn3: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
+    btn1: ButtonWithState.provide(text="Increment", classes="btn btn-success w-2/12")
+    btn2: ButtonWithState.provide(text="Increment", classes="btn btn-warning w-2/12")
+    btn3: ButtonWithState.provide(text="Increment", classes="btn btn-error w-2/12")
 
 
 @app.get("/")

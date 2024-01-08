@@ -12,10 +12,10 @@ from starlette.endpoints import WebSocketEndpoint
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from starlette.websockets import WebSocket
 
-from schorle.elements.base import Subscriber
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
+from schorle.observable import Subscriber
 from schorle.theme import Theme
 
 

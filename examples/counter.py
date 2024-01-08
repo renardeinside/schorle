@@ -1,8 +1,9 @@
 from schorle.app import Schorle
-from schorle.elements.base import ObservableModel
+from schorle.elements.base import Bootstrap
 from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
 from schorle.elements.page import Page
+from schorle.observable import ObservableModel
 from schorle.theme import Theme
 
 app = Schorle(theme=Theme.DARK)
@@ -37,11 +38,13 @@ def index():
 
     page.buttons.inc.set_callback(state.increment)
     page.buttons.dec.set_callback(state.decrement)
-    page.counter.bind(state, lambda s: page.counter.update_text(f"Counter: {s.counter}"), bootstrap="before_render")
+    page.counter.bind(
+        state, lambda s: page.counter.update_text(f"Counter: {s.counter}"), bootstrap=Bootstrap.BEFORE_RENDER
+    )
     page.buttons.dec.bind(
         state,
         lambda s: page.buttons.dec.disable() if s.counter <= 0 else page.buttons.dec.enable(),
-        bootstrap="before_render",
+        bootstrap=Bootstrap.BEFORE_RENDER,
     )
 
     return page

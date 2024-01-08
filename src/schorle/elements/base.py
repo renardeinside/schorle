@@ -1,10 +1,9 @@
-import asyncio
-from asyncio import Queue, iscoroutinefunction
 from contextlib import contextmanager
+from enum import Enum
 from functools import partial
 from inspect import isclass
 from types import UnionType
-from typing import Annotated, Callable, Iterator, Literal, Optional, Type, get_origin
+from typing import Annotated, Callable, Iterator, Optional, Type, get_origin
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -15,40 +14,30 @@ from pydantic.fields import FieldInfo
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.tags import HTMLTag
-
-
-class Subscriber:
-    def __init__(self):
-        self.queue: Queue = Queue()
-
-    async def __aiter__(self):
-        while True:
-            await asyncio.sleep(0)  # prevent blocking
-            yield await self.queue.get()
-
-
-class ObservableModel(BaseModel):
-    _selected_fields: list[str] = PrivateAttr(default=None)
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._subscribers: list[Subscriber] = []
-
-    def __setattr__(self, name, value):
-        super().__setattr__(name, value)
-        if not self._selected_fields or name in self._selected_fields:
-            for subscriber in self._subscribers:
-                subscriber.queue.put_nowait(self)
-
-    def subscribe(self, subscriber: Subscriber):
-        self._subscribers.append(subscriber)
+from schorle.observable import ObservableModel, Subscriber
+from schorle.utils import wrap_in_coroutine
 
 
 class ObservableElement(ObservableModel):
     _selected_fields: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id", "_suspend"])
 
 
-class Element(ObservableElement):
+class Bootstrap(str, Enum):
+    ON_LOAD = "on_load"
+    BEFORE_RENDER = "before_render"
+
+
+class AttrsMixin(BaseModel):
+    @property
+    def attrs(self):
+        return {
+            v.alias if v.alias else k: getattr(self, k)
+            for k, v in self.model_fields.items()
+            if v.json_schema_extra and v.json_schema_extra.get("attribute")
+        }
+
+
+class Element(ObservableElement, AttrsMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     classes: str | None = None
     tag: HTMLTag
@@ -63,14 +52,6 @@ class Element(ObservableElement):
         self._on_loads: list[Callable] = []
         self._pre_renders: list[Callable] = []
         self._suspend: bool = False
-
-    @property
-    def attrs(self):
-        return {
-            v.alias if v.alias else k: getattr(self, k)
-            for k, v in self.model_fields.items()
-            if v.json_schema_extra and v.json_schema_extra.get("attribute")
-        }
 
     @classmethod
     def provide(cls, *args, **kwargs) -> Type["Element"]:
@@ -158,46 +139,30 @@ class Element(ObservableElement):
     def update_text(self, text: str):
         self.text = text
 
-    def _wrap_in_coroutine(self, effect: Callable[[ObservableModel], None]):
-        # wrap the effect in a coroutine if it isn't one
-
-        if not iscoroutinefunction(effect):
-
-            async def _effect(obs: ObservableModel):
-                effect(obs)
-
-        else:
-            _effect = effect
-        return _effect
-
     def bind(
         self,
         observable: ObservableModel,
         effect: Callable,
         *,
-        bootstrap: Literal["on_load", "before_render"] | None = None,
+        bootstrap: Bootstrap | None = None,
     ):
         # wrap the effect in a coroutine if it isn't one
-        _effect = self._wrap_in_coroutine(effect)
+        _effect = wrap_in_coroutine(effect)
 
-        # logger.info(f"Binding {observable} to {self} with effect {effect}")
         subscriber = Subscriber()
         observable.subscribe(subscriber)
 
         async def _effect_subscriber():
-            # logger.info(f"Subscribing {observable} to {self} with effect {effect}")
-            # logger.info(f"Observing {observable} with effect {effect}")
             async for _ in subscriber:
                 logger.info(f"Calling effect {effect} with {observable}")
                 await _effect(observable)
                 logger.info(f"Called effect {effect} with {observable}")
-            # logger.info(f"Unsubscribing {observable} from {effect}")
 
         self._binds.append(_effect_subscriber)
 
-        if bootstrap == "on_load":
+        if bootstrap == Bootstrap.ON_LOAD:
             self._on_loads.append(partial(_effect, observable))
-        elif bootstrap == "before_render":
+        elif bootstrap == Bootstrap.BEFORE_RENDER:
             self._pre_renders.append(partial(_effect, observable))
 
     def get_binds(self):
