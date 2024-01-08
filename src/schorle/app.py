@@ -54,10 +54,6 @@ class Schorle:
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         """
         This method is called by uvicorn when the server is started.
-        :param scope:
-        :param receive:
-        :param send:
-        :return:
         """
         await self.backend(scope=scope, receive=receive, send=send)
 

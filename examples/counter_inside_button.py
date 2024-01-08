@@ -1,4 +1,5 @@
 from schorle.app import Schorle
+from schorle.elements.base import Bootstrap
 from schorle.elements.button import Button
 from schorle.elements.page import Page
 from schorle.observable import ObservableModel
@@ -23,7 +24,7 @@ class ButtonWithState(Button):
         self.bind(
             self.state,
             lambda s: self.update_text(f"Counter: {s.counter}"),
-            bootstrap="before_render",
+            bootstrap=Bootstrap.BEFORE_RENDER
         )
 
 
