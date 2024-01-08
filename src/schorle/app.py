@@ -34,7 +34,7 @@ class Schorle:
         if loader is None:
             return HTMLResponse("No favicon found.", status_code=404)
         else:
-            loader_path = Path(loader.path).parent / "assets" / "logo.svg"
+            loader_path = Path(loader.path).parent / "assets" / "favicon.svg"
             return FileResponse(loader_path, media_type="image/svg+xml")
 
     def get(self, path: str):

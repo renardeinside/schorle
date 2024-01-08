@@ -5,6 +5,7 @@ from schorle.elements.base import Element, ElementWithGeneratedId
 from schorle.elements.page import Page
 from schorle.elements.tags import HTMLTag
 from schorle.theme import Theme
+from schorle.utils import get_running_mode, RunningMode
 
 
 class Meta(Element):
@@ -12,6 +13,7 @@ class Meta(Element):
     charset: str = Attribute(default=None)
     name: str = Attribute(default=None)
     content: str = Attribute(default=None)
+    http_equiv: str = Attribute(default=None)
 
 
 class Title(Element):
@@ -57,10 +59,12 @@ class Head(Element):
     htmx: Script.provide(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
     htmx_ws: Script.provide(src="https://unpkg.com/htmx.org/dist/ext/ws.js")
     idiomorph: Script.provide(src="https://unpkg.com/idiomorph@0.3.0")
+    expires_meta: Meta | None = Meta(http_equiv="expires", content="0") if get_running_mode() == RunningMode.UVICORN_DEV else None
     # todo: use idiomorph-htmx when bug is fixed
     # idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
     # client-side bundle
     bundle: Script.provide(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
+
 
 
 class Body(Element):
