@@ -23,7 +23,7 @@ class Link(Element):
     tag: HTMLTag = HTMLTag.LINK
     href: str = Attribute(default=None)
     rel: str = Attribute(default=None)
-    type_: str = Attribute(default=None, alias="type")
+    type_: str = Attribute(alias="type")
 
 
 class Script(Element):
@@ -47,6 +47,7 @@ class Head(Element):
     csrf_meta: CSRFMeta.provide()
     dev_meta: Meta | None = None
     title: Title.provide()
+    favicon: Link = Link(href="/favicon.svg", rel="icon", **{"type": "image/svg+xml"})
     # css-related
     daisy_ui: Link.provide(
         href="https://cdn.jsdelivr.net/npm/daisyui@4.4.22/dist/full.min.css", rel="stylesheet", type="text/css"

@@ -1,15 +1,15 @@
 import asyncio
 import json
 import pkgutil
-import sys
-from enum import Enum
 from functools import partial
+from importlib.machinery import SourceFileLoader
+from pathlib import Path
 from typing import Callable
 
 from fastapi import FastAPI
 from loguru import logger
 from starlette.endpoints import WebSocketEndpoint
-from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse
 from starlette.websockets import WebSocket
 
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
@@ -17,20 +17,7 @@ from schorle.elements.page import Page
 from schorle.models import HtmxMessage
 from schorle.observable import Subscriber
 from schorle.theme import Theme
-
-
-class RunningMode(str, Enum):
-    UVICORN_DEV = "uvicorn_dev"
-    PRODUCTION = "production"
-
-
-def _get_running_mode() -> RunningMode:
-    # if uvicorn and --reload are in sys.argv, we are running in uvicorn dev mode
-    _joined_argv = " ".join(sys.argv)
-    if "uvicorn" in _joined_argv and "--reload" in _joined_argv:
-        return RunningMode.UVICORN_DEV
-    else:
-        return RunningMode.PRODUCTION
+from schorle.utils import RunningMode, get_running_mode
 
 
 class Schorle:
@@ -39,15 +26,16 @@ class Schorle:
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}")(self._assets)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
+        self.backend.get("/favicon.svg")(self._favicon)
         self.theme: Theme = theme
-        self._running_mode: RunningMode = _get_running_mode()
-        logger.info(f"Running in mode: {self._running_mode}")
-        if self._running_mode == RunningMode.UVICORN_DEV:
-            self.backend.get("/_schorle/dev", response_class=JSONResponse)(self._dev)
-            self._tokens_to_paths: dict[str, str] = {}
 
-    async def _dev(self) -> JSONResponse:
-        pass
+    def _favicon(self):
+        loader: SourceFileLoader | None = pkgutil.get_loader("schorle")
+        if loader is None:
+            raise RuntimeError("Could not find loader for schorle package.")
+        else:
+            loader_path = Path(loader.path).parent / "assets" / "logo.svg"
+            return FileResponse(loader_path, media_type="image/svg+xml")
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
@@ -75,7 +63,7 @@ class Schorle:
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
         html = Html(body=body, **{"data-theme": self.theme})
 
-        if self._running_mode == RunningMode.UVICORN_DEV:
+        if get_running_mode() == RunningMode.UVICORN_DEV:
             logger.info("Adding dev meta tags...")
             html.head.dev_meta = Meta(name="schorle-dev", content="true")
 
@@ -121,10 +109,10 @@ class EventsEndpoint(WebSocketEndpoint):
         token = websocket.query_params.get("token")
         page = self._pages.get(token)
         if not page:
-            if _get_running_mode() == RunningMode.UVICORN_DEV:
+            if get_running_mode() == RunningMode.UVICORN_DEV:
                 logger.info("Sending reload message to client...")
                 await websocket.accept()
-                await websocket.send_text("reload")
+                await websocket.send_text("reload")  # standard schorle reload message
                 await websocket.close()
                 return
             else:

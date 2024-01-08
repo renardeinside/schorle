@@ -8,7 +8,7 @@ from schorle.elements.page import Page
 from schorle.observable import ObservableModel
 from schorle.theme import Theme
 
-app = Schorle(theme=Theme.DARK)
+app = Schorle(theme=Theme.DIM)
 
 
 class State(ObservableModel):
