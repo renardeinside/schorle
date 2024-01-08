@@ -37,7 +37,48 @@ class AttrsMixin(BaseModel):
         }
 
 
-class Element(ObservableElement, AttrsMixin):
+class BindableMixin(BaseModel):
+    _on_loads: list[Callable] = PrivateAttr(default_factory=list)
+    _pre_renders: list[Callable] = PrivateAttr(default_factory=list)
+    _binds: list[Callable] = PrivateAttr(default_factory=list)
+
+    def bind(
+        self,
+        observable: ObservableModel,
+        effect: Callable,
+        *,
+        bootstrap: Bootstrap | None = None,
+    ):
+        # wrap the effect in a coroutine if it isn't one
+        _effect = wrap_in_coroutine(effect)
+
+        subscriber = Subscriber()
+        observable.subscribe(subscriber)
+
+        async def _effect_subscriber():
+            async for _ in subscriber:
+                logger.info(f"Calling effect {effect} with {observable}")
+                await _effect(observable)
+                logger.info(f"Called effect {effect} with {observable}")
+
+        self._binds.append(_effect_subscriber)
+
+        if bootstrap == Bootstrap.ON_LOAD:
+            self._on_loads.append(partial(_effect, observable))
+        elif bootstrap == Bootstrap.BEFORE_RENDER:
+            self._pre_renders.append(partial(_effect, observable))
+
+    def get_binds(self):
+        return self._binds
+
+    def get_on_loads(self):
+        return self._on_loads
+
+    def get_pre_renders(self):
+        return self._pre_renders
+
+
+class Element(ObservableElement, AttrsMixin, BindableMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     classes: str | None = None
     tag: HTMLTag
@@ -48,9 +89,6 @@ class Element(ObservableElement, AttrsMixin):
     def __init__(self, **data):
         super().__init__(**data)
         self._suspense = None
-        self._binds: list[Callable] = []
-        self._on_loads: list[Callable] = []
-        self._pre_renders: list[Callable] = []
         self._suspend: bool = False
 
     @classmethod
@@ -138,41 +176,6 @@ class Element(ObservableElement, AttrsMixin):
 
     def update_text(self, text: str):
         self.text = text
-
-    def bind(
-        self,
-        observable: ObservableModel,
-        effect: Callable,
-        *,
-        bootstrap: Bootstrap | None = None,
-    ):
-        # wrap the effect in a coroutine if it isn't one
-        _effect = wrap_in_coroutine(effect)
-
-        subscriber = Subscriber()
-        observable.subscribe(subscriber)
-
-        async def _effect_subscriber():
-            async for _ in subscriber:
-                logger.info(f"Calling effect {effect} with {observable}")
-                await _effect(observable)
-                logger.info(f"Called effect {effect} with {observable}")
-
-        self._binds.append(_effect_subscriber)
-
-        if bootstrap == Bootstrap.ON_LOAD:
-            self._on_loads.append(partial(_effect, observable))
-        elif bootstrap == Bootstrap.BEFORE_RENDER:
-            self._pre_renders.append(partial(_effect, observable))
-
-    def get_binds(self):
-        return self._binds
-
-    def get_on_loads(self):
-        return self._on_loads
-
-    def get_pre_renders(self):
-        return self._pre_renders
 
 
 class ElementWithGeneratedId(Element):
