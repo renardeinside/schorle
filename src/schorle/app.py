@@ -4,12 +4,13 @@ import pkgutil
 from functools import partial
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Union
 
 from fastapi import FastAPI
 from loguru import logger
 from starlette.endpoints import WebSocketEndpoint
 from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
+from starlette.types import Scope, Receive, Send
 from starlette.websockets import WebSocket
 
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
@@ -20,22 +21,28 @@ from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
 
+def favicon() -> Union[FileResponse, HTMLResponse]:
+    loader: SourceFileLoader | None = pkgutil.get_loader("schorle")
+    if loader is None:
+        return HTMLResponse("No favicon found.", status_code=404)
+    else:
+        loader_path = Path(loader.path).parent / "assets" / "favicon.svg"
+        return FileResponse(loader_path, media_type="image/svg+xml")
+
+
+def assets(file_name: str) -> PlainTextResponse:
+    _bundle = pkgutil.get_data("schorle", f"assets/{file_name}")
+    return PlainTextResponse(_bundle.decode("utf-8"), status_code=200)
+
+
 class Schorle:
     def __init__(self, theme: Theme = Theme.DARK) -> None:
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
-        self.backend.get("/_schorle/assets/{file_name:path}")(self._assets)
+        self.backend.get("/_schorle/assets/{file_name:path}")(assets)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
-        self.backend.get("/favicon.svg")(self._favicon)
+        self.backend.get("/favicon.svg", response_model=None)(favicon)
         self.theme: Theme = theme
-
-    def _favicon(self):
-        loader: SourceFileLoader | None = pkgutil.get_loader("schorle")
-        if loader is None:
-            return HTMLResponse("No favicon found.", status_code=404)
-        else:
-            loader_path = Path(loader.path).parent / "assets" / "favicon.svg"
-            return FileResponse(loader_path, media_type="image/svg+xml")
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
@@ -43,6 +50,16 @@ class Schorle:
             return func
 
         return decorator
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        """
+        This method is called by uvicorn when the server is started.
+        :param scope:
+        :param receive:
+        :param send:
+        :return:
+        """
+        await self.backend(scope=scope, receive=receive, send=send)
 
     async def render_to_response(self, page_provider: Callable[..., Page]) -> HTMLResponse:
         page = page_provider()
@@ -74,11 +91,6 @@ class Schorle:
         logger.debug("Page rendered.")
 
         return response
-
-    @staticmethod
-    async def _assets(file_name: str) -> PlainTextResponse:
-        _bundle = pkgutil.get_data("schorle", f"assets/{file_name}")
-        return PlainTextResponse(_bundle.decode("utf-8"), status_code=200)
 
 
 class EventsEndpoint(WebSocketEndpoint):
