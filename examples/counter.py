@@ -27,7 +27,7 @@ class Buttons(Div):
 class PageWithButton(Page):
     classes: str = "space-y-4 h-screen flex flex-col justify-center items-center"
     buttons: Buttons.provide()
-    counter: Paragraph.provide(classes="text-2xl")
+    counter: Paragraph.provide(classes="text-4xl")
 
 
 @app.get("/")

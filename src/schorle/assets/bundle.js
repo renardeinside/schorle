@@ -9,6 +9,22 @@
         return new WebSocket(urlWithPathAndToken, []);
     }
 
+    let getDevMode = () => {
+        return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
+    }
+
+    htmx.logAll();
+
+    htmx.on("htmx:wsBeforeMessage", (evt) => {
+        if (getDevMode() === "true") {
+            if (evt.detail.message === "reload") {
+                // todo - how to make it a soft reload, specifically for the htmx part?
+                window.location.reload();
+            }
+        }
+    });
+
+    // TODO: remove this once bug in htmx is fixed
     function createMorphConfig(swapStyle) {
         if (swapStyle === 'morph' || swapStyle === 'morph:outerHTML') {
             return {morphStyle: 'outerHTML'}
@@ -35,44 +51,5 @@
         }
     });
 
-    let getDevMode = () => {
-        return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
-    }
 
-
-    let fetchAndReload = () => {
-        setTimeout(() => fetch(window.location.href)
-                .then((response) => {
-                    if (response.status === 200) {
-                        console.log(`%c server is responding, reloading page`, `color: #ff9800; font-weight: bold;`);
-                        window.location.reload();
-                    } else {
-                        console.log(`%c server is not responding, waiting for updates`, `color: #ff9800; font-weight: bold;`);
-                    }
-                })
-                .catch((error) => {
-                    console.warn(`%c server is not responding, waiting for updates`, `color: #ff9800; font-weight: bold;`);
-                })
-            , 100);
-    }
-
-    switch (getDevMode()) {
-        case 'uvicorn_dev':
-            console.log(`%cSchorle is running in Uvicorn dev mode.`, `color: #ff9800; font-weight: bold;`);
-            let protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-            let devWsUrl = `${protocol}://${window.location.host}/_schorle/dev/ws`;
-            let devWs = new WebSocket(devWsUrl, []);
-
-            devWs.onopen = () => {
-                console.log(`%cSchorle dev websocket connected.`, `color: #ff9800; font-weight: bold;`);
-            }
-
-            devWs.onclose = () => {
-                console.log(`%cSchorle dev websocket disconnected.`, `color: #ff9800; font-weight: bold;`);
-                setInterval(fetchAndReload, 1000);
-            }
-            break;
-        default:
-            console.log(`%cSchorle is running in production mode.`, `color: #4caf50; font-weight: bold;`);
-    }
 })()

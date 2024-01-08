@@ -9,7 +9,7 @@ from typing import Callable
 from fastapi import FastAPI
 from loguru import logger
 from starlette.endpoints import WebSocketEndpoint
-from starlette.responses import HTMLResponse, PlainTextResponse
+from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from starlette.websockets import WebSocket
 
 from schorle.elements.base import Subscriber
@@ -43,13 +43,11 @@ class Schorle:
         self._running_mode: RunningMode = _get_running_mode()
         logger.info(f"Running in mode: {self._running_mode}")
         if self._running_mode == RunningMode.UVICORN_DEV:
-            self.backend.websocket("/_schorle/dev/ws")(self._dev_handler)
+            self.backend.get("/_schorle/dev", response_class=JSONResponse)(self._dev)
+            self._tokens_to_paths: dict[str, str] = {}
 
-    async def _dev_handler(self, ws: WebSocket):
-        logger.info("Dev websocket connected.")
-        await ws.accept()
-        async for _ in ws.iter_text():
-            await asyncio.sleep(0.1)  # keep connection alive
+    async def _dev(self) -> JSONResponse:
+        pass
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
@@ -79,7 +77,7 @@ class Schorle:
 
         if self._running_mode == RunningMode.UVICORN_DEV:
             logger.info("Adding dev meta tags...")
-            html.head.dev_meta = Meta(name="schorle-dev", content=self._running_mode.value)
+            html.head.dev_meta = Meta(name="schorle-dev", content="true")
 
         response = HTMLResponse(html.render(), status_code=200)
         logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
@@ -123,9 +121,16 @@ class EventsEndpoint(WebSocketEndpoint):
         token = websocket.query_params.get("token")
         page = self._pages.get(token)
         if not page:
-            logger.error(f"No page found for token: {token}")
-            await websocket.close()
-            return
+            if _get_running_mode() == RunningMode.UVICORN_DEV:
+                logger.info("Sending reload message to client...")
+                await websocket.accept()
+                await websocket.send_text("reload")
+                await websocket.close()
+                return
+            else:
+                logger.error(f"No page found for token: {token}")
+                await websocket.close()
+                return
 
         await websocket.accept()
         self._page = page

@@ -38,7 +38,7 @@ class PageWithButton(Page):
     classes: str = "gap-2 h-screen flex flex-col justify-center items-center"
     btn1: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
     btn2: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
-    # btn3: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
+    btn3: ButtonWithState.provide(text="Increment", classes="btn btn-primary w-2/12")
 
 
 @app.get("/")
