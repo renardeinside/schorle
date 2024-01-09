@@ -1,7 +1,7 @@
 import asyncio
 from typing import Callable, Optional
 
-from schorle.elements.base import Element
+from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
 
 

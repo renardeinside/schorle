@@ -2,9 +2,9 @@ from functools import partial
 
 from pydantic import Field
 
-from schorle.elements.input_ import Input
+from schorle.elements.inputs import Input
 from schorle.app import Schorle
-from schorle.elements.base import Bootstrap
+from schorle.elements.base.mixins import Bootstrap
 from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
 from schorle.elements.page import Page

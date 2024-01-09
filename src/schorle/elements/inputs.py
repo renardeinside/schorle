@@ -1,7 +1,7 @@
 from pydantic import PrivateAttr
 
 from schorle.elements.attribute import Attribute
-from schorle.elements.base import ElementWithGeneratedId
+from schorle.elements.base.element import ElementWithGeneratedId
 from schorle.elements.tags import HTMLTag
 
 

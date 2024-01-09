@@ -4,7 +4,7 @@ from typing import Awaitable, Callable, Optional
 from pydantic import Field
 
 from schorle.elements.attribute import Attribute
-from schorle.elements.base import ElementWithGeneratedId
+from schorle.elements.base.element import ElementWithGeneratedId
 from schorle.elements.tags import HTMLTag
 
 OnClick = Callable[..., Awaitable]
