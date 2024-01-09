@@ -2,11 +2,12 @@ from functools import partial
 
 from pydantic import Field
 
-from schorle.elements.inputs import Input
 from schorle.app import Schorle
 from schorle.elements.base.mixins import Bootstrap
 from schorle.elements.button import Button
+from schorle.elements.classes import Classes
 from schorle.elements.html import Div, Paragraph
+from schorle.elements.inputs import Input
 from schorle.elements.page import Page
 from schorle.observable import ObservableModel
 from schorle.theme import Theme
@@ -25,19 +26,20 @@ class State(ObservableModel):
 
 
 class InputLine(Div):
-    classes: str = "flex flex-row space-x-4 w-8/12 justify-center items-center"
+    classes: Classes.provide("flex flex-row space-x-4 w-8/12 justify-center items-center")
     input_: Input.provide(placeholder="Start typing here...")
-    add_button: Button.provide(text="Add", classes="btn btn-primary")
+    add_button: Button.provide(text="Add", classes=Classes("btn-primary"))
 
 
 class TodoItem(Div):
-    classes: str = "card shadow-xl p-4 w-8/12 justify-between items-center flex flex-row space-x-4 animate-[pulse_1s]"
+    classes: Classes.provide(
+        "card shadow-xl p-4 w-8/12 justify-between items-center flex flex-row space-x-4 animate-[pulse_1s]")
     info: Div.provide()
-    remove_button: Button.provide(text="Remove", classes="btn btn-error")
+    remove_button: Button.provide(text="Remove", classes=Classes("btn-primary"))
 
 
 class TodoList(Div):
-    classes: str = "flex flex-col space-y-2 w-10/12 justify-center items-center"
+    classes: Classes.provide("flex flex-col space-y-2 w-10/12 justify-center items-center")
     items: list[TodoItem] = Field(default_factory=list)
 
     async def delete_item(self, state, item_index: int):
@@ -49,7 +51,7 @@ class TodoList(Div):
             TodoItem(
                 info=Div(text=item),
                 remove_button=Button(
-                    text="Done!", classes="btn btn-success", on_click=partial(self.delete_item, state, index)
+                    text="Done!", classes=Classes("btn-success"), on_click=partial(self.delete_item, state, index)
                 ),
             )
             for index, item in enumerate(state.items)
@@ -59,8 +61,8 @@ class TodoList(Div):
 
 class TodoPage(Page):
     state: State = State()
-    classes: str = "space-y-10 h-screen p-2 flex flex-col items-center justify-center"
-    advice: Paragraph.provide(text="Please type below to add items to your list", classes="text-2xl")
+    classes: Classes.provide("space-y-10 h-screen p-2 flex flex-col items-center justify-center")
+    advice: Paragraph.provide(text="Please type below to add items to your list", classes=Classes("text-2xl"))
     input_line: InputLine.provide()
     todos: TodoList.provide()
 

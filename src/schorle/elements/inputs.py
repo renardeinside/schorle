@@ -2,12 +2,13 @@ from pydantic import PrivateAttr
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import ElementWithGeneratedId
+from schorle.elements.classes import Classes
 from schorle.elements.tags import HTMLTag
 
 
 class Input(ElementWithGeneratedId):
     tag: HTMLTag = HTMLTag.INPUT
-    classes: str = "input input-bordered input-primary w-6/12 form-control"
+    _base_classes: Classes = Classes("input", "form-control")
     value: str | None = None
     send: str = Attribute(default="", alias="ws-send", private=True)
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)

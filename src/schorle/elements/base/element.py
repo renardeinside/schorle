@@ -1,22 +1,22 @@
 from __future__ import annotations
 
-from enum import Enum
 from functools import partial
 from inspect import isclass
 from types import GenericAlias, UnionType
-from typing import Annotated, Callable, Iterator, get_origin
+from typing import Annotated, Iterator, get_origin
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
 from lxml.etree import _Element as LxmlElement
 from lxml.etree import tostring
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from pydantic import ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
 from schorle.elements.attribute import Attribute
+from schorle.elements.base.mixins import AttrsMixin, BindableMixin
+from schorle.elements.classes import Classes
 from schorle.elements.tags import HTMLTag
-from schorle.observable import ObservableModel, Subscriber
-from schorle.utils import wrap_in_coroutine
+from schorle.observable import ObservableModel
 
 
 class ObservableElement(ObservableModel):
@@ -31,70 +31,8 @@ class ObservableElement(ObservableModel):
         self._trigger = str(id(self))
 
 
-class Bootstrap(str, Enum):
-    ON_LOAD = "on_load"
-    BEFORE_RENDER = "before_render"
-
-
-class AttrsMixin(BaseModel):
-    """
-    Handles the attributes of the element.
-    Attributes should be defined as fields with the `Attribute` annotation.
-    """
-
-    @property
-    def attrs(self):
-        return {
-            v.alias if v.alias else k: getattr(self, k)
-            for k, v in self.model_fields.items()
-            if v.json_schema_extra and v.json_schema_extra.get("attribute")
-        }
-
-
-class BindableMixin(BaseModel):
-    _on_loads: list[Callable] = PrivateAttr(default_factory=list)
-    _pre_renders: list[Callable] = PrivateAttr(default_factory=list)
-    _binds: list[Callable] = PrivateAttr(default_factory=list)
-
-    def bind(
-        self,
-        observable: ObservableModel,
-        effect: Callable,
-        *,
-        bootstrap: Bootstrap | None = None,
-    ):
-        # wrap the effect in a coroutine if it isn't one
-        _effect = wrap_in_coroutine(effect)
-
-        subscriber = Subscriber()
-        observable.subscribe(subscriber)
-
-        async def _effect_subscriber():
-            async for _ in subscriber:
-                logger.info(f"Calling effect {effect} with {observable}")
-                await _effect(observable)
-                logger.info(f"Called effect {effect} with {observable}")
-
-        self._binds.append(_effect_subscriber)
-
-        if bootstrap == Bootstrap.ON_LOAD:
-            self._on_loads.append(partial(_effect, observable))
-        elif bootstrap == Bootstrap.BEFORE_RENDER:
-            self._pre_renders.append(partial(_effect, observable))
-
-    def get_binds(self):
-        return self._binds
-
-    def get_on_loads(self):
-        return self._on_loads
-
-    def get_pre_renders(self):
-        return self._pre_renders
-
-
 class Element(ObservableElement, AttrsMixin, BindableMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    classes: str | None = None
     tag: HTMLTag
     text: str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
@@ -159,6 +97,9 @@ class Element(ObservableElement, AttrsMixin, BindableMixin):
                     for _element in element:
                         yield from _element.traverse()
 
+    def _add_classes(self, element: LxmlElement):
+        pass
+
     def get_element(self) -> LxmlElement:
         if self._rendering_element is None:
             element = LxmlElementFactory(self.tag.value)
@@ -169,8 +110,7 @@ class Element(ObservableElement, AttrsMixin, BindableMixin):
             if self.style is not None:
                 element.set("style", ";".join([f"{k}:{v}" for k, v in self.style.items()]))
 
-            if self.classes is not None:
-                element.set("class", self.classes)
+            self._add_classes(element)
 
             for k, v in self.attrs.items():
                 if v is not None:
@@ -208,7 +148,19 @@ class Element(ObservableElement, AttrsMixin, BindableMixin):
 
 class ElementWithGeneratedId(Element):
     hx_swap: str = Attribute(default="morph", alias="hx-swap-oob")
+    _base_classes: Classes = PrivateAttr(default_factory=Classes)
+    classes: Classes.provide(description="Classes of the element, if any")
 
     def __init__(self, **data):
         super().__init__(**data)
-        self.element_id = f"schorle-{self.tag.value.lower()}-{id(self)}" if self.element_id is None else self.element_id
+        if self.element_id is None:
+            self.element_id = f"schorle-{self.tag.value.lower()}-{id(self)}" if self.element_id is None else self.element_id
+
+    def _add_classes(self, element: LxmlElement):
+        container = []
+        for source in [self.classes, self._base_classes]:
+            _rendered = source.render()
+            if _rendered:
+                container.append(_rendered)
+        if container:
+            element.set("class", " ".join(container))

@@ -13,9 +13,9 @@ from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-from schorle.elements.inputs import Input
 from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
+from schorle.elements.inputs import Input
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
 from schorle.observable import Subscriber

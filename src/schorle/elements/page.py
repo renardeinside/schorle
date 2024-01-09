@@ -1,11 +1,11 @@
 import asyncio
 from typing import Callable, Optional
 
-from schorle.elements.base.element import Element
+from schorle.elements.base.element import Element, ElementWithGeneratedId
 from schorle.elements.tags import HTMLTag
 
 
-class Page(Element):
+class Page(ElementWithGeneratedId):
     tag: HTMLTag = HTMLTag.DIV
     element_id: str = "schorle-page"
 

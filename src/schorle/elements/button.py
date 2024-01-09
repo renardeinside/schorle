@@ -6,6 +6,7 @@ from pydantic import Field
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import ElementWithGeneratedId
 from schorle.elements.tags import HTMLTag
+from schorle.elements.classes import Classes
 
 OnClick = Callable[..., Awaitable]
 
@@ -14,7 +15,7 @@ class Button(ElementWithGeneratedId):
     tag: HTMLTag = HTMLTag.BUTTON
     on_click: Optional[OnClick] = Field(default=None, description="Handler for on_click event")
     disabled: bool = Field(default=False)
-    classes: str = Field(default="btn")
+    _base_classes: Classes = Classes("btn")
     send: str = Attribute(default="", alias="ws-send", private=True)
 
     def __init__(self, **data):

@@ -5,10 +5,12 @@ from functools import partial
 from typing import Callable
 
 from loguru import logger
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, ConfigDict
 
+from schorle.elements.classes import Classes
 from schorle.observable import ObservableModel, Subscriber
 from schorle.utils import wrap_in_coroutine
+from lxml.etree import _Element as LxmlElement
 
 
 class Bootstrap(str, Enum):
@@ -37,11 +39,11 @@ class BindableMixin(BaseModel):
     _binds: list[Callable] = PrivateAttr(default_factory=list)
 
     def bind(
-        self,
-        observable: ObservableModel,
-        effect: Callable,
-        *,
-        bootstrap: Bootstrap | None = None,
+            self,
+            observable: ObservableModel,
+            effect: Callable,
+            *,
+            bootstrap: Bootstrap | None = None,
     ):
         # wrap the effect in a coroutine if it isn't one
         _effect = wrap_in_coroutine(effect)
