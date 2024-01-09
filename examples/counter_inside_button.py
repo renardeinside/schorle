@@ -21,11 +21,7 @@ class ButtonWithState(Button):
     def __init__(self, **data):
         super().__init__(**data)
         self.set_callback(self.state.increment)
-        self.bind(
-            self.state,
-            lambda s: self.update_text(f"Counter: {s.counter}"),
-            bootstrap=Bootstrap.BEFORE_RENDER
-        )
+        self.bind(self.state, lambda s: self.update_text(f"Counter: {s.counter}"), bootstrap=Bootstrap.BEFORE_RENDER)
 
 
 class PageWithButton(Page):

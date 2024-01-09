@@ -1,9 +1,10 @@
-from contextlib import contextmanager
+from __future__ import annotations
+
 from enum import Enum
 from functools import partial
 from inspect import isclass
-from types import UnionType
-from typing import Annotated, Callable, Iterator, Optional, Type, get_origin
+from types import GenericAlias, UnionType
+from typing import Annotated, Callable, Iterator, get_origin
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
@@ -19,7 +20,15 @@ from schorle.utils import wrap_in_coroutine
 
 
 class ObservableElement(ObservableModel):
-    _selected_fields: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id", "_suspend"])
+    _selected_fields: list[str] = PrivateAttr(default=["text", "style", "classes", "element_id", "_trigger"])
+    _trigger: str | None = PrivateAttr(default=None)
+
+    def update(self):
+        """
+        Explicitly update the element.
+        :return:
+        """
+        self._trigger = str(id(self))
 
 
 class Bootstrap(str, Enum):
@@ -28,6 +37,11 @@ class Bootstrap(str, Enum):
 
 
 class AttrsMixin(BaseModel):
+    """
+    Handles the attributes of the element.
+    Attributes should be defined as fields with the `Attribute` annotation.
+    """
+
     @property
     def attrs(self):
         return {
@@ -85,94 +99,108 @@ class Element(ObservableElement, AttrsMixin, BindableMixin):
     text: str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
+    _rendering_element: LxmlElement | None = PrivateAttr(default=None)
 
     def __init__(self, **data):
         super().__init__(**data)
-        self._suspense = None
-        self._suspend: bool = False
 
     @classmethod
-    def provide(cls, *args, **kwargs) -> Type["Element"]:
+    def provide(cls, *args, **kwargs) -> type[Element]:
         return Annotated[cls, Field(default_factory=partial(cls, *args, **kwargs))]
 
-    def _check_annotation_args(self, anno: UnionType):
+    def _union_related_to_element(self, anno: UnionType):
         for arg in anno.__args__:
             if isclass(arg) and get_origin(arg) not in [list, dict] and issubclass(arg, Element):
                 return True
             elif isinstance(arg, UnionType):
                 return self._check_annotation_args(arg)
 
+    def _list_or_dict_related_to_element(self, anno: GenericAlias):
+        for arg in anno.__args__:
+            if isclass(arg) and issubclass(arg, Element):
+                return True
+            elif isinstance(arg, UnionType):
+                return self._check_annotation_args(arg)
+
     def _related_to_element(self, field: FieldInfo) -> bool:
-        anno = field.annotation
+        anno: UnionType | GenericAlias | type = field.annotation
+        if get_origin(anno) in [list, dict]:
+            return self._list_or_dict_related_to_element(anno)
         if isclass(anno) and issubclass(anno, Element):
             return True
-        elif isinstance(anno, UnionType) and self._check_annotation_args(anno):
+        elif isinstance(anno, UnionType) and self._union_related_to_element(anno):
             return True
 
-    def traverse_elements(self, *, nested: bool) -> Iterator["Element"]:
+    def walk(self, parent: Element | None = None) -> Iterator[tuple[Element | None, Element]]:
+        """
+        Traverse the element tree and yield a tuple of [parent, child] elements.
+        """
+        yield parent, self
         for k, v in self.model_fields.items():
             if self._related_to_element(v):
                 element = getattr(self, k)
                 if isinstance(element, Element):
-                    yield element
-                    if nested:
-                        yield from element.traverse_elements(nested=nested)
+                    yield from element.walk(self)
+                elif isinstance(element, list):
+                    for _element in element:
+                        yield from _element.walk(self)
 
-        for k, v in self.model_computed_fields.items():
-            if issubclass(v.return_type, Element):
-                element = getattr(self, k)
-                yield element
-                if nested:
-                    yield from element.traverse_elements(nested=nested)
-
-    @contextmanager
-    def suspend(self, suspense: Optional["Element"] = None):
-        # todo - passing suspense as an element through the instance state is a bit hacky
-        logger.debug(f"Suspending {self}")
-        self._suspend = True
-        self._suspense = suspense
+    def traverse(self) -> Iterator[Element]:
+        """
+        Traverse the element tree and yield each element.
+        """
         yield self
-        logger.debug(f"Un-suspending {self}")
-        self._suspend = False
+        for k, v in self.model_fields.items():
+            if self._related_to_element(v):
+                element = getattr(self, k)
+                if isinstance(element, Element):
+                    yield from element.traverse()
+                elif isinstance(element, list):
+                    for _element in element:
+                        yield from _element.traverse()
 
-    def get_element(self, *, suspended: bool = False) -> LxmlElement:
-        element = LxmlElementFactory(self.tag.value)
+    def get_element(self) -> LxmlElement:
+        if self._rendering_element is None:
+            element = LxmlElementFactory(self.tag.value)
 
-        if self.element_id is not None:
-            element.set("id", self.element_id)
+            if self.element_id is not None:
+                element.set("id", self.element_id)
 
-        if self.style is not None:
-            element.set("style", ";".join([f"{k}:{v}" for k, v in self.style.items()]))
+            if self.style is not None:
+                element.set("style", ";".join([f"{k}:{v}" for k, v in self.style.items()]))
 
-        if self.classes is not None:
-            element.set("class", self.classes)
+            if self.classes is not None:
+                element.set("class", self.classes)
 
-        if suspended:
-            if self._suspense is None:
-                _suspense = Element(tag=HTMLTag.SPAN, classes="loading loading-lg loading-infinity")
-            else:
-                _suspense = self._suspense
-
-            element.append(_suspense.get_element())
-        else:
             for k, v in self.attrs.items():
                 if v is not None:
                     element.set(k, v)
             if self.text is not None:
                 element.text = self.text
-            else:
-                for child in self.traverse_elements(nested=False):
-                    element.append(child.get_element())
+            self._rendering_element = element
 
-        return element
+        return self._rendering_element
 
     def render(self) -> str:
         logger.info(f"Rendering element {self}")
-        element = self.get_element(suspended=self._suspend)
-        return tostring(element, pretty_print=True).decode("utf-8")
+
+        root_element = None
+        for parent, child in self.walk():
+            if not parent:
+                root_element = child.get_element()
+            else:
+                parent.get_element().append(child.get_element())
+        result = tostring(root_element, pretty_print=True).decode("utf-8")
+        logger.debug(f"Rendered element {self} to {result}")
+        for element in self.traverse():
+            element._rendering_element = None
+        return result
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} {self.tag.value}>"
+        return f"<{self.tag} {self.element_id}>"
+
+    def __str__(self):
+        return self.__repr__()
 
     def update_text(self, text: str):
         self.text = text

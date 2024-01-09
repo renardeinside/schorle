@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HtmxHeaders(BaseModel):
@@ -9,4 +9,5 @@ class HtmxHeaders(BaseModel):
 
 
 class HtmxMessage(BaseModel):
+    model_config = ConfigDict(extra="allow")
     headers: Annotated[HtmxHeaders, Field(alias="HEADERS")]

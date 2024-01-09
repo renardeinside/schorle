@@ -10,9 +10,11 @@ from fastapi import FastAPI
 from loguru import logger
 from starlette.endpoints import WebSocketEndpoint
 from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
-from starlette.types import Scope, Receive, Send
+from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+from elements.input_ import Input
+from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
@@ -89,6 +91,19 @@ class Schorle:
         return response
 
 
+class PageUpdatesSubscriber(Subscriber):
+    def __init__(self, page: Page):
+        super().__init__()
+        page.subscribe_all_elements(self)
+
+    async def process(self, ws: WebSocket) -> None:
+        async for element in self:
+            logger.info(f"Received page update: {element}")
+            rendered = element.render()
+            logger.info(f"Sending page updates to client: {rendered}")
+            await ws.send_text(rendered)
+
+
 class EventsEndpoint(WebSocketEndpoint):
     encoding = "text"
 
@@ -100,14 +115,8 @@ class EventsEndpoint(WebSocketEndpoint):
         self._pages = pages
 
     async def _page_updates_emitter(self, ws: WebSocket) -> None:
-        subscriber = Subscriber()
-        self._page.subscribe_all_elements(subscriber)
-
-        logger.info("Starting the page updates emitter...")
-        async for element in subscriber:
-            rendered = element.render()
-            logger.info(f"Sending page updates to client: {rendered}")
-            await ws.send_text(rendered)
+        subscriber = PageUpdatesSubscriber(self._page)
+        await subscriber.process(ws)
 
     async def _binding_updates_emitter(self) -> None:
         binding_tasks = self._page.get_all_binding_tasks()
@@ -152,9 +161,25 @@ class EventsEndpoint(WebSocketEndpoint):
             logger.error(f"No element found for trigger: {message.headers.trigger}")
             return
 
-        if _element.on_click is not None:
+        if isinstance(_element, Button):
+            if _element.on_click is None:
+                logger.warning(f"No on_click handler found for element {_element.element_id}")
+                return
             logger.info(f"Calling on_click handlers for element {_element.element_id}")
-            await _element.on_click()
+            try:
+                await _element.on_click()
+            except Exception as e:
+                logger.error(f"Error while calling on_click handler for element {_element.element_id}: {e}")
+        elif isinstance(_element, Input):
+            logger.info("Calling on_input handlers...")
+            message_dump = message.model_dump()
+            if _element.name in message_dump:
+                _element.value = message_dump.get(_element.name)
+                logger.info(f"Set value of {_element.element_id} to {_element.value}")
+            else:
+                logger.warning(f"No value found for input {_element.element_id}")
+        else:
+            logger.error(f"Element {_element.element_id} is not recognized as an input source.")
 
     async def on_disconnect(self, _: WebSocket, close_code: int) -> None:
         logger.info(f"Events disconnected with code: {close_code}")

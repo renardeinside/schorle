@@ -27,6 +27,16 @@
         }
     });
 
+    htmx.on("htmx:load", (evt) => {
+        let attributeName = "ws-send";
+        let querySelector = "[" + attributeName + "], [data-" + attributeName + "], [data-hx-ws], [hx-ws]";
+        evt.target.querySelectorAll(querySelector).forEach(function (node) {
+            console.log(`registering ws-send for ${node}`);
+            htmx.trigger(node, "htmx:beforeProcessNode");
+        })
+    });
+
+
     htmx.on("htmx:wsClose", (evt) => {
         makeLoadingVisible();
     });
