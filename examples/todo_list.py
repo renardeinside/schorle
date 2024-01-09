@@ -2,7 +2,7 @@ from functools import partial
 
 from pydantic import Field
 
-from elements.input_ import Input
+from schorle.elements.input_ import Input
 from schorle.app import Schorle
 from schorle.elements.base import Bootstrap
 from schorle.elements.button import Button
@@ -21,7 +21,7 @@ class State(ObservableModel):
         self.items = [*self.items, item]
 
     def remove_item(self, item_index: int):
-        self.items = [*self.items[:item_index], *self.items[item_index + 1 :]]
+        self.items = [*self.items[:item_index], *self.items[item_index + 1:]]
 
 
 class InputLine(Div):
