@@ -8,4 +8,6 @@ def Attribute(*args, **kwargs):  # noqa: N802
     :param kwargs: same as pydantic.Field
     """
     kwargs["attribute"] = True
+    if "alias" in kwargs:
+        kwargs["serialization_alias"] = kwargs.pop("alias")
     return Field(*args, **kwargs)

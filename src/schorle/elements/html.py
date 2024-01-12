@@ -1,34 +1,32 @@
 from uuid import uuid4
 
 from schorle.elements.attribute import Attribute
-from schorle.elements.base.element import Element, ElementWithGeneratedId
+from schorle.elements.base.baseelement import BaseElement, Element
 from schorle.elements.page import Page
 from schorle.elements.tags import HTMLTag
 from schorle.theme import Theme
-from schorle.utils import RunningMode, get_running_mode
 
 
-class Meta(Element):
+class Meta(BaseElement):
     tag: HTMLTag = HTMLTag.META
     charset: str = Attribute(default=None)
     name: str = Attribute(default=None)
     content: str = Attribute(default=None)
-    http_equiv: str = Attribute(default=None)
 
 
-class Title(Element):
+class Title(BaseElement):
     tag: HTMLTag = HTMLTag.TITLE
     text: str = "Schorle"
 
 
-class Link(Element):
+class Link(BaseElement):
     tag: HTMLTag = HTMLTag.LINK
     href: str = Attribute(default=None)
     rel: str = Attribute(default=None)
-    type_: str = Attribute(alias="type")
+    type_: str | None = Attribute(default=None, alias="type")
 
 
-class Script(Element):
+class Script(BaseElement):
     tag: HTMLTag = HTMLTag.SCRIPT
     src: str = Attribute(default=None)
     crossorigin: str = Attribute(default=None)
@@ -42,53 +40,50 @@ class CSRFMeta(Meta):
     content: str = Attribute(default_factory=lambda: str(uuid4()))
 
 
-class Head(Element):
+class Head(BaseElement):
     tag: HTMLTag = HTMLTag.HEAD
-    charset_meta: Meta.provide(charset="utf-8")
-    viewport_meta: Meta.provide(name="viewport", content="width=device-width, initial-scale=1")
-    csrf_meta: CSRFMeta.provide()
+    charset_meta: Meta = Meta(charset="utf-8")
+    viewport_meta: Meta = Meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    csrf_meta: CSRFMeta = CSRFMeta()
     dev_meta: Meta | None = None
-    title: Title.provide()
-    favicon: Link = Link(href="/favicon.svg", rel="icon", **{"type": "image/svg+xml"})
+    title: Title = Title()
+    favicon: Link = Link(href="/favicon.svg", rel="icon", type_="image/svg+xml")
     # css-related
-    daisy_ui: Link.provide(
-        href="https://cdn.jsdelivr.net/npm/daisyui@4.4.22/dist/full.min.css", rel="stylesheet", type="text/css"
+    daisy_ui: Link = Link(
+        href="https://cdn.jsdelivr.net/npm/daisyui@4.4.22/dist/full.min.css", rel="stylesheet", type_="text/css"
     )
-    tailwind: Script.provide(src="https://cdn.tailwindcss.com")
+    tailwind: Script = Script(src="https://cdn.tailwindcss.com")
     # htmx
-    htmx: Script.provide(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
-    htmx_ws: Script.provide(src="https://unpkg.com/htmx.org/dist/ext/ws.js")
-    idiomorph: Script.provide(src="https://unpkg.com/idiomorph@0.3.0")
-    expires_meta: Meta | None = (
-        Meta(http_equiv="expires", content="0") if get_running_mode() == RunningMode.UVICORN_DEV else None
-    )
+    htmx: Script = Script(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
+    htmx_ws: Script = Script(src="https://unpkg.com/htmx.org/dist/ext/ws.js")
+    idiomorph: Script = Script(src="https://unpkg.com/idiomorph@0.3.0")
     # todo: use idiomorph-htmx when bug is fixed
     # idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
     # client-side bundle
-    bundle: Script.provide(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
+    bundle: Script = Script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
 
 
-class Body(Element):
+class Body(BaseElement):
     tag: HTMLTag = HTMLTag.BODY
 
 
-class Footer(Element):
+class Footer(BaseElement):
     tag: HTMLTag = HTMLTag.FOOTER
 
 
-class Html(Element):
+class Html(BaseElement):
     tag: HTMLTag = HTMLTag.HTML
     theme: Theme = Attribute(..., alias="data-theme")
-    head: Head.provide()
-    body: Body.provide()
-    footer: Footer.provide(element_id="schorle-footer")
+    head: Head = Head()
+    body: Body = Body()
+    footer: Footer = Footer(element_id="schorle-footer")
 
 
-class Div(ElementWithGeneratedId):
+class Div(Element):
     tag: HTMLTag = HTMLTag.DIV
 
 
-class EventHandler(Element):
+class EventHandler(BaseElement):
     tag: HTMLTag = HTMLTag.DIV
     element_id: str = "schorle-event-handler"
     hx_ws: str = Attribute(default="ws", alias="hx-ext")
@@ -96,20 +91,20 @@ class EventHandler(Element):
     content: Page
 
 
-class MorphWrapper(Element):
+class MorphWrapper(BaseElement):
     tag: HTMLTag = HTMLTag.DIV
     element_id: str = "schorle-morph-wrapper"
     morph: str = Attribute(default="morph", alias="hx-ext")
-    handler: EventHandler.provide()
+    handler: EventHandler
 
 
 class BodyWithPage(Body):
-    wrapper: MorphWrapper.provide()
+    wrapper: MorphWrapper
 
 
-class Paragraph(ElementWithGeneratedId):
+class Paragraph(Element):
     tag: HTMLTag = HTMLTag.P
 
 
-class Span(ElementWithGeneratedId):
+class Span(Element):
     tag: HTMLTag = HTMLTag.SPAN

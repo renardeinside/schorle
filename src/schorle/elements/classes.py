@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from functools import partial
-from typing import Annotated, Union
+from typing import Union
 
-from pydantic import Field, PrivateAttr
-
-RawClassesPayload = Union[str, list[str], tuple[str, ...], 'Classes', None]
+RawClassesPayload = Union[str, list[str], tuple[str, ...], "Classes", None]
 
 
 class Classes:
@@ -22,17 +19,8 @@ class Classes:
             elif arg is None:
                 continue
             else:
-                raise TypeError(f"Expected str or list[str] or tuple[str] or None, got {type(arg)}")
-
-    @classmethod
-    def provide(
-            cls, payload: RawClassesPayload = None, description: str | None = None, *, private: bool = False
-    ) -> type[Classes]:
-        _factory = partial(cls, payload)
-        if private:
-            return Annotated[cls, PrivateAttr(default_factory=partial(cls, payload))]
-        else:
-            return Annotated[cls, Field(default_factory=partial(cls, payload), description=description)]
+                msg = f"Expected str or list[str] or tuple[str] or None, got {type(arg)}"
+                raise msg
 
     def append(self, *args: str):
         self._container.extend(args)

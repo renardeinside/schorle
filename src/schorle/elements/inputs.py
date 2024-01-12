@@ -1,12 +1,12 @@
 from pydantic import PrivateAttr
 
 from schorle.elements.attribute import Attribute
-from schorle.elements.base.element import ElementWithGeneratedId
+from schorle.elements.base.baseelement import Element
 from schorle.elements.classes import Classes
 from schorle.elements.tags import HTMLTag
 
 
-class Input(ElementWithGeneratedId):
+class Input(Element):
     tag: HTMLTag = HTMLTag.INPUT
     _base_classes: Classes = Classes("input", "form-control")
     value: str | None = None
