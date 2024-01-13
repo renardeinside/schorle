@@ -1,5 +1,6 @@
 import asyncio
 import pkgutil
+from asyncio import Task
 from functools import partial
 from importlib.resources import files
 from pathlib import Path
@@ -86,7 +87,7 @@ class EventsEndpoint(WebSocketEndpoint):
         super().__init__(scope, receive, send)
         self._page: Page | None = None
         self._pages: dict[str, Page] = pages
-        self._updates_emitter_task = None
+        self._updates_emitter_task: Task | None = None
 
     async def _updates_emitter(self, page: Page, ws: WebSocket):
         emitters = []
