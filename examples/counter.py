@@ -1,29 +1,29 @@
-from random import randint
+from pydantic import BaseModel
 
 from schorle.app import Schorle
 from schorle.elements.button import Button
 from schorle.elements.classes import Classes
 from schorle.elements.page import Page
+from schorle.state import Provide, State
 
 app = Schorle()
 
 
-class Counter:
-    def __init__(self):
-        self.count = 0
+class Counter(BaseModel):
+    value: int = 0
 
     def increment(self):
-        self.count += 1
+        self.value += 1
 
 
-class AppState:
+@app.state
+class AppState(State):
     counter: Counter = Counter()
 
 
 class ButtonWithCounter(Button):
-    async def on_click(self):
-        self.text = f"hey {randint(0, 100)}"
-        self.classes.toggle("btn-primary")
+    async def on_click(self, c: int = Provide[AppState.counter]):
+        self.text = f"Clicked {c} times"
 
 
 class PageWithButton(Page):
@@ -34,3 +34,8 @@ class PageWithButton(Page):
 @app.get("/")
 def get_page():
     return PageWithButton()
+
+
+if __name__ == "__main__":
+    bwc = ButtonWithCounter()
+    bwc.access()

@@ -18,6 +18,7 @@ from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
+from schorle.state import State
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -38,6 +39,7 @@ def assets(file_name: str) -> PlainTextResponse:
 
 class Schorle:
     def __init__(self, theme: Theme = Theme.DARK) -> None:
+        self._state_class: type[State] | None = None
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}")(assets)
@@ -51,6 +53,12 @@ class Schorle:
             return func
 
         return decorator
+
+    def state(self, state_class: type[State]):
+        logger.info(f"Registering state class: {state_class}...")
+        self._state_class = state_class
+        logger.info(f"Registered state class: {state_class}.")
+        return state_class
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         """
