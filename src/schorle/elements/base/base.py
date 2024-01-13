@@ -12,7 +12,6 @@ from pydantic import ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
 from schorle.elements.base.mixins import AttrsMixin
-from schorle.elements.classes import Classes
 from schorle.elements.tags import HTMLTag
 
 
@@ -125,24 +124,3 @@ class BaseElement(AttrsMixin):
 
     def __str__(self):
         return self.__repr__()
-
-
-class Element(BaseElement):
-    _base_classes: Classes = PrivateAttr(default_factory=Classes)
-    classes: Classes = Classes()
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        if self.element_id is None:
-            self.element_id = (
-                f"schorle-{self.tag.value.lower()}-{id(self)}" if self.element_id is None else self.element_id
-            )
-
-    def _add_classes(self, element: LxmlElement):
-        container = []
-        for source in [self.classes, self._base_classes]:
-            _rendered = source.render()
-            if _rendered:
-                container.append(_rendered)
-        if container:
-            element.set("class", " ".join(container))

@@ -1,7 +1,9 @@
+from loguru import logger
+
+from schorle.app import Schorle
+from schorle.elements.button import Button
 from schorle.elements.classes import Classes
 from schorle.elements.page import Page
-from schorle.elements.button import Button
-from schorle.app import Schorle
 
 app = Schorle()
 
@@ -19,15 +21,13 @@ class AppState:
 
 
 class ButtonWithCounter(Button):
-
-    async def on_click(self, counter: Counter = Effects(AppState.counter)):
-        counter.increment()
-        await self.text.update(f"Clicked {counter.count} times")
+    async def on_click(self):
+        logger.info("Button clicked")
 
 
 class PageWithButton(Page):
-    classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen bg-gray-100")
-    button: Button = Button(text="Click me!")
+    classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
+    button: ButtonWithCounter = ButtonWithCounter(text="Click me!")
 
 
 @app.get("/")

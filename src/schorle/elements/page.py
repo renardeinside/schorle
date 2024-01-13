@@ -1,6 +1,7 @@
 from typing import Optional
 
-from schorle.elements.base.baseelement import BaseElement, Element
+from schorle.elements.base.base import BaseElement
+from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
 
 

@@ -1,16 +1,19 @@
-from typing import Awaitable, Callable, Optional
+from typing import Awaitable, Callable
 
 from pydantic import Field
 
-from schorle.elements.base.baseelement import Element
+from schorle.elements.base.element import Element
+from schorle.elements.base.mixins import SendMixin
 from schorle.elements.classes import Classes
 from schorle.elements.tags import HTMLTag
 
 OnClick = Callable[..., Awaitable]
 
 
-class Button(Element):
+class Button(Element, SendMixin):
     tag: HTMLTag = HTMLTag.BUTTON
-    on_click: Optional[OnClick] = Field(default=None, description="Handler for on_click event")
     disabled: bool = Field(default=False)
     _base_classes: Classes = Classes("btn")
+
+    async def on_click(self):
+        pass

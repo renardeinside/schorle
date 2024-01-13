@@ -4,6 +4,8 @@ from enum import Enum
 
 from pydantic import BaseModel
 
+from schorle.elements.attribute import Attribute
+
 
 class Bootstrap(str, Enum):
     ON_LOAD = "on_load"
@@ -23,3 +25,7 @@ class AttrsMixin(BaseModel):
             for k, v in self.model_fields.items()
             if v.json_schema_extra and v.json_schema_extra.get("attribute")
         }
+
+
+class SendMixin(BaseModel):
+    ws_send: str = Attribute(default="", alias="ws-send")

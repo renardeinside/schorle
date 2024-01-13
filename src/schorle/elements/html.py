@@ -1,7 +1,8 @@
 from uuid import uuid4
 
 from schorle.elements.attribute import Attribute
-from schorle.elements.base.baseelement import BaseElement, Element
+from schorle.elements.base.base import BaseElement
+from schorle.elements.base.element import Element
 from schorle.elements.page import Page
 from schorle.elements.tags import HTMLTag
 from schorle.theme import Theme

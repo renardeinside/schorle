@@ -11,8 +11,10 @@ from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
+from schorle.models import HtmxMessage
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -107,8 +109,23 @@ class EventsEndpoint(WebSocketEndpoint):
             await websocket.close()
             return
 
-    async def on_receive(self, _: WebSocket, data: str) -> None:
+    async def on_receive(self, ws: WebSocket, data: str) -> None:
         logger.warning(f"Events received message: {data}")
+        message = HtmxMessage.model_validate_json(data)
+        logger.debug(f"Events received message: {message}")
+        if self._page:
+            _element = self._page.find_by_id(message.headers.trigger)
+            if _element:
+                logger.debug(f"Events found element: {_element}")
+                if isinstance(_element, Button):
+                    logger.debug(f"Events found button: {_element}, executing on_click...")
+                    await _element.on_click()
+                    logger.debug(f"Events executed on_click for button: {_element}")
+            else:
+                logger.error(f"No element found for id: {message.headers.trigger}")
+        else:
+            logger.error("No page found, closing websocket...")
+            await ws.close()
 
     async def on_disconnect(self, _: WebSocket, close_code: int) -> None:
         logger.info(f"Events disconnected with code: {close_code}")
