@@ -1,3 +1,4 @@
+import asyncio
 import pkgutil
 from functools import partial
 from importlib.resources import files
@@ -11,6 +12,7 @@ from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+from schorle.elements.base.element import Element
 from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
@@ -82,10 +84,22 @@ class EventsEndpoint(WebSocketEndpoint):
 
     def __init__(self, scope, receive, send, pages: dict[str, Page]) -> None:
         super().__init__(scope, receive, send)
-        self._page_binding_task = None
-        self._page_updates_task = None
         self._page: Page | None = None
         self._pages: dict[str, Page] = pages
+        self._updates_emitter_task = None
+
+    async def _updates_emitter(self, page: Page, ws: WebSocket):
+        emitters = []
+        for element in page.traverse():
+            if isinstance(element, Element):
+                emitters.append(element.updates_emitter)
+
+        async def _emit(emitter):
+            async for _element in emitter():
+                await ws.send_text(_element.render())
+
+        tasks = [asyncio.create_task(_emit(emitter)) for emitter in emitters]
+        await asyncio.gather(*tasks)
 
     async def on_connect(self, websocket: WebSocket) -> None:
         token = websocket.query_params.get("token")
@@ -97,7 +111,9 @@ class EventsEndpoint(WebSocketEndpoint):
         if page:
             await websocket.accept()
             self._page = page
+            self._updates_emitter_task = asyncio.create_task(self._updates_emitter(page, websocket))
             logger.info("Events connected.")
+
         elif not page and get_running_mode() == RunningMode.DEV:
             logger.info("Sending reload message to client...")
             await websocket.accept()
@@ -129,3 +145,6 @@ class EventsEndpoint(WebSocketEndpoint):
 
     async def on_disconnect(self, _: WebSocket, close_code: int) -> None:
         logger.info(f"Events disconnected with code: {close_code}")
+        if self._updates_emitter_task:
+            self._updates_emitter_task.cancel()
+            logger.info("Events emitter task cancelled.")

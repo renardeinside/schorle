@@ -1,4 +1,4 @@
-from loguru import logger
+from random import randint
 
 from schorle.app import Schorle
 from schorle.elements.button import Button
@@ -22,7 +22,8 @@ class AppState:
 
 class ButtonWithCounter(Button):
     async def on_click(self):
-        logger.info("Button clicked")
+        self.text = f"hey {randint(0, 100)}"
+        self.classes.toggle("btn-primary")
 
 
 class PageWithButton(Page):
