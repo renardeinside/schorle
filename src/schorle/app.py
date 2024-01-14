@@ -18,7 +18,7 @@ from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
-from schorle.state import State, inject_state
+from schorle.state import State, inject
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -85,14 +85,14 @@ class Schorle:
         page.state = state_instance
 
         for element in page.traverse():
-            injectables = element.get_injectables()
-            if injectables:
-                logger.debug(f"Injecting into element: {element}...")
-                for injectable in injectables:
-                    logger.debug(f"Injecting into {injectable} on element: {element}...")
-                    injected = inject_state(state_instance, injectable)
-                    setattr(element, injectable.__name__, injected)
-                    logger.debug(f"Injected into {injectable} on element: {element}.")
+            if isinstance(element, Element):
+                element.add_injection_metadata()
+
+        for element in page.traverse():
+            if isinstance(element, Element):
+                for method in element.injectable_methods():
+                    if page.state:
+                        inject(page.state, method)
 
         self._pages[html.head.csrf_meta.content] = page
 

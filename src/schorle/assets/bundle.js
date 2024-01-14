@@ -114,7 +114,7 @@
     }
     let prepareLoadingElement = () => {
         let element = document.createElement("span");
-        element.classList.add("loading", "loading-lg", "text-info", "loading-infinity", "fixed", "right-[50vw]", "bottom-2", "invisible");
+        element.classList.add("loading", "loading-lg", "text-info", "loading-infinity", "fixed", "right-2", "bottom-2", "invisible");
         element.id = loadingElementId;
         return element;
     }

@@ -1,10 +1,11 @@
+from loguru import logger
 from pydantic import BaseModel
 
 from schorle.app import Schorle
 from schorle.elements.button import Button
 from schorle.elements.classes import Classes
 from schorle.elements.page import Page
-from schorle.state import Provide, State
+from schorle.state import Depends, State, Uses
 
 app = Schorle()
 
@@ -22,10 +23,15 @@ class AppState(State):
 
 
 class ButtonWithCounter(Button):
-    async def on_click(self, c: Counter = Provide[AppState.counter]):
+    async def on_click(self, c: Counter = Uses[AppState.counter]):
         c.increment()
+
+    async def _(self, c: Counter = Depends[AppState.counter]):
         self.text = f"Clicked {c.value} times"
+
+    async def __(self, c: Counter = Depends[AppState.counter]):
         self.classes.toggle("btn-primary")
+        logger.debug(f"Updated {self}")
 
 
 class PageWithButton(Page):
