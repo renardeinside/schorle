@@ -48,3 +48,16 @@ def inject_state(state, func):
         return func(**new_kwargs)
 
     return wrapper
+
+
+def is_injectable(prop):
+    if callable(prop):
+        signature = inspect.signature(prop)
+        parameters = signature.parameters
+
+        for _, parameter in parameters.items():
+            if get_origin(parameter.default) is Provide:
+                return True
+        return False
+    else:
+        return False

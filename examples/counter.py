@@ -22,8 +22,10 @@ class AppState(State):
 
 
 class ButtonWithCounter(Button):
-    async def on_click(self, c: int = Provide[AppState.counter]):
-        self.text = f"Clicked {c} times"
+    async def on_click(self, c: Counter = Provide[AppState.counter]):
+        c.increment()
+        self.text = f"Clicked {c.value} times"
+        self.classes.toggle("btn-primary")
 
 
 class PageWithButton(Page):
@@ -34,8 +36,3 @@ class PageWithButton(Page):
 @app.get("/")
 def get_page():
     return PageWithButton()
-
-
-if __name__ == "__main__":
-    bwc = ButtonWithCounter()
-    bwc.access()

@@ -11,12 +11,12 @@ from lxml.etree import tostring
 from pydantic import ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
-from schorle.elements.base.mixins import AttrsMixin
+from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
 from schorle.elements.tags import HTMLTag
 
 
-class BaseElement(AttrsMixin):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+class BaseElement(AttrsMixin, InjectableMixin):
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
     tag: HTMLTag
     text: str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
