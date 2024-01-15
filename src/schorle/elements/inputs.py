@@ -2,8 +2,8 @@ from pydantic import PrivateAttr
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
-from schorle.elements.classes import Classes
 from schorle.elements.tags import HTMLTag
+from schorle.observables.classes import Classes
 
 
 class Input(Element):

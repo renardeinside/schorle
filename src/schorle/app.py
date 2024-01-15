@@ -18,6 +18,7 @@ from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
+from schorle.observables.base import ObservableField
 from schorle.state import State, inject
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
@@ -112,16 +113,21 @@ class EventsEndpoint(WebSocketEndpoint):
 
     async def _updates_emitter(self, page: Page, ws: WebSocket):
         emitters = []
+
+        async def _emit(_element: Element, field: ObservableField):
+            async for _ in field:
+                logger.debug(f"Events emitting element: {_element}")
+                await ws.send_text(_element.render())
+                logger.debug(f"Events emitted element: {_element}")
+
         for element in page.traverse():
             if isinstance(element, Element):
-                emitters.append(element.updates_emitter)
+                observable_fields = [element.text, element.classes]
+                for field in observable_fields:
+                    if isinstance(field, ObservableField):
+                        emitters.append(_emit(element, field))
 
-        async def _emit(emitter):
-            async for _element in emitter():
-                await ws.send_text(_element.render())
-
-        tasks = [asyncio.create_task(_emit(emitter)) for emitter in emitters]
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*emitters)
 
     async def on_connect(self, websocket: WebSocket) -> None:
         token = websocket.query_params.get("token")

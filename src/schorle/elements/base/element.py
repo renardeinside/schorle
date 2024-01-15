@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from asyncio import Queue
-from typing import AsyncIterator
 
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr
 
 from schorle.elements.base.base import BaseElement
-from schorle.elements.classes import Classes
+from schorle.observables.classes import Classes
 
 
 class Element(BaseElement):
@@ -30,13 +29,3 @@ class Element(BaseElement):
                 container.append(_rendered)
         if container:
             element.set("class", " ".join(container))
-
-    def __setattr__(self, key, value):
-        super().__setattr__(key, value)
-        if key in ["classes", "text", "style"]:
-            self._render_queue.put_nowait(self)
-
-    async def updates_emitter(self) -> AsyncIterator[Element]:
-        while True:
-            element = await self._render_queue.get()
-            yield element

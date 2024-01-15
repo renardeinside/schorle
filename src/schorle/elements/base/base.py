@@ -13,12 +13,13 @@ from pydantic.fields import FieldInfo
 
 from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
 from schorle.elements.tags import HTMLTag
+from schorle.observables.text import Text
 
 
 class BaseElement(AttrsMixin, InjectableMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
     tag: HTMLTag
-    text: str | None = Field(default=None, description="Text content of the element, if any")
+    text: Text | str | None = Field(default=None, description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
     _rendering_element: LxmlElement | None = PrivateAttr(default=None)
@@ -95,7 +96,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
                 if v is not None:
                     element.set(k, v)
             if self.text is not None:
-                element.text = self.text
+                element.text = self.text.get() if isinstance(self.text, Text) else self.text
             self._rendering_element = element
 
         return self._rendering_element
