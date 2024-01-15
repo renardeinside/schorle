@@ -10,19 +10,23 @@ from schorle.observables.classes import Classes
 OnClick = Callable[..., Awaitable]
 
 
-class Button(Element, SendMixin):
+class Button(Element):
     tag: HTMLTag = HTMLTag.BUTTON
-    disabled: bool = Field(default=False)
+    _base_classes: Classes = Classes("btn")
+    classes: Classes = Classes()
+
+
+class ReactiveButton(Button, SendMixin):
     _base_classes: Classes = Classes("btn")
     classes: Classes = Classes()
     callback: OnClick | None = Field(default=None, description="Callback to be executed on click")
 
     def __init__(self, **data):
         super().__init__(**data)
-        if self.callback is not None and type(self).on_click != Button.on_click:
+        if self.callback is not None and type(self).on_click != ReactiveButton.on_click:
             msg = "Cannot set callback and override on_click at the same time"
             raise msg
-        elif self.on_click != Button.on_click:
+        elif self.on_click != ReactiveButton.on_click:
             self.callback = self.on_click
 
     async def on_click(self):

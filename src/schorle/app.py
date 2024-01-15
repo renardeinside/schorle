@@ -14,7 +14,7 @@ from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 from schorle.elements.base.element import Element
-from schorle.elements.button import Button
+from schorle.elements.button import ReactiveButton
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.inputs import Input
 from schorle.elements.page import Page
@@ -184,7 +184,7 @@ class EventsEndpoint(WebSocketEndpoint):
             _element = self._page.find_by_id(message.headers.trigger)
             if _element:
                 logger.debug(f"Events found element: {_element}")
-                if isinstance(_element, Button):
+                if isinstance(_element, ReactiveButton):
                     logger.debug(f"Events found button: {_element}, executing on_click...")
                     if _element.callback:
                         await _element.callback()

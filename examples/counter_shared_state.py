@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from schorle.app import Schorle
-from schorle.elements.button import Button
+from schorle.elements.button import ReactiveButton
 from schorle.elements.html import Div
 from schorle.elements.page import Page
 from schorle.observables.classes import Classes
@@ -26,14 +26,14 @@ class AppState(State):
     counter: Counter = Counter()
 
 
-class IncrementButton(Button):
+class IncrementButton(ReactiveButton):
     classes: Classes = Classes("btn-primary")
 
     async def on_click(self, counter: Counter = Uses[AppState.counter]):
         counter.increment()
 
 
-class DecrementButton(Button):
+class DecrementButton(ReactiveButton):
     classes: Classes = Classes("btn-secondary", "btn-disabled")
 
     async def on_click(self, counter: Counter = Uses[AppState.counter]):

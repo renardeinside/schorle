@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
-from schorle.elements.button import Button
+from schorle.elements.button import ReactiveButton
 from schorle.elements.html import Div, Paragraph
-from schorle.elements.inputs import Input
+from schorle.elements.inputs import ReactiveTextInput
 from schorle.elements.page import Page
 from schorle.observables.classes import Classes
 from schorle.observables.text import Text
@@ -30,8 +30,8 @@ class AppState(State):
 
 class InputSection(Div):
     classes: Classes = Classes("flex flex-row justify-center items-center w-6/12 space-x-4")
-    input_text: Input = Input(placeholder="Enter text here")
-    add_button: Button = Button(text="Add", classes=Classes("btn-primary"))
+    input_text: ReactiveTextInput = ReactiveTextInput(placeholder="Enter text here")
+    add_button: ReactiveButton = ReactiveButton(text="Add", classes=Classes("btn-primary"))
 
     def pre_render(self):
         self.add_button.callback = self._on_click
@@ -42,7 +42,7 @@ class InputSection(Div):
             await self.input_text.clear()
 
 
-class RemoveButton(Button):
+class RemoveReactiveButton(ReactiveButton):
     text: str = "Remove"
     classes: Classes = Classes("btn-error")
     item: str = Field(...)
@@ -53,7 +53,7 @@ class RemoveButton(Button):
 
 class TodoItem(Div):
     classes: Classes = Classes("w-full flex flex-row justify-between items-center")
-    remove_button: RemoveButton
+    remove_button: RemoveReactiveButton
 
 
 class TodoView(Div):
@@ -64,11 +64,13 @@ class TodoView(Div):
     @on(status="load")
     async def on_update(self, todo_list: TodoList = Depends[AppState.todo_list]):
         if not todo_list.items:
-            await self.headline.text.update("Todo List is empty")
+            await self.headline.text.update("Todo List has no items")
             self.todo_items.clear()
         else:
             await self.headline.text.update(f"Todo List has {len(todo_list.items)} items")
-            self.todo_items = [TodoItem(text=item, remove_button=RemoveButton(item=item)) for item in todo_list.items]
+            self.todo_items = [
+                TodoItem(text=item, remove_button=RemoveReactiveButton(item=item)) for item in todo_list.items
+            ]
         await self.update()
 
 

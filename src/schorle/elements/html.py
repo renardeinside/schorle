@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+from pydantic import Field
+
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
 from schorle.elements.base.element import Element
@@ -64,20 +66,21 @@ class Head(BaseElement):
     bundle: Script = Script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
 
 
-class Body(BaseElement):
-    tag: HTMLTag = HTMLTag.BODY
-
-
 class Footer(BaseElement):
     tag: HTMLTag = HTMLTag.FOOTER
+    text: str = ""
+
+
+class Body(BaseElement):
+    tag: HTMLTag = HTMLTag.BODY
+    footer: Footer = Footer(element_id="schorle-footer")
 
 
 class Html(BaseElement):
     tag: HTMLTag = HTMLTag.HTML
     theme: Theme = Attribute(..., alias="data-theme")
-    head: Head = Head()
-    body: Body = Body()
-    footer: Footer = Footer(element_id="schorle-footer")
+    head: Head = Field(default_factory=Head)
+    body: Body = Field(default_factory=Body)
 
 
 class Div(Element):

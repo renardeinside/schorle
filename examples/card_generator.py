@@ -3,9 +3,9 @@ from random import randint
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
-from schorle.elements.button import Button
+from schorle.elements.button import ReactiveButton
 from schorle.elements.card import Card, CardBody, CardTitle, FigureWithImg
-from schorle.elements.html import Div
+from schorle.elements.html import Div, Span
 from schorle.elements.img import Img
 from schorle.elements.page import Page
 from schorle.observables.classes import Classes
@@ -28,14 +28,14 @@ class AppState(State):
             CardInfo(
                 title=f"Card {index}",
                 text=f"This is card {index}",
-                img_src=f"https://picsum.photos/id/{randint(1, 200)}/600",  # noqa: S311
+                img_src=f"https://picsum.photos/id/{randint(1, 100)}/600",  # noqa: S311
             )
-            for index in range(3)
+            for index in range(1)
         ]
     )
 
 
-class AddCardButton(Button):
+class AddCardButton(ReactiveButton):
     text: str = "Add Card"
     classes: Classes = Classes("btn-primary")
 
@@ -44,13 +44,13 @@ class AddCardButton(Button):
             CardInfo(
                 title=f"Card {len(cards) + 1}",
                 text=f"This is card {len(cards) + 1}",
-                img_src=f"https://picsum.photos/id/{randint(0, 200)}/600",  # noqa: S311
+                img_src=f"https://picsum.photos/id/{randint(1, 100)}/600",  # noqa: S311
             )
         )
 
 
 class CardsView(Div):
-    classes: Classes = Classes("grid md:grid-cols-3 gap-4 pt-3")
+    classes: Classes = Classes("grid md:grid-cols-2 gap-4 pt-3")
     cards_list: list[Card] = Field(default_factory=list)
 
     @on("load")
@@ -60,7 +60,7 @@ class CardsView(Div):
             self.cards_list.append(
                 Card(
                     classes=Classes("shadow-2xl"),
-                    figure=FigureWithImg(img=Img(src=card.img_src, alt=card.title)),
+                    figure=FigureWithImg(img=Img(src=card.img_src, alt=card.title, classes=Classes("schorle-loading"))),
                     body=CardBody(title=CardTitle(text=card.title), body=Div(text=card.text)),
                 )
             )
@@ -71,6 +71,7 @@ class CardsPage(Page):
     classes: Classes = Classes("flex flex-col justify-center items-center p-4")
     add_card_button: AddCardButton = AddCardButton()
     cards_view: CardsView = CardsView()
+    loading: Span = Span(classes=Classes("loading loading-lg loading-ring"))
 
 
 @app.get("/")
