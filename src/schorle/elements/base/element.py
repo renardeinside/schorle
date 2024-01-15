@@ -20,7 +20,9 @@ class Element(BaseElement):
         super().__init__(**data)
         if self.element_id is None:
             self.element_id = (
-                f"schorle-{self.tag.value.lower()}-{id(self)}" if self.element_id is None else self.element_id
+                f"schorle-{self.tag.value.lower()}-{id(self)}-{uuid4()!s}"
+                if self.element_id is None
+                else self.element_id
             )
 
     def _add_classes(self, element: LxmlElement):

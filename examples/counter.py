@@ -2,8 +2,8 @@ from pydantic import BaseModel
 
 from schorle.app import Schorle
 from schorle.elements.button import Button
-from schorle.elements.classes import Classes
 from schorle.elements.page import Page
+from schorle.observables.classes import Classes
 from schorle.observables.text import Text
 from schorle.state import Depends, State, Uses
 

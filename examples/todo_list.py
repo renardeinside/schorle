@@ -72,7 +72,7 @@ class TodoView(Div):
         await self.update()
 
 
-class PageWithButton(Page):
+class TodoPage(Page):
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
     input_section: InputSection = InputSection()
     todo_view: TodoView = TodoView()
@@ -80,4 +80,4 @@ class PageWithButton(Page):
 
 @app.get("/")
 def get_page():
-    return PageWithButton()
+    return TodoPage()

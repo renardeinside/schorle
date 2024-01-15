@@ -24,13 +24,9 @@ classifiers = [
 ]
 dependencies = [
   "fastapi",
-  "vdom",
   "uvicorn",
   "websockets",
-  "typer[all]",
   "loguru",
-  "watchfiles",
-  "betterproto"
 ]
 
 [project.scripts]
