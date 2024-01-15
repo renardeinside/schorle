@@ -16,10 +16,11 @@ from starlette.websockets import WebSocket
 from schorle.elements.base.element import Element
 from schorle.elements.button import Button
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
+from schorle.elements.inputs import Input
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
 from schorle.observables.base import ObservableField
-from schorle.state import State, inject
+from schorle.state import State, inject_into_method
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -36,6 +37,22 @@ def assets(file_name: str) -> PlainTextResponse:
         return PlainTextResponse(_bundle.decode("utf-8"), status_code=200)
     else:
         return PlainTextResponse(f"File not found: {file_name}", status_code=404)
+
+
+def inject_state(page: Page):
+    for element in page.traverse():
+        if isinstance(element, Element):
+            element.add_injection_metadata()
+
+    logger.debug("Injecting state into page...")
+    for element in page.traverse():
+        if isinstance(element, Element):
+            for method in element.injectable_methods():
+                if page.state:
+                    inject_into_method(page.state, method)
+                else:
+                    logger.error("No state found, skipping injection...")
+    logger.debug("Injected state into page.")
 
 
 class Schorle:
@@ -80,20 +97,23 @@ class Schorle:
             logger.info("Adding dev meta tags...")
             html.head.dev_meta = Meta(name="schorle-dev", content="true")
 
-        response = HTMLResponse(html.render(), status_code=200)
-        logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
         state_instance = self._state_class() if self._state_class else None
         page.state = state_instance
 
-        for element in page.traverse():
-            if isinstance(element, Element):
-                element.add_injection_metadata()
+        inject_state(page)
 
+        logger.debug("Calling load methods...")
         for element in page.traverse():
             if isinstance(element, Element):
-                for method in element.injectable_methods():
-                    if page.state:
-                        inject(page.state, method)
+                logger.debug(f"Total injected methods for element: {element}: {len(list(element.injected_methods()))}")
+                for method in element.injected_methods():
+                    if getattr(method, "load", False):
+                        logger.debug(f"Calling load method: {method}...")
+                        await method()
+        logger.debug("Called load methods.")
+
+        response = HTMLResponse(html.render(), status_code=200)
+        logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
 
         self._pages[html.head.csrf_meta.content] = page
 
@@ -115,17 +135,28 @@ class EventsEndpoint(WebSocketEndpoint):
         emitters = []
 
         async def _emit(_element: Element, field: ObservableField):
+            logger.debug(f"Starting events emitter for element: {_element} with field: {field}")
             async for _ in field:
                 logger.debug(f"Events emitting element: {_element}")
+                for __element in _element.traverse():
+                    if isinstance(__element, Element):
+                        for method in __element.injectable_methods():
+                            if page.state:
+                                logger.debug(f"Dynamically injecting state into method: {method}...")
+                                inject_into_method(page.state, method)
+                            else:
+                                logger.error("No state found, skipping injection...")
                 await ws.send_text(_element.render())
                 logger.debug(f"Events emitted element: {_element}")
 
-        for element in page.traverse():
-            if isinstance(element, Element):
-                observable_fields = [element.text, element.classes]
-                for field in observable_fields:
-                    if isinstance(field, ObservableField):
+        try:
+            for element in page.traverse():
+                if isinstance(element, Element):
+                    observable_fields = element.get_observable_fields()
+                    for field in observable_fields:
                         emitters.append(_emit(element, field))
+        except Exception as e:
+            logger.error(f"Events emitter failed with exception: {e}")
 
         await asyncio.gather(*emitters)
 
@@ -163,8 +194,17 @@ class EventsEndpoint(WebSocketEndpoint):
                 logger.debug(f"Events found element: {_element}")
                 if isinstance(_element, Button):
                     logger.debug(f"Events found button: {_element}, executing on_click...")
-                    await _element.on_click()
-                    logger.debug(f"Events executed on_click for button: {_element}")
+                    if _element.callback:
+                        await _element.callback()
+                        logger.debug(f"Events executed on_click for button: {_element}")
+                    else:
+                        logger.warning(f"No callback found for button: {_element}")
+                elif isinstance(_element, Input):
+                    logger.debug(f"Events found input: {_element}, executing on_change...")
+                    new_value = getattr(message, _element.name)
+                    if new_value:
+                        await _element.on_change(new_value)
+                    logger.debug(f"Events executed on_change for input: {_element}")
             else:
                 logger.error(f"No element found for id: {message.headers.trigger}")
         else:

@@ -32,3 +32,6 @@ class ObservableField(BaseModel, Generic[T]):
 
     def __repr__(self):
         return f"<Observable {self.__class__} {self._value}>"
+
+    def __str__(self):
+        return f"<Observable {self.__class__} {self._value}>"

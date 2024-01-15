@@ -15,6 +15,20 @@ class Button(Element, SendMixin):
     disabled: bool = Field(default=False)
     _base_classes: Classes = Classes("btn")
     classes: Classes = Classes()
+    callback: OnClick | None = Field(default=None, description="Callback to be executed on click")
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.callback is not None and type(self).on_click != Button.on_click:
+            msg = "Cannot set callback and override on_click at the same time"
+            raise msg
+        elif self.on_click != Button.on_click:
+            self.callback = self.on_click
 
     async def on_click(self):
         pass
+
+    def __setattr__(self, key, value):
+        if key == "on_click":
+            self.callback = value
+        super().__setattr__(key, value)

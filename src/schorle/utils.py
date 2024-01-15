@@ -14,3 +14,11 @@ def get_running_mode() -> RunningMode:
         return RunningMode.DEV
     else:
         return RunningMode.PRODUCTION
+
+
+def on(status: str = "load"):
+    def decorator(func):
+        setattr(func, status, True)
+        return func
+
+    return decorator

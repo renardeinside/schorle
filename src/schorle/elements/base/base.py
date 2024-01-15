@@ -19,7 +19,7 @@ from schorle.observables.text import Text
 class BaseElement(AttrsMixin, InjectableMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
     tag: HTMLTag
-    text: Text | str | None = Field(default=None, description="Text content of the element, if any")
+    text: Text | str = Field(default=Text(), description="Text content of the element, if any")
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
     _rendering_element: LxmlElement | None = PrivateAttr(default=None)
@@ -81,6 +81,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
         pass
 
     def get_element(self) -> LxmlElement:
+        self.pre_render()
         if self._rendering_element is None:
             element = LxmlElementFactory(self.tag.value)
 
@@ -100,6 +101,9 @@ class BaseElement(AttrsMixin, InjectableMixin):
             self._rendering_element = element
 
         return self._rendering_element
+
+    def pre_render(self):
+        pass
 
     def render(self) -> str:
         logger.info(f"Rendering element {self}")
@@ -125,3 +129,6 @@ class BaseElement(AttrsMixin, InjectableMixin):
 
     def __str__(self):
         return self.__repr__()
+
+    def __init__(self, **data):
+        super().__init__(**data)

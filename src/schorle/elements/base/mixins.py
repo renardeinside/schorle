@@ -46,13 +46,23 @@ class InjectableMixin:
     def injectable_methods(self) -> Iterator[MethodType]:
         for attr in dir(self):
             if attr not in ["__fields__", "__fields_set__", "__signature__"] and ismethod(getattr(self, attr)):
+                method = getattr(self, attr)
                 injectable_params = [
                     param
-                    for param in inspect.signature(getattr(self, attr)).parameters.values()
+                    for param in inspect.signature(method).parameters.values()
                     if get_origin(param.default) in [Uses, Depends]
                 ]
                 if injectable_params:
-                    yield getattr(self, attr)
+                    yield method
+
+    def injected_methods(self) -> Iterator[MethodType]:
+        for attr in dir(self):
+            if (
+                attr not in ["__fields__", "__fields_set__", "__signature__"]
+                and callable(getattr(self, attr))
+                and getattr(getattr(self, attr), "injected", False)
+            ):
+                yield getattr(self, attr)
 
     def _injectable_params(self, method: Callable) -> Iterator[tuple[str, Wired, FieldInfo]]:
         parameters = inspect.signature(method).parameters

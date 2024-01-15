@@ -42,7 +42,7 @@ class State(BaseModel, ABC, metaclass=BaseMeta):
     pass
 
 
-def injector(method: MethodType, state: State):
+def get_injected_method(method: MethodType, state: State):
     """
     Injects the state into the method.
     :param method:
@@ -87,8 +87,10 @@ def injector(method: MethodType, state: State):
     return _injector
 
 
-def inject(state: State, original_method: MethodType):
+def inject_into_method(state: State, original_method: MethodType):
     logger.debug(f"Injecting state into method: {original_method}...")
-    injected_method = injector(original_method, state)
+    injected_method = get_injected_method(original_method, state)
+    injected_method.injected = True
+    injected_method.load = getattr(original_method, "load", False)
     logger.info(f"Wrapping method: {original_method} with injection wrapper: {injected_method}")
     setattr(original_method.__self__, original_method.__name__, injected_method)
