@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
@@ -7,7 +9,7 @@ from schorle.observables.classes import Classes
 class Input(Element):
     tag: HTMLTag = HTMLTag.INPUT
     _base_classes: Classes = Classes("input", "form-control")
-    value: str | None = None
+    value: str = Field(default="")
     send: str = Attribute(default="", alias="ws-send", private=True)
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)
     placeholder: str | None = Attribute(default=None)

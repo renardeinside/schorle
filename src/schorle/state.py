@@ -5,7 +5,6 @@ from abc import ABC
 from types import MethodType
 from typing import Any, Generic, TypeVar, get_origin
 
-from loguru import logger
 from pydantic import BaseModel
 from pydantic._internal._model_construction import ModelMetaclass  # type: ignore
 from pydantic.fields import FieldInfo
@@ -51,7 +50,6 @@ def get_injected_method(method: MethodType, state: State):
     """
 
     async def _injector():
-        logger.debug(f"Calling method: {method} with state: {state}...")
         parameters = inspect.signature(method).parameters
         new_kwargs = {}
         dependants = []
@@ -64,7 +62,6 @@ def get_injected_method(method: MethodType, state: State):
                 if "depends" in field_info.json_schema_extra and origin is Uses:
                     dependants.extend(field_info.json_schema_extra["depends"])
 
-        logger.debug(f"Injected state into method: {method}, dependants: {dependants}")
         # if method has no dependants, call it
         if not dependants:
             if inspect.iscoroutinefunction(method):
@@ -88,9 +85,7 @@ def get_injected_method(method: MethodType, state: State):
 
 
 def inject_into_method(state: State, original_method: MethodType):
-    logger.debug(f"Injecting state into method: {original_method}...")
     injected_method = get_injected_method(original_method, state)
     injected_method.injected = True
     injected_method.load = getattr(original_method, "load", False)
-    logger.info(f"Wrapping method: {original_method} with injection wrapper: {injected_method}")
     setattr(original_method.__self__, original_method.__name__, injected_method)

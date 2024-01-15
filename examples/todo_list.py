@@ -37,8 +37,9 @@ class InputSection(Div):
         self.add_button.callback = self._on_click
 
     async def _on_click(self, todo_list: TodoList = Uses[AppState.todo_list]):
-        todo_list.add_item(self.input_text.value)
-        await self.input_text.clear()
+        if self.input_text.value:
+            todo_list.add_item(self.input_text.value)
+            await self.input_text.clear()
 
 
 class RemoveButton(Button):
@@ -56,7 +57,6 @@ class TodoItem(Div):
 
 
 class TodoView(Div):
-    element_id: str = "todo-view"
     classes: Classes = Classes("flex w-96 flex-col space-y-4 p-4")
     headline: Paragraph = Paragraph(text=Text("Todo List"), classes=Classes("text-2xl text-center"))
     todo_items: list[TodoItem] = Field(default_factory=list)

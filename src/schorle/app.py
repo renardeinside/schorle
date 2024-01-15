@@ -44,7 +44,6 @@ def inject_state(page: Page):
         if isinstance(element, Element):
             element.add_injection_metadata()
 
-    logger.debug("Injecting state into page...")
     for element in page.traverse():
         if isinstance(element, Element):
             for method in element.injectable_methods():
@@ -52,7 +51,6 @@ def inject_state(page: Page):
                     inject_into_method(page.state, method)
                 else:
                     logger.error("No state found, skipping injection...")
-    logger.debug("Injected state into page.")
 
 
 class Schorle:
@@ -102,15 +100,11 @@ class Schorle:
 
         inject_state(page)
 
-        logger.debug("Calling load methods...")
         for element in page.traverse():
             if isinstance(element, Element):
-                logger.debug(f"Total injected methods for element: {element}: {len(list(element.injected_methods()))}")
                 for method in element.injected_methods():
                     if getattr(method, "load", False):
-                        logger.debug(f"Calling load method: {method}...")
                         await method()
-        logger.debug("Called load methods.")
 
         response = HTMLResponse(html.render(), status_code=200)
         logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
@@ -135,14 +129,12 @@ class EventsEndpoint(WebSocketEndpoint):
         emitters = []
 
         async def _emit(_element: Element, field: ObservableField):
-            logger.debug(f"Starting events emitter for element: {_element} with field: {field}")
             async for _ in field:
                 logger.debug(f"Events emitting element: {_element}")
                 for __element in _element.traverse():
                     if isinstance(__element, Element):
                         for method in __element.injectable_methods():
                             if page.state:
-                                logger.debug(f"Dynamically injecting state into method: {method}...")
                                 inject_into_method(page.state, method)
                             else:
                                 logger.error("No state found, skipping injection...")
@@ -202,8 +194,7 @@ class EventsEndpoint(WebSocketEndpoint):
                 elif isinstance(_element, Input):
                     logger.debug(f"Events found input: {_element}, executing on_change...")
                     new_value = getattr(message, _element.name)
-                    if new_value:
-                        await _element.on_change(new_value)
+                    await _element.on_change(new_value)
                     logger.debug(f"Events executed on_change for input: {_element}")
             else:
                 logger.error(f"No element found for id: {message.headers.trigger}")
