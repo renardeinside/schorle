@@ -7,7 +7,10 @@ def Attribute(*args, **kwargs):  # noqa: N802
     :param args: same as pydantic.Field
     :param kwargs: same as pydantic.Field
     """
-    kwargs["attribute"] = True
     if "alias" in kwargs:
-        kwargs["serialization_alias"] = kwargs.pop("alias")
+        attribute_name = kwargs.pop("alias")
+    else:
+        attribute_name = None
+
+    kwargs["json_schema_extra"] = {"attribute_name": attribute_name, "attribute": True}
     return Field(*args, **kwargs)

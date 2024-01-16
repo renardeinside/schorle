@@ -1,14 +1,17 @@
+import asyncio
+
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
-from schorle.elements.button import ReactiveButton
+from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
-from schorle.elements.inputs import ReactiveTextInput
+from schorle.elements.inputs import Input
 from schorle.elements.page import Page
+from schorle.observables.base import Observable
 from schorle.observables.classes import Classes
 from schorle.observables.text import Text
 from schorle.state import Depends, State, Uses
-from schorle.utils import on
+from schorle.utils import before_load, reactive
 
 app = Schorle()
 
@@ -30,11 +33,12 @@ class AppState(State):
 
 class InputSection(Div):
     classes: Classes = Classes("flex flex-row justify-center items-center w-6/12 space-x-4")
-    input_text: ReactiveTextInput = ReactiveTextInput(placeholder="Enter text here")
-    add_button: ReactiveButton = ReactiveButton(text="Add", classes=Classes("btn-primary"))
+    input_text: Input = Input(placeholder="Enter text here")
+    add_button: Button = Button(text="Add", classes=Classes("btn-primary"))
 
-    def pre_render(self):
-        self.add_button.callback = self._on_click
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.add_button.add_callback("click", self._on_click)
 
     async def _on_click(self, todo_list: TodoList = Uses[AppState.todo_list]):
         if self.input_text.value:
@@ -42,36 +46,33 @@ class InputSection(Div):
             await self.input_text.clear()
 
 
-class RemoveReactiveButton(ReactiveButton):
+class RemoveButton(Button):
     text: str = "Remove"
     classes: Classes = Classes("btn-error")
     item: str = Field(...)
 
+    @reactive("click")
     async def on_click(self, todo_list: TodoList = Uses[AppState.todo_list]):
         todo_list.remove_item(self.item)
 
 
 class TodoItem(Div):
     classes: Classes = Classes("w-full flex flex-row justify-between items-center")
-    remove_button: RemoveReactiveButton
+    remove_button: RemoveButton
+
+    def __init__(self, **data):
+        super().__init__(**data)
 
 
 class TodoView(Div):
     classes: Classes = Classes("flex w-96 flex-col space-y-4 p-4")
     headline: Paragraph = Paragraph(text=Text("Todo List"), classes=Classes("text-2xl text-center"))
-    todo_items: list[TodoItem] = Field(default_factory=list)
+    todo_items: Observable[list[TodoItem]] = Field(default_factory=Observable)
 
-    @on(status="load")
+    @before_load()
     async def on_update(self, todo_list: TodoList = Depends[AppState.todo_list]):
-        if not todo_list.items:
-            await self.headline.text.update("Todo List has no items")
-            self.todo_items.clear()
-        else:
-            await self.headline.text.update(f"Todo List has {len(todo_list.items)} items")
-            self.todo_items = [
-                TodoItem(text=item, remove_button=RemoveReactiveButton(item=item)) for item in todo_list.items
-            ]
-        await self.update()
+        new_items = [TodoItem(text=item, remove_button=RemoveButton(item=item)) for item in todo_list.items]
+        await self.todo_items.update(new_items)
 
 
 class TodoPage(Page):
@@ -83,3 +84,14 @@ class TodoPage(Page):
 @app.get("/")
 def get_page():
     return TodoPage()
+
+
+if __name__ == "__main__":
+
+    async def _main():
+        p = get_page()
+        state = AppState()
+        await p.todo_view.on_update(state.todo_list)
+        print(p.render())
+
+    asyncio.run(_main())

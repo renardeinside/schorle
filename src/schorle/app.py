@@ -1,6 +1,6 @@
 import asyncio
 import pkgutil
-from asyncio import Task
+from asyncio import Task, iscoroutinefunction
 from functools import partial
 from importlib.resources import files
 from pathlib import Path
@@ -14,12 +14,10 @@ from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 from schorle.elements.base.element import Element
-from schorle.elements.button import ReactiveButton
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
-from schorle.elements.inputs import Input
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
-from schorle.observables.base import ObservableField
+from schorle.observables.base import Observable
 from schorle.state import State, inject_into_method
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
@@ -103,8 +101,9 @@ class Schorle:
         for element in page.traverse():
             if isinstance(element, Element):
                 for method in element.injected_methods():
-                    if getattr(method, "load", False):
-                        await method()
+                    if getattr(method, "before_load", False):
+                        wrapped = wrap_in_coroutine(method)
+                        await wrapped()
 
         response = HTMLResponse(html.render(), status_code=200)
         logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
@@ -128,7 +127,7 @@ class EventsEndpoint(WebSocketEndpoint):
     async def _updates_emitter(self, page: Page, ws: WebSocket):
         emitters = []
 
-        async def _emit(_element: Element, field: ObservableField):
+        async def _emit(_element: Element, field: Observable):
             async for _ in field:
                 logger.debug(f"Events emitting element: {_element}")
                 for __element in _element.traverse():
@@ -181,23 +180,27 @@ class EventsEndpoint(WebSocketEndpoint):
         message = HtmxMessage.model_validate_json(data)
         logger.debug(f"Events received message: {message}")
         if self._page:
-            _element = self._page.find_by_id(message.headers.trigger)
+            _element = self._page.find_by_id(message.headers.trigger_element_id)
             if _element:
                 logger.debug(f"Events found element: {_element}")
-                if isinstance(_element, ReactiveButton):
-                    logger.debug(f"Events found button: {_element}, executing on_click...")
-                    if _element.callback:
-                        await _element.callback()
-                        logger.debug(f"Events executed on_click for button: {_element}")
+                method = _element.reactive_methods.get(message.headers.trigger_type)
+                if not method:
+                    msg = (
+                        f"No method found for trigger: {message.headers.trigger_element_id} "
+                        f"{message.headers.trigger_type}"
+                    )
+                    logger.warning(msg)
+                else:
+                    logger.debug(f"Events found method: {method}")
+                    wrapped_method = wrap_in_coroutine(method)
+                    if message.headers.trigger_type == "change" and _element.name:
+                        new_value = getattr(message, _element.name)
+                        await wrapped_method(new_value)
                     else:
-                        logger.warning(f"No callback found for button: {_element}")
-                elif isinstance(_element, Input):
-                    logger.debug(f"Events found input: {_element}, executing on_change...")
-                    new_value = getattr(message, _element.name)
-                    await _element.on_change(new_value)
-                    logger.debug(f"Events executed on_change for input: {_element}")
+                        await wrapped_method()
+                    logger.debug(f"Events executed method: {method}")
             else:
-                logger.error(f"No element found for id: {message.headers.trigger}")
+                logger.error(f"No element found for id: {message.headers.trigger_element_id}")
         else:
             logger.error("No page found, closing websocket...")
             await ws.close()
@@ -207,3 +210,14 @@ class EventsEndpoint(WebSocketEndpoint):
         if self._updates_emitter_task:
             self._updates_emitter_task.cancel()
             logger.info("Events emitter task cancelled.")
+
+
+def wrap_in_coroutine(func: Callable) -> Callable:
+    if iscoroutinefunction(func):
+        return func
+    else:
+
+        async def _wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return _wrapper

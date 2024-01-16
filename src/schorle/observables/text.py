@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from schorle.observables.base import ObservableField
+from schorle.observables.base import Observable
 
 
-class Text(ObservableField[str]):
+class Text(Observable[str]):
     ...

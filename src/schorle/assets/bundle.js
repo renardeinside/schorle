@@ -27,11 +27,18 @@
         }
     });
 
+    htmx.on("htmx:wsConfigSend", (evt) => {
+
+        if (evt.detail.triggeringEvent.hasOwnProperty("htmx-internal-data")) {
+            evt.detail.headers["HX-Trigger-Type"] = evt.detail.triggeringEvent["htmx-internal-data"]["triggerSpec"]["trigger"];
+        }
+    });
+
     htmx.on("htmx:load", (evt) => {
         let attributeName = "ws-send";
         let querySelector = "[" + attributeName + "], [data-" + attributeName + "], [data-hx-ws], [hx-ws]";
+        // retrigger processing of nodes with ws-send attribute to ensure that they'll be connected to the websocket
         evt.target.querySelectorAll(querySelector).forEach(function (node) {
-            console.log(`registering ws-send for ${node}`);
             htmx.trigger(node, "htmx:beforeProcessNode");
         })
     });

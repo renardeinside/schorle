@@ -13,6 +13,8 @@ from pydantic.fields import FieldInfo
 
 from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
 from schorle.elements.tags import HTMLTag
+from schorle.observables.base import Observable
+from schorle.observables.classes import Classes
 from schorle.observables.text import Text
 
 
@@ -23,6 +25,10 @@ class BaseElement(AttrsMixin, InjectableMixin):
     style: dict[str, str] | None = Field(default=None, description="Style attributes of the element, if any")
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
     _rendering_element: LxmlElement | None = PrivateAttr(default=None)
+
+    def __init(self, **data):
+        super().__init__(**data)
+        self.post_init()
 
     def _union_related_to_element(self, anno: UnionType):
         for arg in anno.__args__:
@@ -46,6 +52,9 @@ class BaseElement(AttrsMixin, InjectableMixin):
             return True
         elif isinstance(anno, UnionType) and self._union_related_to_element(anno):
             return True
+        elif isclass(anno) and issubclass(anno, Observable) and not issubclass(anno, (Text, Classes)):
+            arg = anno.__pydantic_generic_metadata__["args"][0]
+            return self._list_or_dict_related_to_element(arg)
         else:
             return False
 
@@ -59,6 +68,13 @@ class BaseElement(AttrsMixin, InjectableMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.walk(self)
+                elif isinstance(element, Observable):
+                    value = element.get()
+                    if isinstance(value, list):
+                        for _element in value:
+                            yield from _element.walk(self)
+                    elif isinstance(value, BaseElement):
+                        yield from value.walk(self)
                 elif isinstance(element, list):
                     for _element in element:
                         yield from _element.walk(self)
@@ -73,6 +89,13 @@ class BaseElement(AttrsMixin, InjectableMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.traverse()
+                elif isinstance(element, Observable):
+                    value = element.get()
+                    if isinstance(value, list):
+                        for _element in value:
+                            yield from _element.traverse()
+                    elif isinstance(value, BaseElement):
+                        yield from value.traverse()
                 elif isinstance(element, list):
                     for _element in element:
                         yield from _element.traverse()
@@ -81,7 +104,6 @@ class BaseElement(AttrsMixin, InjectableMixin):
         pass
 
     def get_element(self) -> LxmlElement:
-        self.pre_render()
         if self._rendering_element is None:
             element = LxmlElementFactory(self.tag.value)
 
@@ -93,7 +115,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
 
             self._add_classes(element)
 
-            for k, v in self.attrs.items():
+            for k, v in self.get_element_attributes().items():
                 if v is not None:
                     element.set(k, v)
             if self.text is not None:
@@ -102,7 +124,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
 
         return self._rendering_element
 
-    def pre_render(self):
+    def post_init(self):
         pass
 
     def render(self) -> str:

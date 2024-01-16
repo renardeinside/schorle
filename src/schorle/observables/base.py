@@ -9,7 +9,7 @@ from pydantic import BaseModel, PrivateAttr
 T = TypeVar("T")
 
 
-class ObservableField(BaseModel, Generic[T]):
+class Observable(BaseModel, Generic[T]):
     _render_queue: Queue = PrivateAttr(default_factory=Queue)
     _value: T | None = PrivateAttr()
 

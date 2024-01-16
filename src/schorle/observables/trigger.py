@@ -1,5 +1,5 @@
-from schorle.observables.base import ObservableField
+from schorle.observables.base import Observable
 
 
-class Trigger(ObservableField[str]):
+class Trigger(Observable[str]):
     ...

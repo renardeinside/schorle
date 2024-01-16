@@ -87,5 +87,6 @@ def get_injected_method(method: MethodType, state: State):
 def inject_into_method(state: State, original_method: MethodType):
     injected_method = get_injected_method(original_method, state)
     injected_method.injected = True
-    injected_method.load = getattr(original_method, "load", False)
+    injected_method.trigger = getattr(original_method, "trigger", None)
+    injected_method.before_load = getattr(original_method, "before_load", None)
     setattr(original_method.__self__, original_method.__name__, injected_method)

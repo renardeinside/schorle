@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from copy import deepcopy
 from enum import Enum
 from inspect import ismethod
 from types import MethodType
@@ -10,7 +11,6 @@ from loguru import logger
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-from schorle.elements.attribute import Attribute
 from schorle.state import Depends, Uses, Wired
 
 
@@ -25,17 +25,19 @@ class AttrsMixin(BaseModel):
     Attributes should be defined as fields with the `Attribute` annotation.
     """
 
-    @property
-    def attrs(self):
-        return {
-            v.serialization_alias if v.serialization_alias else k: getattr(self, k)
-            for k, v in self.model_fields.items()
-            if v.json_schema_extra and v.json_schema_extra.get("attribute")
-        }
+    @staticmethod
+    def __define_name(k, v):
+        return v.json_schema_extra.get("attribute_name") if v.json_schema_extra.get("attribute_name") else k
 
-
-class SendMixin(BaseModel):
-    ws_send: str = Attribute(default="", alias="ws-send")
+    def get_element_attributes(self) -> dict[str, str]:
+        model_fields = deepcopy(self.model_fields)
+        computed_fields = {k: v for k, v in deepcopy(self.model_computed_fields).items() if k != "attrs"}
+        all_fields = {**model_fields, **computed_fields}
+        _attrs = {}
+        for field_name, field_info in all_fields.items():
+            if field_info.json_schema_extra and field_info.json_schema_extra.get("attribute"):
+                _attrs[self.__define_name(field_name, field_info)] = self.__getattribute__(field_name)
+        return _attrs
 
 
 class InjectableMixin:

@@ -16,9 +16,17 @@ def get_running_mode() -> RunningMode:
         return RunningMode.PRODUCTION
 
 
-def on(status: str = "load"):
+def reactive(trigger: str | None = None):
     def decorator(func):
-        setattr(func, status, True)
+        func.trigger = trigger
+        return func
+
+    return decorator
+
+
+def before_load():
+    def decorator(func):
+        func.before_load = True
         return func
 
     return decorator
