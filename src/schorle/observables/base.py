@@ -35,3 +35,5 @@ class Observable(BaseModel, Generic[T]):
 
     def __str__(self):
         return f"<Observable {self.__class__} {self._value}>"
+
+

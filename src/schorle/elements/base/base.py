@@ -14,7 +14,7 @@ from pydantic.fields import FieldInfo
 from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
 from schorle.elements.tags import HTMLTag
 from schorle.observables.base import Observable
-from schorle.observables.classes import Classes
+from schorle.observables.element_list import ElementList
 from schorle.observables.text import Text
 
 
@@ -53,9 +53,8 @@ class BaseElement(AttrsMixin, InjectableMixin):
             return True
         elif isinstance(anno, UnionType) and self._union_related_to_element(anno):
             return True
-        elif isclass(anno) and issubclass(anno, Observable) and not issubclass(anno, (Text, Classes)):
-            arg = anno.__pydantic_generic_metadata__["args"][0]
-            return self._list_or_dict_related_to_element(arg)
+        elif isclass(anno) and issubclass(anno, ElementList):
+            return True
         else:
             return False
 

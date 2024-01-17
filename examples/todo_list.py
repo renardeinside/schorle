@@ -1,12 +1,11 @@
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
-from schorle.elements.attribute import Attribute
 from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
 from schorle.elements.inputs import Input
 from schorle.elements.page import Page
-from schorle.observables.base import Observable
+from schorle.observables.element_list import ElementList
 from schorle.observables.classes import Classes
 from schorle.observables.text import Text
 from schorle.state import Depends, State, Uses
@@ -49,7 +48,6 @@ class RemoveButton(Button):
     text: str = "Remove"
     classes: Classes = Classes("btn-error")
     item: str = Field(...)
-    swap: str = Attribute(default="morph", alias="hx-swap-oob")
 
     @reactive("click")
     async def on_click(self, todo_list: TodoList = Uses[AppState.todo_list]):
@@ -59,7 +57,6 @@ class RemoveButton(Button):
 class TodoItem(Div):
     classes: Classes = Classes("w-full flex flex-row justify-between items-center")
     remove_button: RemoveButton
-    swap: str = Attribute(default="morph", alias="hx-swap-oob")
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -68,8 +65,7 @@ class TodoItem(Div):
 class TodoView(Div):
     classes: Classes = Classes("flex w-96 flex-col space-y-4 p-4")
     headline: Paragraph = Paragraph(text=Text("Todo List"), classes=Classes("text-2xl text-center"))
-    todo_items: Observable[list[TodoItem]] = Field(default_factory=Observable)
-    swap: str = Attribute(default="morph", alias="hx-swap-oob")
+    todo_items: ElementList[TodoItem] = Field(default_factory=ElementList)
 
     @before_load()
     async def on_update(self, todo_list: TodoList = Depends[AppState.todo_list]):
