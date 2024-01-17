@@ -181,7 +181,7 @@ class EventsEndpoint(WebSocketEndpoint):
         logger.debug(f"Events received message: {message}")
         if self._page:
             _element = self._page.find_by_id(message.headers.trigger_element_id)
-            if _element:
+            if _element and isinstance(_element, Element):
                 logger.debug(f"Events found element: {_element}")
                 method = _element.reactive_methods.get(message.headers.trigger_type)
                 if not method:
@@ -200,7 +200,7 @@ class EventsEndpoint(WebSocketEndpoint):
                         await wrapped_method()
                     logger.debug(f"Events executed method: {method}")
             else:
-                logger.error(f"No element found for id: {message.headers.trigger_element_id}")
+                logger.error(f"No reactive element found for id: {message.headers.trigger_element_id}")
         else:
             logger.error("No page found, closing websocket...")
             await ws.close()

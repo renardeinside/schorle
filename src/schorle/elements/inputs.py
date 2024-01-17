@@ -14,6 +14,7 @@ class Input(Element):
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)
     placeholder: str | None = Attribute(default=None)
     name: str = Attribute(default="default", private=True)
+    input_type: str = Attribute(default="text", alias="type")
 
     def __init__(self, **data):
         super().__init__(**data)

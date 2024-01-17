@@ -6,6 +6,7 @@ from uuid import uuid4
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr, computed_field
 
+from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
 from schorle.observables.base import Observable
 from schorle.observables.classes import Classes
@@ -16,6 +17,8 @@ class Element(BaseElement):
     _base_classes: Classes = PrivateAttr(default_factory=Classes)
     _trigger: Trigger = PrivateAttr(default_factory=Trigger)
     classes: Classes = Classes()
+    role: str | None = Attribute(default=None)
+    swap: str = Attribute(default="morph", alias="hx-swap-oob")
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -26,17 +29,17 @@ class Element(BaseElement):
                 else self.element_id
             )
 
-    @computed_field(json_schema_extra={"attribute": True, "attribute_name": "hx-trigger"})
+    @computed_field(json_schema_extra={"attribute": True, "attribute_name": "hx-trigger"})  # type: ignore
     @property
     def hx_trigger(self) -> str | None:
         return ",".join(list(self.reactive_methods.keys())) if len(self.reactive_methods) > 0 else None
 
-    @computed_field(json_schema_extra={"attribute": True, "attribute_name": "ws-send"})
+    @computed_field(json_schema_extra={"attribute": True, "attribute_name": "ws-send"})  # type: ignore
     @property
     def ws_send(self) -> str | None:
         return "" if len(self.reactive_methods) > 0 else None
 
-    @computed_field()
+    @computed_field()  # type: ignore
     @property
     def reactive_methods(self) -> dict[str, Callable]:
         return dict(self.get_triggers_and_methods())

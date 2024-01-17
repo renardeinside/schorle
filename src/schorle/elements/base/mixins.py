@@ -9,7 +9,7 @@ from typing import Callable, Iterator, get_origin
 
 from loguru import logger
 from pydantic import BaseModel
-from pydantic.fields import FieldInfo
+from pydantic.fields import ComputedFieldInfo, FieldInfo
 
 from schorle.state import Depends, Uses, Wired
 
@@ -32,10 +32,10 @@ class AttrsMixin(BaseModel):
     def get_element_attributes(self) -> dict[str, str]:
         model_fields = deepcopy(self.model_fields)
         computed_fields = {k: v for k, v in deepcopy(self.model_computed_fields).items() if k != "attrs"}
-        all_fields = {**model_fields, **computed_fields}
+        all_fields: dict[str, FieldInfo | ComputedFieldInfo] = {**model_fields, **computed_fields}
         _attrs = {}
         for field_name, field_info in all_fields.items():
-            if field_info.json_schema_extra and field_info.json_schema_extra.get("attribute"):
+            if field_info.json_schema_extra and field_info.json_schema_extra.get("attribute"):  # type: ignore
                 _attrs[self.__define_name(field_name, field_info)] = self.__getattribute__(field_name)
         return _attrs
 

@@ -39,16 +39,7 @@ class PageWithButton(Page):
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
     button: ButtonWithCounter = ButtonWithCounter(text=Text("Click me!"))
 
-    @reactive("load once throttle:500ms")
-    async def on_load(self):
-        print("loaded")
-
 
 @app.get("/")
 def get_page():
     return PageWithButton()
-
-
-if __name__ == "__main__":
-    p = get_page()
-    print(p.render())
