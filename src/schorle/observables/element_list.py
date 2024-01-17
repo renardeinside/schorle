@@ -4,7 +4,7 @@ from typing import TypeVar
 
 from schorle.observables.base import Observable
 
-T = TypeVar("T", bound='Element')
+T = TypeVar("T")  # todo- add strict typing for Element
 
 
 class ElementList(Observable[list[T]]):
