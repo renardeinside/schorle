@@ -22,8 +22,7 @@ class Counter(BaseModel):
         self.value -= 1
 
 
-@app.state
-class AppState(State):
+class PageState(State):
     counter: Counter = Counter()
 
 
@@ -31,7 +30,7 @@ class IncrementButton(Button):
     classes: Classes = Classes("btn-primary")
 
     @reactive("click")
-    async def on_click(self, counter: Counter = Uses[AppState.counter]):
+    async def on_click(self, counter: Counter = Uses[PageState.counter]):
         counter.increment()
 
 
@@ -39,10 +38,10 @@ class DecrementButton(Button):
     classes: Classes = Classes("btn-secondary", "btn-disabled")
 
     @reactive("click")
-    async def on_click(self, counter: Counter = Uses[AppState.counter]):
+    async def on_click(self, counter: Counter = Uses[PageState.counter]):
         counter.decrement()
 
-    async def _(self, counter: Counter = Depends[AppState.counter]):
+    async def _(self, counter: Counter = Depends[PageState.counter]):
         if counter.value <= 0:
             await self.classes.append("btn-disabled")
         else:
@@ -58,11 +57,12 @@ class Buttons(Div):
 class CounterView(Div):
     text: Text = Text("Clicked 0 times")
 
-    async def on_update(self, counter: Counter = Depends[AppState.counter]):
+    async def on_update(self, counter: Counter = Depends[PageState.counter]):
         await self.text.update(f"Clicked {counter.value} times")
 
 
 class PageWithButton(Page):
+    state: PageState = PageState()
     classes: Classes = Classes("space-y-4 flex flex-col justify-center items-center h-screen w-screen")
     buttons: Buttons = Buttons()
     counter_view: CounterView = CounterView()

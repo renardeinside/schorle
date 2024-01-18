@@ -5,8 +5,8 @@ from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
 from schorle.elements.inputs import Input
 from schorle.elements.page import Page
-from schorle.observables.element_list import ElementList
 from schorle.observables.classes import Classes
+from schorle.observables.element_list import ElementList
 from schorle.observables.text import Text
 from schorle.state import Depends, State, Uses
 from schorle.utils import before_load, reactive
@@ -24,8 +24,7 @@ class TodoList(BaseModel):
         self.items.remove(item)
 
 
-@app.state
-class AppState(State):
+class PageState(State):
     todo_list: TodoList = TodoList()
 
 
@@ -38,7 +37,7 @@ class InputSection(Div):
         super().__init__(**data)
         self.add_button.add_callback("click", self._on_click)
 
-    async def _on_click(self, todo_list: TodoList = Uses[AppState.todo_list]):
+    async def _on_click(self, todo_list: TodoList = Uses[PageState.todo_list]):
         if self.input_text.value:
             todo_list.add_item(self.input_text.value)
             await self.input_text.clear()
@@ -50,7 +49,7 @@ class RemoveButton(Button):
     item: str = Field(...)
 
     @reactive("click")
-    async def on_click(self, todo_list: TodoList = Uses[AppState.todo_list]):
+    async def on_click(self, todo_list: TodoList = Uses[PageState.todo_list]):
         todo_list.remove_item(self.item)
 
 
@@ -68,12 +67,13 @@ class TodoView(Div):
     todo_items: ElementList[TodoItem] = Field(default_factory=ElementList)
 
     @before_load()
-    async def on_update(self, todo_list: TodoList = Depends[AppState.todo_list]):
+    async def on_update(self, todo_list: TodoList = Depends[PageState.todo_list]):
         new_items = [TodoItem(text=item, remove_button=RemoveButton(item=item)) for item in todo_list.items]
         await self.todo_items.update(new_items)
 
 
 class TodoPage(Page):
+    state: PageState = PageState()
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
     input_section: InputSection = InputSection()
     todo_view: TodoView = TodoView()

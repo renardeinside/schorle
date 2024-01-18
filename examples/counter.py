@@ -14,28 +14,25 @@ app = Schorle()
 class Counter(BaseModel):
     value: int = 0
 
-    def increment(self):
-        self.value += 1
 
-
-@app.state
-class AppState(State):
+class PageState(State):
     counter: Counter = Counter()
 
 
 class ButtonWithCounter(Button):
     @reactive("click")
-    async def on_click(self, c: Counter = Uses[AppState.counter]):
-        c.increment()
+    async def on_click(self, c: Counter = Uses[PageState.counter]):
+        c.value += 1
 
-    async def _(self, c: Counter = Depends[AppState.counter]):
+    async def _(self, c: Counter = Depends[PageState.counter]):
         await self.text.update(f"Clicked {c.value} times")
 
-    async def __(self, _: Counter = Depends[AppState.counter]):
+    async def __(self, _: Counter = Depends[PageState.counter]):
         await self.classes.toggle("btn-success")
 
 
 class PageWithButton(Page):
+    state: PageState = PageState()
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
     button: ButtonWithCounter = ButtonWithCounter(text=Text("Click me!"))
 

@@ -68,12 +68,6 @@ class Schorle:
 
         return decorator
 
-    def state(self, state_class: type[State]):
-        logger.info(f"Registering state class: {state_class}...")
-        self._state_class = state_class
-        logger.info(f"Registered state class: {state_class}.")
-        return state_class
-
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         """
         This method is called by uvicorn when the server is started.
@@ -92,9 +86,6 @@ class Schorle:
         if get_running_mode() == RunningMode.DEV:
             logger.info("Adding dev meta tags...")
             html.head.dev_meta = Meta(name="schorle-dev", content="true")
-
-        state_instance = self._state_class() if self._state_class else None
-        page.state = state_instance
 
         inject_state(page)
 
