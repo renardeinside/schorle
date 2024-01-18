@@ -9,7 +9,7 @@ from schorle.elements.button import Button
 from schorle.elements.html import Paragraph
 from schorle.elements.page import Page
 from schorle.state import Depends, State, Uses
-from schorle.utils import reactive
+from schorle.utils import reactive, before_load
 
 app = Schorle()
 
@@ -36,6 +36,7 @@ class ButtonWithCounter(Button):
 
 
 class TotalView(Paragraph):
+    @before_load()
     async def on_update(self, summary: Summary = Depends[PageState.summary]):
         await self.text.update(f"Total: {summary.value}")
 
