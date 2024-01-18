@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from schorle.observables.base import Dynamic
+from schorle.dynamics.base import Dynamic
 
 
 class Text(Dynamic[str]):

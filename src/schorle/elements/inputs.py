@@ -3,8 +3,8 @@ from pydantic import Field
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
-from schorle.observables.base import Dynamic
-from schorle.observables.classes import Classes
+from schorle.dynamics.base import Dynamic
+from schorle.dynamics.classes import Classes
 from schorle.utils import reactive
 
 

@@ -4,7 +4,7 @@ from schorle.elements.base.element import Element
 from schorle.elements.html import Div
 from schorle.elements.img import Img
 from schorle.elements.tags import HTMLTag
-from schorle.observables.classes import Classes
+from schorle.dynamics.classes import Classes
 
 
 class Figure(Element):

@@ -8,8 +8,8 @@ from pydantic import PrivateAttr, computed_field
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
-from schorle.observables.base import Dynamic
-from schorle.observables.classes import Classes
+from schorle.dynamics.base import Dynamic
+from schorle.dynamics.classes import Classes
 
 
 class Element(BaseElement):

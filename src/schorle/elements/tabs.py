@@ -5,8 +5,8 @@ from pydantic import Field
 from schorle.elements.attribute import Attribute
 from schorle.elements.html import Div
 from schorle.elements.inputs import Input
-from schorle.observables.base import Dynamic
-from schorle.observables.classes import Classes
+from schorle.dynamics.base import Dynamic
+from schorle.dynamics.classes import Classes
 
 
 class Tab(Div):

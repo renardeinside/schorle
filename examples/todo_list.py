@@ -5,9 +5,9 @@ from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
 from schorle.elements.inputs import Input
 from schorle.elements.page import Page
-from schorle.observables.classes import Classes
-from schorle.observables.element_list import ElementList
-from schorle.observables.text import Text
+from schorle.dynamics.classes import Classes
+from schorle.dynamics.element_list import ElementList
+from schorle.dynamics.text import Text
 from schorle.state import Depends, State, Uses
 from schorle.utils import before_load, reactive
 

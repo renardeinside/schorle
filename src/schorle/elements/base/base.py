@@ -13,10 +13,10 @@ from pydantic.fields import FieldInfo
 
 from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
 from schorle.elements.tags import HTMLTag
-from schorle.observables.base import Dynamic
-from schorle.observables.classes import Classes
-from schorle.observables.element_list import ElementList
-from schorle.observables.text import Text
+from schorle.dynamics.base import Dynamic
+from schorle.dynamics.classes import Classes
+from schorle.dynamics.element_list import ElementList
+from schorle.dynamics.text import Text
 
 
 class BaseElement(AttrsMixin, InjectableMixin):

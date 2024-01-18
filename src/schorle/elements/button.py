@@ -5,7 +5,7 @@ from pydantic import PrivateAttr
 
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
-from schorle.observables.classes import Classes
+from schorle.dynamics.classes import Classes
 
 OnClick = Callable[..., Awaitable]
 

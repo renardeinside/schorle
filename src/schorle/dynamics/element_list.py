@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TypeVar
 
-from schorle.observables.base import Dynamic
+from schorle.dynamics.base import Dynamic
 
 T = TypeVar("T")  # todo- add strict typing for Element
 

@@ -4,7 +4,7 @@ from typing import Union
 
 from pydantic import PrivateAttr
 
-from schorle.observables.base import Dynamic
+from schorle.dynamics.base import Dynamic
 
 RawClassesPayload = Union[str, list[str], tuple[str, ...], "Classes", None]
 
