@@ -8,7 +8,7 @@ from pydantic import PrivateAttr, computed_field
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
-from schorle.observables.base import Observable
+from schorle.observables.base import Dynamic
 from schorle.observables.classes import Classes
 
 
@@ -55,7 +55,7 @@ class Element(BaseElement):
         fields = []
         for field_name in self.model_fields.keys():
             attr = getattr(self, field_name)
-            if attr is not None and isinstance(attr, Observable):
+            if attr is not None and isinstance(attr, Dynamic):
                 fields.append(attr)
         return fields
 

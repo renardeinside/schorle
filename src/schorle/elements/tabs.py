@@ -5,7 +5,7 @@ from pydantic import Field
 from schorle.elements.attribute import Attribute
 from schorle.elements.html import Div
 from schorle.elements.inputs import Input
-from schorle.observables.base import Observable
+from schorle.observables.base import Dynamic
 from schorle.observables.classes import Classes
 
 
@@ -17,4 +17,4 @@ class Tab(Div):
 
 class TabsList(Div):
     role: str = Attribute("tablist")
-    children: Observable[List[Tab]] = Field(default_factory=Observable)
+    children: Dynamic[List[Tab]] = Field(default_factory=Dynamic)

@@ -13,7 +13,8 @@ from pydantic.fields import FieldInfo
 
 from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
 from schorle.elements.tags import HTMLTag
-from schorle.observables.base import Observable
+from schorle.observables.base import Dynamic
+from schorle.observables.classes import Classes
 from schorle.observables.element_list import ElementList
 from schorle.observables.text import Text
 
@@ -55,6 +56,8 @@ class BaseElement(AttrsMixin, InjectableMixin):
             return True
         elif isclass(anno) and issubclass(anno, ElementList):
             return True
+        elif isclass(anno) and issubclass(anno, Dynamic) and not issubclass(anno, (Text, Classes)):
+            return True
         else:
             return False
 
@@ -68,7 +71,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.walk(self)
-                elif isinstance(element, Observable):
+                elif isinstance(element, Dynamic):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:
@@ -90,7 +93,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.traverse()
-                elif isinstance(element, Observable):
+                elif isinstance(element, Dynamic):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:

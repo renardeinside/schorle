@@ -9,11 +9,11 @@ from pydantic import BaseModel, PrivateAttr
 T = TypeVar("T")
 
 
-class Observable(BaseModel, Generic[T]):
+class Dynamic(BaseModel, Generic[T]):
     _render_queue: Queue = PrivateAttr(default_factory=Queue)
     _value: T | None = PrivateAttr()
 
-    async def update(self, value: T, *, skip_render: bool = False):
+    async def update(self, value: T | None, *, skip_render: bool = False):
         self._value = value
         logger.debug(f"Updating {self} with {value}")
         if not skip_render:
@@ -32,7 +32,7 @@ class Observable(BaseModel, Generic[T]):
         self._value = value
 
     def __repr__(self):
-        return f"<Observable {self.__class__} {self._value}>"
+        return f"<{self.__class__.__name__} {self._value}>"
 
     def __str__(self):
-        return f"<Observable {self.__class__} {self._value}>"
+        return f"<{self.__class__.__name__} {self._value}>"

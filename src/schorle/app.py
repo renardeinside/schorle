@@ -17,7 +17,7 @@ from schorle.elements.base.element import Element
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
-from schorle.observables.base import Observable
+from schorle.observables.base import Dynamic
 from schorle.state import State, inject_into_method
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
@@ -118,7 +118,7 @@ class EventsEndpoint(WebSocketEndpoint):
     async def _updates_emitter(self, page: Page, ws: WebSocket):
         emitters = []
 
-        async def _emit(_element: Element, field: Observable):
+        async def _emit(_element: Element, field: Dynamic):
             async for _ in field:
                 logger.debug(f"Events emitting element: {_element}")
                 for __element in _element.traverse():

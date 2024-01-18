@@ -4,7 +4,7 @@ from typing import Union
 
 from pydantic import PrivateAttr
 
-from schorle.observables.base import Observable
+from schorle.observables.base import Dynamic
 
 RawClassesPayload = Union[str, list[str], tuple[str, ...], "Classes", None]
 
@@ -26,7 +26,7 @@ def parse_args(*args: RawClassesPayload) -> list[str]:
     return container
 
 
-class Classes(Observable[list[str]]):
+class Classes(Dynamic[list[str]]):
     _value: list[str] = PrivateAttr(default_factory=list)
 
     def __init__(self, *args: RawClassesPayload):

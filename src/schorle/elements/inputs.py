@@ -3,18 +3,18 @@ from pydantic import Field
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
-from schorle.observables.base import Observable
+from schorle.observables.base import Dynamic
 from schorle.observables.classes import Classes
 from schorle.utils import reactive
 
 
 class Input(Element):
     tag: HTMLTag = HTMLTag.INPUT
-    value: Observable[str] = Field(default=Observable(""), description="Value of the input field")
+    value: Dynamic[str] = Field(default=Dynamic(""), description="Value of the input field")
     _base_classes: Classes = Classes("input", "form-control")
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)
     placeholder: str | None = Attribute(default=None)
-    name: str = Attribute(default="default", private=True)
+    name: str = Attribute(default="default")
     input_type: str = Attribute(default="text", alias="type")
 
     def __init__(self, **data):
