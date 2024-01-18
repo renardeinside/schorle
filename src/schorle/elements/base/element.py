@@ -6,10 +6,10 @@ from uuid import uuid4
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr, computed_field
 
-from schorle.elements.attribute import Attribute
-from schorle.elements.base.base import BaseElement
 from schorle.dynamics.base import Dynamic
 from schorle.dynamics.classes import Classes
+from schorle.elements.attribute import Attribute
+from schorle.elements.base.base import BaseElement
 
 
 class Element(BaseElement):

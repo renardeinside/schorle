@@ -1,13 +1,13 @@
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
+from schorle.dynamics.classes import Classes
+from schorle.dynamics.element_list import ElementList
+from schorle.dynamics.text import Text
 from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
 from schorle.elements.inputs import Input
 from schorle.elements.page import Page
-from schorle.dynamics.classes import Classes
-from schorle.dynamics.element_list import ElementList
-from schorle.dynamics.text import Text
 from schorle.state import Depends, State, Uses
 from schorle.utils import before_load, reactive
 

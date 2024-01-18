@@ -13,11 +13,11 @@ from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+from schorle.dynamics.base import Dynamic
 from schorle.elements.base.element import Element
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
-from schorle.dynamics.base import Dynamic
 from schorle.state import State, inject_into_method
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
