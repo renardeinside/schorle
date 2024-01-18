@@ -10,12 +10,10 @@ from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
 from schorle.observables.base import Observable
 from schorle.observables.classes import Classes
-from schorle.observables.trigger import Trigger
 
 
 class Element(BaseElement):
     _base_classes: Classes = PrivateAttr(default_factory=Classes)
-    _trigger: Trigger = PrivateAttr(default_factory=Trigger)
     classes: Classes = Classes()
     role: str | None = Attribute(default=None)
     swap: str = Attribute(default="morph", alias="hx-swap-oob")
@@ -53,11 +51,8 @@ class Element(BaseElement):
         if container:
             element.set("class", " ".join(container))
 
-    async def update(self):
-        await self._trigger.update(str(uuid4()))
-
     def get_observable_fields(self):
-        fields = [self._trigger]
+        fields = []
         for field_name in self.model_fields.keys():
             attr = getattr(self, field_name)
             if attr is not None and isinstance(attr, Observable):

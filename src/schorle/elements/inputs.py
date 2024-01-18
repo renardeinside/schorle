@@ -3,13 +3,14 @@ from pydantic import Field
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
+from schorle.observables.base import Observable
 from schorle.observables.classes import Classes
 from schorle.utils import reactive
 
 
 class Input(Element):
     tag: HTMLTag = HTMLTag.INPUT
-    value: str = Field(default="")
+    value: Observable[str] = Field(default=Observable(""), description="Value of the input field")
     _base_classes: Classes = Classes("input", "form-control")
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)
     placeholder: str | None = Attribute(default=None)
@@ -21,9 +22,8 @@ class Input(Element):
         self.name = self.element_id
 
     async def clear(self):
-        self.value = ""
-        await self.update()
+        await self.value.update("")
 
     @reactive("change")
     async def on_change(self, new_value: str):
-        self.value = new_value
+        await self.value.update(new_value, skip_render=True)

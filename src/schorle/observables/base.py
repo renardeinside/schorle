@@ -13,10 +13,11 @@ class Observable(BaseModel, Generic[T]):
     _render_queue: Queue = PrivateAttr(default_factory=Queue)
     _value: T | None = PrivateAttr()
 
-    async def update(self, value: T):
+    async def update(self, value: T, *, skip_render: bool = False):
         self._value = value
         logger.debug(f"Updating {self} with {value}")
-        await self._render_queue.put(self)
+        if not skip_render:
+            await self._render_queue.put(self)
 
     async def __aiter__(self) -> AsyncIterator[T | None]:
         while True:

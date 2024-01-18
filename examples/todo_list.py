@@ -17,12 +17,6 @@ app = Schorle()
 class TodoList(BaseModel):
     items: list[str] = Field(default_factory=lambda: ["Buy milk", "Buy eggs", "Buy bread"])
 
-    def add_item(self, item):
-        self.items.append(item)
-
-    def remove_item(self, item):
-        self.items.remove(item)
-
 
 class PageState(State):
     todo_list: TodoList = TodoList()
@@ -39,7 +33,7 @@ class InputSection(Div):
 
     async def _on_click(self, todo_list: TodoList = Uses[PageState.todo_list]):
         if self.input_text.value:
-            todo_list.add_item(self.input_text.value)
+            todo_list.items.append(self.input_text.value.get())
             await self.input_text.clear()
 
 
@@ -50,7 +44,7 @@ class RemoveButton(Button):
 
     @reactive("click")
     async def on_click(self, todo_list: TodoList = Uses[PageState.todo_list]):
-        todo_list.remove_item(self.item)
+        todo_list.items.remove(self.item)
 
 
 class TodoItem(Div):
