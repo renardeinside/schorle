@@ -13,7 +13,7 @@ from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-from schorle.dynamics.base import Dynamic
+from schorle.dynamics.base import DynamicElement
 from schorle.elements.base.element import Element
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
@@ -118,7 +118,7 @@ class EventsEndpoint(WebSocketEndpoint):
     async def _updates_emitter(self, page: Page, ws: WebSocket):
         emitters = []
 
-        async def _emit(_element: Element, field: Dynamic):
+        async def _emit(_element: Element, field: DynamicElement):
             async for _ in field:
                 logger.debug(f"Events emitting element: {_element}")
                 for __element in _element.traverse():

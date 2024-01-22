@@ -11,9 +11,9 @@ from lxml.etree import tostring
 from pydantic import ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
-from schorle.dynamics.base import Dynamic
+from schorle.dynamics.base import DynamicElement
 from schorle.dynamics.classes import Classes
-from schorle.dynamics.element_list import ElementList
+from schorle.dynamics.element_list import Collection
 from schorle.dynamics.text import Text
 from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
 from schorle.elements.tags import HTMLTag
@@ -54,9 +54,9 @@ class BaseElement(AttrsMixin, InjectableMixin):
             return True
         elif isinstance(anno, UnionType) and self._union_related_to_element(anno):
             return True
-        elif isclass(anno) and issubclass(anno, ElementList):
+        elif isclass(anno) and issubclass(anno, Collection):
             return True
-        elif isclass(anno) and issubclass(anno, Dynamic) and not issubclass(anno, (Text, Classes)):
+        elif isclass(anno) and issubclass(anno, DynamicElement) and not issubclass(anno, (Text, Classes)):
             return True
         else:
             return False
@@ -71,7 +71,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.walk(self)
-                elif isinstance(element, Dynamic):
+                elif isinstance(element, DynamicElement):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:
@@ -93,7 +93,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.traverse()
-                elif isinstance(element, Dynamic):
+                elif isinstance(element, DynamicElement):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:

@@ -6,7 +6,7 @@ from uuid import uuid4
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr, computed_field
 
-from schorle.dynamics.base import Dynamic
+from schorle.dynamics.base import DynamicElement
 from schorle.dynamics.classes import Classes
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
@@ -55,7 +55,7 @@ class Element(BaseElement):
         fields = []
         for field_name in self.model_fields.keys():
             attr = getattr(self, field_name)
-            if attr is not None and isinstance(attr, Dynamic):
+            if attr is not None and isinstance(attr, DynamicElement):
                 fields.append(attr)
         return fields
 

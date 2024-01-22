@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from schorle.dynamics.base import Dynamic
+from schorle.dynamics.base import DynamicElement
 
 
-class Text(Dynamic[str]):
+class Text(DynamicElement[str]):
     ...

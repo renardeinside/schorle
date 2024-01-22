@@ -9,7 +9,7 @@ from schorle.elements.button import Button
 from schorle.elements.html import Paragraph
 from schorle.elements.page import Page
 from schorle.state import Depends, State, Uses
-from schorle.utils import reactive, before_load
+from schorle.utils import before_load, reactive
 
 app = Schorle()
 

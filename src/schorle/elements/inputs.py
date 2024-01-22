@@ -1,6 +1,7 @@
 from pydantic import Field
+from pydantic.fields import computed_field
 
-from schorle.dynamics.base import Dynamic
+from schorle.dynamics.base import DynamicElement
 from schorle.dynamics.classes import Classes
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
@@ -10,7 +11,7 @@ from schorle.utils import reactive
 
 class Input(Element):
     tag: HTMLTag = HTMLTag.INPUT
-    value: Dynamic[str] = Field(default=Dynamic(""), description="Value of the input field")
+    value: DynamicElement[str] = Field(default=DynamicElement(""), description="Value of the input field")
     _base_classes: Classes = Classes("input", "form-control")
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)
     placeholder: str | None = Attribute(default=None)
@@ -27,3 +28,20 @@ class Input(Element):
     @reactive("change")
     async def on_change(self, new_value: str):
         await self.value.update(new_value, skip_render=True)
+
+
+class Slider(Input):
+    _base_classes: Classes = Classes("range", "form-control")
+    input_type: str = Attribute(default="range", alias="type")
+    minimum: int = 0
+    maximum: int = 100
+
+    @computed_field(json_schema_extra={"attribute": True, "attribute_name": "min"})  # type: ignore
+    @property
+    def min_attr(self) -> str | None:
+        return str(self.minimum)
+
+    @computed_field(json_schema_extra={"attribute": True, "attribute_name": "max"})  # type: ignore
+    @property
+    def max_attr(self) -> str | None:
+        return str(self.maximum)

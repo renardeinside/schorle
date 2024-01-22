@@ -7,7 +7,7 @@ from schorle.elements.button import Button
 from schorle.elements.html import Div
 from schorle.elements.page import Page
 from schorle.state import Depends, State, Uses
-from schorle.utils import reactive
+from schorle.utils import before_load, reactive
 
 app = Schorle()
 
@@ -35,17 +35,22 @@ class IncrementButton(Button):
 
 
 class DecrementButton(Button):
-    classes: Classes = Classes("btn-secondary", "btn-disabled")
+    classes: Classes = Classes("btn-secondary")
 
     @reactive("click")
     async def on_click(self, counter: Counter = Uses[PageState.counter]):
         counter.decrement()
 
+    @before_load()
     async def _(self, counter: Counter = Depends[PageState.counter]):
         if counter.value <= 0:
             await self.classes.append("btn-disabled")
         else:
             await self.classes.remove("btn-disabled")
+
+    @reactive("htmx:afterOnLoad")
+    async def on_load(self):
+        print("loaded")
 
 
 class Buttons(Div):

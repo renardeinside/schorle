@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
 from schorle.dynamics.classes import Classes
-from schorle.dynamics.element_list import ElementList
+from schorle.dynamics.element_list import Collection
 from schorle.dynamics.text import Text
 from schorle.elements.button import Button
 from schorle.elements.html import Div, Paragraph
@@ -32,7 +32,7 @@ class InputSection(Div):
         self.add_button.add_callback("click", self._on_click)
 
     async def _on_click(self, todo_list: TodoList = Uses[PageState.todo_list]):
-        if self.input_text.value:
+        if self.input_text.value.get():
             todo_list.items.append(self.input_text.value.get())
             await self.input_text.clear()
 
@@ -51,14 +51,11 @@ class TodoItem(Div):
     classes: Classes = Classes("w-full flex flex-row justify-between items-center")
     remove_button: RemoveButton
 
-    def __init__(self, **data):
-        super().__init__(**data)
-
 
 class TodoView(Div):
     classes: Classes = Classes("flex w-96 flex-col space-y-4 p-4")
     headline: Paragraph = Paragraph(text=Text("Todo List"), classes=Classes("text-2xl text-center"))
-    todo_items: ElementList[TodoItem] = Field(default_factory=ElementList)
+    todo_items: Collection[TodoItem] = Field(default_factory=Collection)
 
     @before_load()
     async def on_update(self, todo_list: TodoList = Depends[PageState.todo_list]):

@@ -71,9 +71,14 @@ class Footer(BaseElement):
     text: str = ""
 
 
+class DevFooter(BaseElement):
+    tag: HTMLTag = HTMLTag.FOOTER
+    text: str = ""
+
+
 class Body(BaseElement):
     tag: HTMLTag = HTMLTag.BODY
-    footer: Footer = Footer(element_id="schorle-footer")
+    footer: DevFooter = DevFooter(element_id="schorle-footer")
 
 
 class Html(BaseElement):

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
-from schorle.dynamics.base import Dynamic
+from schorle.dynamics.base import DynamicElement
 from schorle.dynamics.classes import Classes
 from schorle.dynamics.text import Text
 from schorle.elements.button import Button
@@ -37,7 +37,7 @@ class PageWithButton(Page):
     state: PageState = PageState()
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
     button: ButtonWithCounter = ButtonWithCounter(text=Text("Click me!"))
-    view: Dynamic[Div] = Field(default_factory=Dynamic)
+    view: DynamicElement = Field(default_factory=DynamicElement)
 
     async def _view(self, c: Counter = Depends[PageState.counter]):
         new_div = Div(text=Text("Even") if c.value % 2 == 0 else Text("Odd"), classes=Classes("text-2xl text-center"))

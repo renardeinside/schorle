@@ -9,7 +9,7 @@ from pydantic import BaseModel, PrivateAttr
 T = TypeVar("T")
 
 
-class Dynamic(BaseModel, Generic[T]):
+class DynamicElement(BaseModel, Generic[T]):
     _render_queue: Queue = PrivateAttr(default_factory=Queue)
     _value: T | None = PrivateAttr()
 
