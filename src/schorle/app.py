@@ -107,6 +107,7 @@ class EventsEndpoint(WebSocketEndpoint):
         async def _emit(_element: Element, field: Reactive):
             async for _ in field:
                 logger.debug(f"Events emitting element: {_element}")
+                page.inject_page_reference()
                 await ws.send_text(_element.render())
                 logger.debug(f"Events emitted element: {_element}")
 

@@ -3,11 +3,12 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
+from schorle.dynamics.base import Reactive
 from schorle.dynamics.classes import Classes
 from schorle.dynamics.element_list import Collection
 from schorle.dynamics.text import Text
 from schorle.elements.button import Button
-from schorle.elements.html import Div, Paragraph
+from schorle.elements.html import Div
 from schorle.elements.inputs import Input
 from schorle.elements.page import Page, PageReference
 from schorle.emitter import emitter, inject_emitters
@@ -26,6 +27,10 @@ class TodoList(BaseModel, extra="allow"):
     @emitter
     async def remove_item(self, item: str):
         self.items.remove(item)
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        inject_emitters(self)
 
 
 class InputSection(Div):
@@ -60,25 +65,31 @@ class TodoItem(Div):
 
 class TodoView(Div):
     classes: Classes = Classes("flex w-96 flex-col space-y-4 p-4")
-    headline: Paragraph = Paragraph(text=Text("Todo List"), classes=Classes("text-2xl text-center"))
+    headline: Reactive[Div] = Field(default_factory=Reactive)
     todo_items: Collection[TodoItem] = Field(default_factory=Collection)
     page: TodoPage = PageReference()
 
-    async def on_update(self, todo_list: TodoList):
-        new_items = [
-            TodoItem(
-                text=Text(item),
-                page=self.page,
-            )
-            for item in todo_list.items
-        ]
+    async def update_items(self, todo_list: TodoList):
+        new_items = [TodoItem(text=Text(item)) for item in todo_list.items]
         await self.todo_items.update(new_items)
+
+    async def update_headline(self, todo_list: TodoList):
+        text = f"Todo list ({len(todo_list.items)} items)" if todo_list.items else "Todo list is empty"
+        await self.headline.update(
+            Div(
+                text=text,
+                classes=Classes("text-2xl font-bold"),
+            )
+        )
 
     @before_render
     async def preload(self):
-        self.page.todo_list.add_item.subscribe(self.on_update)
-        self.page.todo_list.remove_item.subscribe(self.on_update)
-        await self.on_update(self.page.todo_list)
+        for update in [self.update_items, self.update_headline]:
+            self.page.todo_list.add_item.subscribe(update)
+            self.page.todo_list.remove_item.subscribe(update)
+
+            await self.update_items(self.page.todo_list)
+            await self.update_headline(self.page.todo_list)
 
 
 class TodoPage(Page):
@@ -86,10 +97,6 @@ class TodoPage(Page):
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
     input_section: InputSection = Field(default_factory=InputSection)
     todo_view: TodoView = Field(default_factory=TodoView)
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        inject_emitters(self.todo_list)
 
 
 @app.get("/")
