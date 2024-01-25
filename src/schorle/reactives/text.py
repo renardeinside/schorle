@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from schorle.dynamics.base import Reactive
+from schorle.reactives.base import Reactive
 
 
 class Text(Reactive[str]):

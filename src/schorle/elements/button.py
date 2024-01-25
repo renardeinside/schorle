@@ -2,9 +2,9 @@ from typing import Awaitable, Callable
 
 from pydantic import PrivateAttr
 
-from schorle.dynamics.classes import Classes
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
+from schorle.reactives.classes import Classes
 
 OnClick = Callable[..., Awaitable]
 

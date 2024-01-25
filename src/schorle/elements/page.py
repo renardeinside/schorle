@@ -1,10 +1,12 @@
 from typing import Optional
 
+from loguru import logger
 from pydantic import Field
 
 from schorle.elements.base.base import BaseElement
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
+from schorle.utils import reactive
 
 
 class Page(Element):
@@ -23,6 +25,14 @@ class Page(Element):
                 for attr_name, field in element.model_fields.items():
                     if field.json_schema_extra and field.json_schema_extra.get("page_reference"):
                         setattr(element, attr_name, self)
+
+    def __init__(self, **data):
+        super().__init__(**data)
+
+    @reactive("load")
+    async def load(self):
+        logger.info("Page load")
+        self.inject_page_reference()
 
 
 def PageReference():  # noqa: N802

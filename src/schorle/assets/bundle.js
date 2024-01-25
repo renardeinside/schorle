@@ -13,10 +13,10 @@
     let getDevMode = () => {
         return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
     }
-    //
-    // if (getDevMode() === "true") {
-    //     htmx.logAll();
-    // }
+
+    if (getDevMode() === "true") {
+        htmx.logAll();
+    }
 
 
     htmx.on("htmx:wsBeforeMessage", (evt) => {
@@ -28,8 +28,10 @@
     });
 
     htmx.on("htmx:wsConfigSend", (evt) => {
-        if (evt.detail.triggeringEvent.hasOwnProperty("htmx-internal-data")) {
+        if (evt.detail.triggeringEvent && evt.detail.triggeringEvent.hasOwnProperty("htmx-internal-data")) {
             evt.detail.headers["HX-Trigger-Type"] = evt.detail.triggeringEvent["htmx-internal-data"]["triggerSpec"]["trigger"];
+        } else {
+            console.log("htmx:wsConfigSend: triggeringEvent not found", evt.detail);
         }
     });
 

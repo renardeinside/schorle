@@ -1,11 +1,11 @@
 from pydantic import Field
 from pydantic.fields import computed_field
 
-from schorle.dynamics.base import Reactive
-from schorle.dynamics.classes import Classes
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
+from schorle.reactives.base import Reactive
+from schorle.reactives.classes import Classes
 from schorle.utils import reactive
 
 

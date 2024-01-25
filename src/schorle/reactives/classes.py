@@ -4,7 +4,7 @@ from typing import Union
 
 from pydantic import PrivateAttr
 
-from schorle.dynamics.base import Reactive
+from schorle.reactives.base import Reactive
 
 RawClassesPayload = Union[str, list[str], tuple[str, ...], "Classes", None]
 

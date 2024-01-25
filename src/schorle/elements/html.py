@@ -59,6 +59,7 @@ class Head(BaseElement):
     # htmx
     htmx: Script = Script(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
     htmx_ws: Script = Script(src="https://unpkg.com/htmx.org/dist/ext/ws.js")
+    htmx_event_header: Script = Script(src="https://unpkg.com/htmx.org/dist/ext/event-header.js")
     idiomorph: Script = Script(src="https://unpkg.com/idiomorph@0.3.0")
     # todo: use idiomorph-htmx when bug is fixed
     # idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
@@ -95,7 +96,7 @@ class Div(Element):
 class EventHandler(BaseElement):
     tag: HTMLTag = HTMLTag.DIV
     element_id: str = "schorle-event-handler"
-    hx_ws: str = Attribute(default="ws", alias="hx-ext")
+    hx_ws: str = Attribute(default="ws,event-header", alias="hx-ext")
     ws_connect: str = Attribute(default="/_schorle/events", alias="ws-connect")
     content: Page
 

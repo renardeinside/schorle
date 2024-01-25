@@ -12,12 +12,15 @@ T = TypeVar("T")
 class Reactive(BaseModel, Generic[T]):
     _render_queue: Queue = PrivateAttr(default_factory=Queue)
     _value: T | None = PrivateAttr()
+    _skip_render: bool = PrivateAttr(default=False)
 
     async def update(self, value: T | None, *, skip_render: bool = False):
         self._value = value
         logger.debug(f"Updating {self} with {value}")
-        if not skip_render:
+        if not skip_render and not self._skip_render:
             await self._render_queue.put(self)
+        else:
+            logger.debug(f"Skipping render for {self}")
 
     async def __aiter__(self) -> AsyncIterator[T | None]:
         while True:

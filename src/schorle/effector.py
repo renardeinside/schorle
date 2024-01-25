@@ -6,7 +6,7 @@ from inspect import ismethod
 from pydantic import BaseModel
 
 
-class Emitter:
+class Effector:
     def __init__(self, func):
         self.func = func
         self.subscribers = []
@@ -20,7 +20,7 @@ class Emitter:
         self.subscribers.append(callback)
 
 
-class EmitterProtocol(Protocol):
+class EffectorProtocol(Protocol):
     def subscribe(self, callback):
         ...
 
@@ -28,25 +28,25 @@ class EmitterProtocol(Protocol):
         ...
 
 
-def create_emitter(func) -> EmitterProtocol:
-    _emitter_instance = Emitter(func)
+def create_emitter(func) -> EffectorProtocol:
+    _emitter_instance = Effector(func)
 
     async def _wrapper(*args, **kwargs):
         await _emitter_instance(*args, **kwargs)
 
-    wrapper: EmitterProtocol = wraps(func)(_wrapper)
+    wrapper: EffectorProtocol = wraps(func)(_wrapper)
     wrapper.subscribe = _emitter_instance.subscribe
     return wrapper
 
 
-def emitter(func) -> EmitterProtocol:
+def effector(func) -> EffectorProtocol:
     if not asyncio.iscoroutinefunction(func):
         raise ValueError("emitter can only be used on async functions")
     func.is_emitter = True
     return func
 
 
-def inject_emitters(_object: object):
+def inject_effectors(_object: object):
     if isinstance(_object, BaseModel) and not _object.model_config.get("extra", None) == "allow":
         raise ValueError("Pydantic models must be declared with extra='allow' to use inject_emitters")
     for attr in dir(_object):

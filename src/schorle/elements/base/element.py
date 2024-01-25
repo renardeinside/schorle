@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 from typing import Callable
-from uuid import uuid4
 
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr, computed_field
 
-from schorle.dynamics.base import Reactive
-from schorle.dynamics.classes import Classes
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
+from schorle.reactives.base import Reactive
+from schorle.reactives.classes import Classes
 
 
 class Element(BaseElement):
@@ -22,9 +21,7 @@ class Element(BaseElement):
         super().__init__(**data)
         if self.element_id is None:
             self.element_id = (
-                f"schorle-{self.tag.value.lower()}-{id(self)}-{uuid4()!s}"
-                if self.element_id is None
-                else self.element_id
+                f"schorle-{self.tag.value.lower()}-{id(self)}" if self.element_id is None else self.element_id
             )
 
     @computed_field(json_schema_extra={"attribute": True, "attribute_name": "hx-trigger"})  # type: ignore
@@ -62,8 +59,8 @@ class Element(BaseElement):
     def get_triggers_and_methods(self):
         for attr in dir(self):
             if (
-                attr not in ["__fields__", "__fields_set__", "__signature__"]
-                and attr not in self.model_computed_fields.keys()
+                    attr not in ["__fields__", "__fields_set__", "__signature__"]
+                    and attr not in self.model_computed_fields.keys()
             ):
                 if callable(getattr(self, attr)):
                     method = getattr(self, attr)
@@ -73,8 +70,8 @@ class Element(BaseElement):
     def get_methods_with_attribute(self, attribute: str):
         for attr in dir(self):
             if (
-                attr not in ["__fields__", "__fields_set__", "__signature__"]
-                and attr not in self.model_computed_fields.keys()
+                    attr not in ["__fields__", "__fields_set__", "__signature__"]
+                    and attr not in self.model_computed_fields.keys()
             ):
                 if callable(getattr(self, attr)):
                     method = getattr(self, attr)

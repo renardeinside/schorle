@@ -1,27 +1,25 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-
 from schorle.app import Schorle
-from schorle.dynamics.classes import Classes
-from schorle.dynamics.text import Text
+from schorle.effector import effector
 from schorle.elements.button import Button
 from schorle.elements.html import Div
 from schorle.elements.page import Page, PageReference
-from schorle.emitter import emitter, inject_emitters
-from schorle.utils import before_render
+from schorle.reactives.classes import Classes
+from schorle.reactives.state import ReactiveModel
+from schorle.reactives.text import Text
 
 app = Schorle()
 
 
-class Counter(BaseModel, extra="allow"):
+class Counter(ReactiveModel):
     value: int = 0
 
-    @emitter
+    @effector
     async def increment(self):
         self.value += 1
 
-    @emitter
+    @effector
     async def decrement(self):
         self.value -= 1
 
@@ -31,9 +29,8 @@ class DecrementButton(Button):
     page: PageWithButton = PageReference()
     classes: Classes = Classes("btn-error")
 
-    @before_render
-    async def preload(self):
-        await self._switch_off(self.page.counter)
+    def __init__(self, **data):
+        super().__init__(**data)
         self.page.counter.decrement.subscribe(self._switch_off)
         self.page.counter.increment.subscribe(self._switch_off)
 
@@ -46,8 +43,8 @@ class DecrementButton(Button):
 
 class Buttons(Div):
     classes: Classes = Classes("space-x-4 flex flex-row justify-center items-center")
-    increment: Button = Field(default_factory=lambda: Button(text=Text("Increment"), classes=Classes("btn-success")))
-    decrement: Button = Field(default_factory=DecrementButton)
+    increment: Button = Button.factory(text=Text("Increment"), classes=Classes("btn-success"))
+    decrement: DecrementButton = DecrementButton.factory()
 
 
 class CounterView(Div):
@@ -56,9 +53,8 @@ class CounterView(Div):
     async def update(self, counter: Counter):
         await self.text.update(f"Clicked {counter.value} times")
 
-    @before_render
-    async def preload(self):
-        await self.update(self.page.counter)
+    def __init__(self, **data):
+        super().__init__(**data)
         self.page.counter.increment.subscribe(self.update)
         self.page.counter.decrement.subscribe(self.update)
 
@@ -66,12 +62,11 @@ class CounterView(Div):
 class PageWithButton(Page):
     counter: Counter = Counter()
     classes: Classes = Classes("space-y-4 flex flex-col justify-center items-center h-screen w-screen")
-    buttons: Buttons = Field(default_factory=Buttons)
-    counter_view: CounterView = Field(default_factory=CounterView)
+    buttons: Buttons = Buttons.factory()
+    counter_view: CounterView = CounterView.factory()
 
     def __init__(self, **data):
         super().__init__(**data)
-        inject_emitters(self.counter)
         self.buttons.increment.add_callback("click", self.counter.increment)
         self.buttons.decrement.add_callback("click", self.counter.decrement)
 

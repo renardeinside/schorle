@@ -11,15 +11,15 @@ from lxml.etree import tostring
 from pydantic import ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
-from schorle.dynamics.base import Reactive
-from schorle.dynamics.classes import Classes
-from schorle.dynamics.element_list import Collection
-from schorle.dynamics.text import Text
-from schorle.elements.base.mixins import AttrsMixin
+from schorle.elements.base.mixins import AttrsMixin, FactoryMixin
 from schorle.elements.tags import HTMLTag
+from schorle.reactives.base import Reactive
+from schorle.reactives.classes import Classes
+from schorle.reactives.collection import Collection
+from schorle.reactives.text import Text
 
 
-class BaseElement(AttrsMixin):
+class BaseElement(AttrsMixin, FactoryMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
     tag: HTMLTag
     text: Text | str = Field(default=Text(), description="Text content of the element, if any")
@@ -129,12 +129,9 @@ class BaseElement(AttrsMixin):
         return self._rendering_element
 
     def render(self) -> str:
-        logger.info(f"Rendering element {self}")
-
         root_element = None
         for parent, child in self.walk():
             if not parent:
-                logger.debug("Setting the root element")
                 root_element = child.get_prerender()
             elif parent.render_behaviour == "default" and child.render_behaviour == "default":
                 # default behaviour is to append the child to the parent
@@ -171,6 +168,3 @@ class BaseElement(AttrsMixin):
 
     def __str__(self):
         return self.__repr__()
-
-    def __init__(self, **data):
-        super().__init__(**data)

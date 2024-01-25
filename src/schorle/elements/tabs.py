@@ -2,11 +2,11 @@ from typing import List
 
 from pydantic import Field
 
-from schorle.dynamics.base import Reactive
-from schorle.dynamics.classes import Classes
 from schorle.elements.attribute import Attribute
 from schorle.elements.html import Div
 from schorle.elements.inputs import Input
+from schorle.reactives.base import Reactive
+from schorle.reactives.classes import Classes
 
 
 class Tab(Div):

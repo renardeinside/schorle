@@ -1,27 +1,23 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-
 from schorle.app import Schorle
-from schorle.dynamics.classes import Classes
-from schorle.dynamics.text import Text
+from schorle.effector import effector
 from schorle.elements.button import Button
 from schorle.elements.page import Page
-from schorle.emitter import emitter, inject_emitters
-from schorle.utils import before_render, reactive
+from schorle.reactives.classes import Classes
+from schorle.reactives.state import ReactiveModel
+from schorle.reactives.text import Text
+from schorle.utils import reactive
 
 app = Schorle()
 
 
-class Counter(BaseModel, extra="allow"):
+class Counter(ReactiveModel):
     value: int = 0
 
-    @emitter
+    @effector
     async def increment(self):
         self.value += 1
-
-    def __init__(self, **data):
-        super().__init__(**data)
 
 
 class ButtonWithCounter(Button):
@@ -29,24 +25,21 @@ class ButtonWithCounter(Button):
     counter: Counter
 
     @reactive("click")
-    async def on_click(self):
+    async def handle(self):
         await self.counter.increment()
 
-    @before_render
-    async def prepare(self):
-        inject_emitters(self.counter)
+    async def _on_increment(self, counter: Counter):
+        await self.text.update(f"Clicked {counter.value} times")
 
-        async def _on_increment(counter: Counter):
-            await self.text.update(f"Clicked {counter.value} times")
-
-        self.counter.increment.subscribe(_on_increment)
-        await _on_increment(self.counter)
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.counter.increment.subscribe(self._on_increment)
 
 
 class PageWithButton(Page):
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
-    first_button: ButtonWithCounter = Field(default_factory=lambda: ButtonWithCounter(counter=Counter()))
-    second_button: ButtonWithCounter = Field(default_factory=lambda: ButtonWithCounter(counter=Counter()))
+    first_button: ButtonWithCounter = ButtonWithCounter.factory(counter=Counter())
+    second_button: ButtonWithCounter = ButtonWithCounter.factory(counter=Counter())
 
 
 @app.get("/")
