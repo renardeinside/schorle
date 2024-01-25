@@ -24,9 +24,6 @@ def reactive(trigger: str | None = None):
     return decorator
 
 
-def before_load():
-    def decorator(func):
-        func.before_load = True
-        return func
-
-    return decorator
+def before_render(func):
+    func.before_render = True
+    return func

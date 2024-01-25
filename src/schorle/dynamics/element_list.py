@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TypeVar
 
-from schorle.dynamics.base import DynamicElement
+from schorle.dynamics.base import Reactive
 
 T = TypeVar("T")  # todo- add strict typing for Element
 
 
-class Collection(DynamicElement[list[T]]):
+class Collection(Reactive[list[T]]):
     def __init__(self, value: list[T] | None = None):
         super().__init__(value=value)
 

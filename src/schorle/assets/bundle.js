@@ -13,10 +13,10 @@
     let getDevMode = () => {
         return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
     }
-
-    if (getDevMode() === "true") {
-        htmx.logAll();
-    }
+    //
+    // if (getDevMode() === "true") {
+    //     htmx.logAll();
+    // }
 
 
     htmx.on("htmx:wsBeforeMessage", (evt) => {
@@ -28,7 +28,6 @@
     });
 
     htmx.on("htmx:wsConfigSend", (evt) => {
-
         if (evt.detail.triggeringEvent.hasOwnProperty("htmx-internal-data")) {
             evt.detail.headers["HX-Trigger-Type"] = evt.detail.triggeringEvent["htmx-internal-data"]["triggerSpec"]["trigger"];
         }
@@ -37,7 +36,7 @@
     htmx.on("htmx:load", (evt) => {
         let attributeName = "ws-send";
         let querySelector = "[" + attributeName + "], [data-" + attributeName + "], [data-hx-ws], [hx-ws]";
-        // retrigger processing of nodes with ws-send attribute to ensure that they'll be connected to the websocket
+        // re-trigger processing of nodes with ws-send attribute to ensure that they'll be connected to the websocket
         evt.target.querySelectorAll(querySelector).forEach(function (node) {
             htmx.trigger(node, "htmx:beforeProcessNode");
         })

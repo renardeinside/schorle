@@ -1,7 +1,7 @@
 from pydantic import Field
 from pydantic.fields import computed_field
 
-from schorle.dynamics.base import DynamicElement
+from schorle.dynamics.base import Reactive
 from schorle.dynamics.classes import Classes
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
@@ -11,7 +11,7 @@ from schorle.utils import reactive
 
 class Input(Element):
     tag: HTMLTag = HTMLTag.INPUT
-    value: DynamicElement[str] = Field(default=DynamicElement(""), description="Value of the input field")
+    value: Reactive[str] = Field(default=Reactive(""), description="Value of the input field")
     _base_classes: Classes = Classes("input", "form-control")
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)
     placeholder: str | None = Attribute(default=None)

@@ -13,12 +13,11 @@ from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-from schorle.dynamics.base import DynamicElement
+from schorle.dynamics.base import Reactive
 from schorle.elements.base.element import Element
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
 from schorle.models import HtmxMessage
-from schorle.state import State, inject_into_method
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -37,23 +36,8 @@ def assets(file_name: str) -> PlainTextResponse:
         return PlainTextResponse(f"File not found: {file_name}", status_code=404)
 
 
-def inject_state(page: Page):
-    for element in page.traverse():
-        if isinstance(element, Element):
-            element.add_injection_metadata()
-
-    for element in page.traverse():
-        if isinstance(element, Element):
-            for method in element.injectable_methods():
-                if page.state:
-                    inject_into_method(page.state, method)
-                else:
-                    logger.error("No state found, skipping injection...")
-
-
 class Schorle:
     def __init__(self, theme: Theme = Theme.DARK) -> None:
-        self._state_class: type[State] | None = None
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}")(assets)
@@ -76,8 +60,10 @@ class Schorle:
 
     async def render_to_response(self, page_provider: Callable[..., Page]) -> HTMLResponse:
         page = page_provider()
+
         logger.info(f"Rendering page: {page}...")
 
+        page.inject_page_reference()
         handler = EventHandler(content=page)
         body = BodyWithPage(wrapper=MorphWrapper(handler=handler))
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
@@ -87,14 +73,14 @@ class Schorle:
             logger.info("Adding dev meta tags...")
             html.head.dev_meta = Meta(name="schorle-dev", content="true")
 
-        inject_state(page)
-
+        before_render_tasks = []
         for element in page.traverse():
             if isinstance(element, Element):
-                for method in element.injected_methods():
-                    if getattr(method, "before_load", False):
-                        wrapped = wrap_in_coroutine(method)
-                        await wrapped()
+                for _method in element.get_methods_with_attribute("before_render"):
+                    method_task = asyncio.create_task(_method())
+                    before_render_tasks.append(method_task)
+
+        await asyncio.gather(*before_render_tasks)
 
         response = HTMLResponse(html.render(), status_code=200)
         logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
@@ -118,16 +104,9 @@ class EventsEndpoint(WebSocketEndpoint):
     async def _updates_emitter(self, page: Page, ws: WebSocket):
         emitters = []
 
-        async def _emit(_element: Element, field: DynamicElement):
+        async def _emit(_element: Element, field: Reactive):
             async for _ in field:
                 logger.debug(f"Events emitting element: {_element}")
-                for __element in _element.traverse():
-                    if isinstance(__element, Element):
-                        for method in __element.injectable_methods():
-                            if page.state:
-                                inject_into_method(page.state, method)
-                            else:
-                                logger.error("No state found, skipping injection...")
                 await ws.send_text(_element.render())
                 logger.debug(f"Events emitted element: {_element}")
 

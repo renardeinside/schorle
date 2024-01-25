@@ -1,4 +1,3 @@
-from types import MethodType
 from typing import Awaitable, Callable
 
 from pydantic import PrivateAttr
@@ -16,11 +15,11 @@ class Button(Element):
     _additional_callbacks: list = PrivateAttr(default_factory=list)
     classes: Classes = Classes()
 
-    def add_callback(self, trigger: str, callback: MethodType | OnClick):
+    def add_callback(self, trigger: str, callback: Callable):
         self._additional_callbacks.append((trigger, callback))
 
     def get_triggers_and_methods(self):
         for trigger, method in super().get_triggers_and_methods():
             yield trigger, method
-        for trigger, method in self._additional_callbacks:
-            yield trigger, getattr(method.__self__, method.__name__)
+        for trigger, callback in self._additional_callbacks:
+            yield trigger, callback

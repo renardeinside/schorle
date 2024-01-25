@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import Field
 
-from schorle.dynamics.base import DynamicElement
+from schorle.dynamics.base import Reactive
 from schorle.dynamics.classes import Classes
 from schorle.elements.attribute import Attribute
 from schorle.elements.html import Div
@@ -17,4 +17,4 @@ class Tab(Div):
 
 class TabsList(Div):
     role: str = Attribute("tablist")
-    children: DynamicElement[List[Tab]] = Field(default_factory=DynamicElement)
+    children: Reactive[List[Tab]] = Field(default_factory=Reactive)

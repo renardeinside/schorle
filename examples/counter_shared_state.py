@@ -1,76 +1,79 @@
-from pydantic import BaseModel
+from __future__ import annotations
+
+from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
 from schorle.dynamics.classes import Classes
 from schorle.dynamics.text import Text
 from schorle.elements.button import Button
 from schorle.elements.html import Div
-from schorle.elements.page import Page
-from schorle.state import Depends, State, Uses
-from schorle.utils import before_load, reactive
+from schorle.elements.page import Page, PageReference
+from schorle.emitter import emitter, inject_emitters
+from schorle.utils import before_render
 
 app = Schorle()
 
 
-class Counter(BaseModel):
+class Counter(BaseModel, extra="allow"):
     value: int = 0
 
-    def increment(self):
+    @emitter
+    async def increment(self):
         self.value += 1
 
-    def decrement(self):
+    @emitter
+    async def decrement(self):
         self.value -= 1
 
 
-class PageState(State):
-    counter: Counter = Counter()
-
-
-class IncrementButton(Button):
-    classes: Classes = Classes("btn-primary")
-
-    @reactive("click")
-    async def on_click(self, counter: Counter = Uses[PageState.counter]):
-        counter.increment()
-
-
 class DecrementButton(Button):
-    classes: Classes = Classes("btn-secondary")
+    text: Text = Text("Decrement")
+    page: PageWithButton = PageReference()
+    classes: Classes = Classes("btn-error")
 
-    @reactive("click")
-    async def on_click(self, counter: Counter = Uses[PageState.counter]):
-        counter.decrement()
+    @before_render
+    async def preload(self):
+        await self._switch_off(self.page.counter)
+        self.page.counter.decrement.subscribe(self._switch_off)
+        self.page.counter.increment.subscribe(self._switch_off)
 
-    @before_load()
-    async def _(self, counter: Counter = Depends[PageState.counter]):
+    async def _switch_off(self, counter: Counter):
         if counter.value <= 0:
             await self.classes.append("btn-disabled")
         else:
             await self.classes.remove("btn-disabled")
 
-    @reactive("htmx:afterOnLoad")
-    async def on_load(self):
-        print("loaded")
-
 
 class Buttons(Div):
     classes: Classes = Classes("space-x-4 flex flex-row justify-center items-center")
-    increment_button: IncrementButton = IncrementButton(text="Increment")
-    decrement_button: DecrementButton = DecrementButton(text="Decrement")
+    increment: Button = Field(default_factory=lambda: Button(text=Text("Increment"), classes=Classes("btn-success")))
+    decrement: Button = Field(default_factory=DecrementButton)
 
 
 class CounterView(Div):
-    text: Text = Text("Clicked 0 times")
+    page: PageWithButton = PageReference()
 
-    async def on_update(self, counter: Counter = Depends[PageState.counter]):
+    async def update(self, counter: Counter):
         await self.text.update(f"Clicked {counter.value} times")
+
+    @before_render
+    async def preload(self):
+        await self.update(self.page.counter)
+        self.page.counter.increment.subscribe(self.update)
+        self.page.counter.decrement.subscribe(self.update)
 
 
 class PageWithButton(Page):
-    state: PageState = PageState()
+    counter: Counter = Counter()
     classes: Classes = Classes("space-y-4 flex flex-col justify-center items-center h-screen w-screen")
-    buttons: Buttons = Buttons()
-    counter_view: CounterView = CounterView()
+    buttons: Buttons = Field(default_factory=Buttons)
+    counter_view: CounterView = Field(default_factory=CounterView)
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        inject_emitters(self.counter)
+        self.buttons.increment.add_callback("click", self.counter.increment)
+        self.buttons.decrement.add_callback("click", self.counter.decrement)
 
 
 @app.get("/")

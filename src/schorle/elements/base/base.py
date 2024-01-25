@@ -11,15 +11,15 @@ from lxml.etree import tostring
 from pydantic import ConfigDict, Field, PrivateAttr
 from pydantic.fields import FieldInfo
 
-from schorle.dynamics.base import DynamicElement
+from schorle.dynamics.base import Reactive
 from schorle.dynamics.classes import Classes
 from schorle.dynamics.element_list import Collection
 from schorle.dynamics.text import Text
-from schorle.elements.base.mixins import AttrsMixin, InjectableMixin
+from schorle.elements.base.mixins import AttrsMixin
 from schorle.elements.tags import HTMLTag
 
 
-class BaseElement(AttrsMixin, InjectableMixin):
+class BaseElement(AttrsMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
     tag: HTMLTag
     text: Text | str = Field(default=Text(), description="Text content of the element, if any")
@@ -27,10 +27,6 @@ class BaseElement(AttrsMixin, InjectableMixin):
     element_id: str | None = Field(default=None, description="Explicitly set the id of the element, if required")
     _rendering_element: LxmlElement | None = PrivateAttr(default=None)
     render_behaviour: str = Field(default="default", description="Render behaviour of the element")
-
-    def __init(self, **data):
-        super().__init__(**data)
-        self.post_init()
 
     def _union_related_to_element(self, anno: UnionType):
         for arg in anno.__args__:
@@ -56,7 +52,7 @@ class BaseElement(AttrsMixin, InjectableMixin):
             return True
         elif isclass(anno) and issubclass(anno, Collection):
             return True
-        elif isclass(anno) and issubclass(anno, DynamicElement) and not issubclass(anno, (Text, Classes)):
+        elif isclass(anno) and issubclass(anno, Reactive) and not issubclass(anno, (Text, Classes)):
             return True
         else:
             return False
@@ -67,11 +63,13 @@ class BaseElement(AttrsMixin, InjectableMixin):
         """
         yield parent, self
         for k, v in self.model_fields.items():
-            if self._related_to_element(v):
+            if v.json_schema_extra and v.json_schema_extra.get("page_reference"):
+                continue
+            elif self._related_to_element(v):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.walk(self)
-                elif isinstance(element, DynamicElement):
+                elif isinstance(element, Reactive):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:
@@ -89,11 +87,13 @@ class BaseElement(AttrsMixin, InjectableMixin):
         if not skip_self:
             yield self
         for k, v in self.model_fields.items():
-            if self._related_to_element(v):
+            if v.json_schema_extra and v.json_schema_extra.get("page_reference"):
+                continue
+            elif self._related_to_element(v):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.traverse()
-                elif isinstance(element, DynamicElement):
+                elif isinstance(element, Reactive):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:
@@ -127,9 +127,6 @@ class BaseElement(AttrsMixin, InjectableMixin):
             self._rendering_element = element
 
         return self._rendering_element
-
-    def post_init(self):
-        pass
 
     def render(self) -> str:
         logger.info(f"Rendering element {self}")
