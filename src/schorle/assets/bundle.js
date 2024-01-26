@@ -14,9 +14,9 @@
         return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
     }
 
-    if (getDevMode() === "true") {
-        htmx.logAll();
-    }
+    // if (getDevMode() === "true") {
+    //     htmx.logAll();
+    // }
 
 
     htmx.on("htmx:wsBeforeMessage", (evt) => {

@@ -13,7 +13,6 @@ from schorle.reactives.classes import Classes
 from schorle.reactives.collection import Collection
 from schorle.reactives.state import ReactiveModel
 from schorle.reactives.text import Text
-from schorle.utils import reactive
 
 app = Schorle()
 
@@ -36,9 +35,8 @@ class InputSection(Div):
     add_button: Button = Button(text="Add", classes=Classes("btn-primary"))
     page: TodoPage = PageReference()
 
-    # @reactive("load")
-    # async def on_load(self):
-    #     self.add_button.add_callback("click", self._on_click)
+    async def before_render(self):
+        self.add_button.add_callback("click", self._on_click)
 
     async def _on_click(self):
         new_input = self.input_text.value.get()
@@ -52,9 +50,8 @@ class TodoItem(Div):
     remove_button: Button = Button.factory(text=Text("Remove"), classes=Classes("btn-error"))
     page: TodoPage = PageReference()
 
-    # @reactive("load")
-    # async def on_load(self):
-    #     self.remove_button.add_callback("click", self._on_click)
+    async def before_render(self):
+        self.remove_button.add_callback("click", self._on_click)
 
     async def _on_click(self):
         await self.page.todo_list.remove_item(self.text.get())
@@ -71,19 +68,20 @@ class TodoView(Div):
         await self.todo_items.update(new_items)
 
     async def update_headline(self, todo_list: TodoList):
-        text = f"Todo list ({len(todo_list.items)} items)" if todo_list.items else "Todo list is empty"
-        await self.headline.update(
-            Div(
-                text=text,
-                classes=Classes("text-2xl font-bold"),
-            )
+        _text = (
+            f"Todo List with {len(todo_list.items)} item{'s' if len(todo_list.items) > 1 else ''}"
+            if todo_list.items
+            else "Todo List is empty"
         )
+        await self.headline.update(Div(text=Text(_text), classes=Classes("text-2xl")))
 
-    @reactive("loadstart")
-    async def on_load(self):
-        for update in [self.update_items, self.update_headline]:
-            self.page.todo_list.add_item.subscribe(update)
-            self.page.todo_list.remove_item.subscribe(update)
+    async def before_render(self):
+        for updater in [self.update_items, self.update_headline]:
+            self.page.todo_list.add_item.subscribe(updater)
+            self.page.todo_list.remove_item.subscribe(updater)
+
+        await self.update_items(self.page.todo_list)
+        await self.update_headline(self.page.todo_list)
 
 
 class TodoPage(Page):

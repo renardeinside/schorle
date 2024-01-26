@@ -29,10 +29,11 @@ class DecrementButton(Button):
     page: PageWithButton = PageReference()
     classes: Classes = Classes("btn-error")
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    async def before_render(self):
         self.page.counter.decrement.subscribe(self._switch_off)
         self.page.counter.increment.subscribe(self._switch_off)
+
+        await self._switch_off(self.page.counter)
 
     async def _switch_off(self, counter: Counter):
         if counter.value <= 0:
@@ -45,6 +46,11 @@ class Buttons(Div):
     classes: Classes = Classes("space-x-4 flex flex-row justify-center items-center")
     increment: Button = Button.factory(text=Text("Increment"), classes=Classes("btn-success"))
     decrement: DecrementButton = DecrementButton.factory()
+    page: PageWithButton = PageReference()
+
+    async def before_render(self):
+        self.increment.add_callback("click", self.page.counter.increment)
+        self.decrement.add_callback("click", self.page.counter.decrement)
 
 
 class CounterView(Div):
@@ -53,10 +59,10 @@ class CounterView(Div):
     async def update(self, counter: Counter):
         await self.text.update(f"Clicked {counter.value} times")
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    async def before_render(self):
         self.page.counter.increment.subscribe(self.update)
         self.page.counter.decrement.subscribe(self.update)
+        await self.update(self.page.counter)
 
 
 class PageWithButton(Page):
@@ -64,11 +70,6 @@ class PageWithButton(Page):
     classes: Classes = Classes("space-y-4 flex flex-col justify-center items-center h-screen w-screen")
     buttons: Buttons = Buttons.factory()
     counter_view: CounterView = CounterView.factory()
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self.buttons.increment.add_callback("click", self.counter.increment)
-        self.buttons.decrement.add_callback("click", self.counter.decrement)
 
 
 @app.get("/")

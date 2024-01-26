@@ -1,6 +1,6 @@
 import asyncio
 import pkgutil
-from asyncio import Task, iscoroutinefunction
+from asyncio import iscoroutinefunction
 from functools import partial
 from importlib.resources import files
 from pathlib import Path
@@ -16,8 +16,8 @@ from starlette.websockets import WebSocket
 from schorle.elements.base.element import Element
 from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
 from schorle.elements.page import Page
+from schorle.emitters import PageEmitter
 from schorle.models import HtmxMessage
-from schorle.reactives.base import Reactive
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -60,7 +60,7 @@ class Schorle:
 
     async def render_to_response(self, page_provider: Callable[..., Page]) -> HTMLResponse:
         page = page_provider()
-
+        await page.execute_all_before_render()
         logger.info(f"Rendering page: {page}...")
 
         handler = EventHandler(content=page)
@@ -89,26 +89,7 @@ class EventsEndpoint(WebSocketEndpoint):
         super().__init__(scope, receive, send)
         self._page: Page | None = None
         self._pages: dict[str, Page] = pages
-        self._updates_emitter_task: Task | None = None
-
-    async def _updates_emitter(self, page: Page, ws: WebSocket):
-        emitters = []
-
-        async def _emit(_element: Element, _field: Reactive):
-            async for _ in _field:
-                logger.debug(f"Events emitting update on field: {_field} for element: {_element}")
-                page.inject_page_reference()  # new page reference for each update
-                await ws.send_text(_element.render())
-        try:
-            for element in page.traverse():
-                if isinstance(element, Element):
-                    observable_fields = element.get_observable_fields()
-                    for field in observable_fields:
-                        emitters.append(_emit(element, field))
-        except Exception as e:
-            logger.error(f"Events emitter failed with exception: {e}")
-
-        await asyncio.gather(*emitters)
+        self.page_emitter_task = None
 
     async def on_connect(self, websocket: WebSocket) -> None:
         token = websocket.query_params.get("token")
@@ -120,7 +101,7 @@ class EventsEndpoint(WebSocketEndpoint):
         if page:
             await websocket.accept()
             self._page = page
-            self._updates_emitter_task = asyncio.create_task(self._updates_emitter(page, websocket))
+            self.page_emitter_task = asyncio.create_task(PageEmitter(page).emit(websocket))
             logger.info("Events connected.")
 
         elif not page and get_running_mode() == RunningMode.DEV:
@@ -166,8 +147,8 @@ class EventsEndpoint(WebSocketEndpoint):
 
     async def on_disconnect(self, _: WebSocket, close_code: int) -> None:
         logger.info(f"Events disconnected with code: {close_code}")
-        if self._updates_emitter_task:
-            self._updates_emitter_task.cancel()
+        if self.page_emitter_task:
+            self.page_emitter_task.cancel()
             logger.info("Events emitter task cancelled.")
 
 

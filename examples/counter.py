@@ -22,7 +22,7 @@ class Counter(ReactiveModel):
 
 class ButtonWithCounter(Button):
     text: Text = Text("Click me!")
-    counter: Counter
+    counter: Counter = Counter.factory()
 
     @reactive("click")
     async def handle(self):
@@ -30,16 +30,16 @@ class ButtonWithCounter(Button):
 
     async def _on_increment(self, counter: Counter):
         await self.text.update(f"Clicked {counter.value} times")
+        await self.classes.toggle("btn-success")
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    async def before_render(self):
         self.counter.increment.subscribe(self._on_increment)
 
 
 class PageWithButton(Page):
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
-    first_button: ButtonWithCounter = ButtonWithCounter.factory(counter=Counter())
-    second_button: ButtonWithCounter = ButtonWithCounter.factory(counter=Counter())
+    first_button: ButtonWithCounter = ButtonWithCounter.factory()
+    second_button: ButtonWithCounter = ButtonWithCounter.factory()
 
 
 @app.get("/")

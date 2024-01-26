@@ -6,7 +6,6 @@ from pydantic import Field
 from schorle.elements.base.base import BaseElement
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
-from schorle.utils import reactive
 
 
 class Page(Element):
@@ -19,20 +18,19 @@ class Page(Element):
                 return child
         return None
 
-    def inject_page_reference(self):
-        for element in self.traverse(skip_self=True):
+    async def execute_all_before_render(self):
+        self.inject_page_reference(self)
+
+        for element in self.traverse():
             if isinstance(element, Element):
-                for attr_name, field in element.model_fields.items():
-                    if field.json_schema_extra and field.json_schema_extra.get("page_reference"):
-                        setattr(element, attr_name, self)
+                logger.debug(f"Executing before_render for {element}")
+                await element.before_render()
+                # cleanup render queues
+                for attr in element.get_reactive_attributes():
+                    while not attr._render_queue.empty():
+                        await attr._render_queue.get()
 
-    def __init__(self, **data):
-        super().__init__(**data)
-
-    @reactive("load")
-    async def load(self):
-        logger.info("Page load")
-        self.inject_page_reference()
+        self.inject_page_reference(self)
 
 
 def PageReference():  # noqa: N802

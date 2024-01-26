@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Any, Callable
 
+from loguru import logger
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr, computed_field
 
@@ -48,7 +49,7 @@ class Element(BaseElement):
         if container:
             element.set("class", " ".join(container))
 
-    def get_observable_fields(self):
+    def get_reactive_attributes(self):
         fields = []
         for field_name in self.model_fields.keys():
             attr = getattr(self, field_name)
@@ -59,8 +60,8 @@ class Element(BaseElement):
     def get_triggers_and_methods(self):
         for attr in dir(self):
             if (
-                    attr not in ["__fields__", "__fields_set__", "__signature__"]
-                    and attr not in self.model_computed_fields.keys()
+                attr not in ["__fields__", "__fields_set__", "__signature__"]
+                and attr not in self.model_computed_fields.keys()
             ):
                 if callable(getattr(self, attr)):
                     method = getattr(self, attr)
@@ -70,10 +71,21 @@ class Element(BaseElement):
     def get_methods_with_attribute(self, attribute: str):
         for attr in dir(self):
             if (
-                    attr not in ["__fields__", "__fields_set__", "__signature__"]
-                    and attr not in self.model_computed_fields.keys()
+                attr not in ["__fields__", "__fields_set__", "__signature__"]
+                and attr not in self.model_computed_fields.keys()
             ):
                 if callable(getattr(self, attr)):
                     method = getattr(self, attr)
                     if hasattr(method, attribute):
                         yield method
+
+    async def before_render(self):
+        pass
+
+    def inject_page_reference(self, page: Any):
+        for element in self.traverse():
+            if isinstance(element, Element):
+                for attr_name, field in element.model_fields.items():
+                    if field.json_schema_extra and field.json_schema_extra.get("page_reference"):
+                        logger.debug(f"Injecting page reference into {element}")
+                        setattr(element, attr_name, page)

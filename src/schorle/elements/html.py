@@ -58,8 +58,7 @@ class Head(BaseElement):
     tailwind: Script = Script(src="https://cdn.tailwindcss.com")
     # htmx
     htmx: Script = Script(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
-    htmx_ws: Script = Script(src="https://unpkg.com/htmx.org/dist/ext/ws.js")
-    htmx_event_header: Script = Script(src="https://unpkg.com/htmx.org/dist/ext/event-header.js")
+    htmx_ws: Script = Script(src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js")
     idiomorph: Script = Script(src="https://unpkg.com/idiomorph@0.3.0")
     # todo: use idiomorph-htmx when bug is fixed
     # idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
