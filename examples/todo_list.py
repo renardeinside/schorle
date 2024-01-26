@@ -59,8 +59,8 @@ class TodoItem(Div):
 
 class TodoView(Div):
     classes: Classes = Classes("flex w-96 flex-col space-y-4 p-4")
-    headline: Reactive[Div] = Field(default_factory=Reactive)
-    todo_items: Collection[TodoItem] = Field(default_factory=Collection)
+    headline: Reactive[Div] = Reactive.factory()
+    todo_items: Collection[TodoItem] = Collection.factory()
     page: TodoPage = PageReference()
 
     async def update_items(self, todo_list: TodoList):
@@ -77,15 +77,12 @@ class TodoView(Div):
 
     async def before_render(self):
         for updater in [self.update_items, self.update_headline]:
-            self.page.todo_list.add_item.subscribe(updater)
-            self.page.todo_list.remove_item.subscribe(updater)
-
-        await self.update_items(self.page.todo_list)
-        await self.update_headline(self.page.todo_list)
+            await self.page.todo_list.add_item.subscribe(updater, trigger=True)
+            await self.page.todo_list.remove_item.subscribe(updater, trigger=True)
 
 
 class TodoPage(Page):
-    todo_list: TodoList = Field(default_factory=TodoList)
+    todo_list: TodoList = TodoList.factory()
     classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
     input_section: InputSection = InputSection.factory()
     todo_view: TodoView = TodoView.factory()

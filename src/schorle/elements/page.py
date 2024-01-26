@@ -1,6 +1,5 @@
 from typing import Optional
 
-from loguru import logger
 from pydantic import Field
 
 from schorle.elements.base.base import BaseElement
@@ -23,7 +22,6 @@ class Page(Element):
 
         for element in self.traverse():
             if isinstance(element, Element):
-                logger.debug(f"Executing before_render for {element}")
                 await element.before_render()
                 # cleanup render queues
                 for attr in element.get_reactive_attributes():

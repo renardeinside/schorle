@@ -6,10 +6,12 @@ from typing import AsyncIterator, Generic, TypeVar
 from loguru import logger
 from pydantic import BaseModel, PrivateAttr
 
+from schorle.elements.base.mixins import FactoryMixin
+
 T = TypeVar("T")
 
 
-class Reactive(BaseModel, Generic[T]):
+class Reactive(BaseModel, Generic[T], FactoryMixin):
     _render_queue: Queue = PrivateAttr(default_factory=Queue)
     _value: T | None = PrivateAttr()
 

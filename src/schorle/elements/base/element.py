@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from loguru import logger
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr, computed_field
 
@@ -87,5 +86,4 @@ class Element(BaseElement):
             if isinstance(element, Element):
                 for attr_name, field in element.model_fields.items():
                     if field.json_schema_extra and field.json_schema_extra.get("page_reference"):
-                        logger.debug(f"Injecting page reference into {element}")
                         setattr(element, attr_name, page)

@@ -33,7 +33,7 @@ class ButtonWithCounter(Button):
         await self.classes.toggle("btn-success")
 
     async def before_render(self):
-        self.counter.increment.subscribe(self._on_increment)
+        await self.counter.increment.subscribe(self._on_increment)
 
 
 class PageWithButton(Page):

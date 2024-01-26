@@ -30,10 +30,8 @@ class DecrementButton(Button):
     classes: Classes = Classes("btn-error")
 
     async def before_render(self):
-        self.page.counter.decrement.subscribe(self._switch_off)
-        self.page.counter.increment.subscribe(self._switch_off)
-
-        await self._switch_off(self.page.counter)
+        await self.page.counter.decrement.subscribe(self._switch_off, trigger=True)
+        await self.page.counter.increment.subscribe(self._switch_off, trigger=True)
 
     async def _switch_off(self, counter: Counter):
         if counter.value <= 0:
@@ -60,13 +58,12 @@ class CounterView(Div):
         await self.text.update(f"Clicked {counter.value} times")
 
     async def before_render(self):
-        self.page.counter.increment.subscribe(self.update)
-        self.page.counter.decrement.subscribe(self.update)
-        await self.update(self.page.counter)
+        await self.page.counter.increment.subscribe(self.update, trigger=True)
+        await self.page.counter.decrement.subscribe(self.update, trigger=True)
 
 
 class PageWithButton(Page):
-    counter: Counter = Counter()
+    counter: Counter = Counter.factory()
     classes: Classes = Classes("space-y-4 flex flex-col justify-center items-center h-screen w-screen")
     buttons: Buttons = Buttons.factory()
     counter_view: CounterView = CounterView.factory()

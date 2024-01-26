@@ -7,21 +7,23 @@ from pydantic import BaseModel
 
 
 class Effector:
-    def __init__(self, func):
-        self.func = func
+    def __init__(self, bounded_method):
+        self.bounded_method = bounded_method
         self.subscribers = []
 
     async def __call__(self, *args, **kwargs):
-        await self.func(*args, **kwargs)
-        tasks = [subscriber(self.func.__self__) for subscriber in self.subscribers]
+        await self.bounded_method(*args, **kwargs)
+        tasks = [subscriber(self.bounded_method.__self__) for subscriber in self.subscribers]
         await asyncio.gather(*tasks)
 
-    def subscribe(self, callback):
+    async def subscribe(self, callback, *, trigger: bool = True):
         self.subscribers.append(callback)
+        if trigger:
+            await callback(self.bounded_method.__self__)
 
 
 class EffectorProtocol(Protocol):
-    def subscribe(self, callback):
+    async def subscribe(self, callback, *, trigger: bool = True):
         ...
 
     async def __call__(self, *args, **kwargs):
