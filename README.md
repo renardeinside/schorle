@@ -75,7 +75,7 @@ import random
 
 class MyPage(Page):
     button: Button = Button.factory(text=Text("Click me!"))
-    reactive_element: Reactive = Reactive.inline()
+    reactive_element: Reactive = Reactive.factory()
 
     def __init__(self, **data):
         super().__init__(**data)
