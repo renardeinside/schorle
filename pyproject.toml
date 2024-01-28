@@ -27,9 +27,9 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
+    "lxml",
     "fastapi",
     "uvicorn",
-    "websockets",
     "loguru",
 ]
 
