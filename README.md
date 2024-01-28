@@ -32,6 +32,11 @@ class MyPage(Page):
 Elements can be nested.
 
 ```python
+from schorle.elements.button import Button
+from schorle.elements.html import Div, Paragraph
+from schorle.elements.page import Page
+from schorle.reactives.text import Text
+
 
 class Container(Div):
     p1: Paragraph = Paragraph(text=Text("Hello"))
@@ -39,18 +44,24 @@ class Container(Div):
 
 
 class MyPage(Page):
-    button: Button = Button.inline(text=Text("Click me!"))
-    container: Container = Container.inline()
-
+    button: Button = Button.factory(text=Text("Click me!"))
+    container: Container = Container.factory()
 ```
 
 There can also be dynamic elements:
 
 ```python
+from schorle.elements.base.element import Reactive
+from schorle.elements.button import Button
+from schorle.elements.html import Div, Paragraph
+from schorle.elements.page import Page
+from schorle.reactives.text import Text
+import random
+
 
 class MyPage(Page):
-    button: Button = Button.inline(text=Text("Click me!"))
-    dynamic: DynamicElement = DynamicElement.inline()
+    button: Button = Button.factory(text=Text("Click me!"))
+    reactive_element: Reactive = Reactive.inline()
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -67,10 +78,17 @@ class MyPage(Page):
 As well as dynamic collections:
 
 ```python
+from schorle.elements.button import Button
+from schorle.elements.html import Div
+from schorle.elements.page import Page
+from schorle.reactives.text import Text
+from schorle.elements.base.element import Collection
+import random
+
 
 class MyPage(Page):
-    button: Button = Button.inline(text=Text("Click me!"))
-    paragraphs: Collection[Div] = Collection.inline()
+    button: Button = Button.factory(text=Text("Click me!"))
+    paragraphs: Collection[Div] = Collection.factory()
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -78,22 +96,25 @@ class MyPage(Page):
 
     async def on_click(self):
         if random.random() > 0.5:
-            new_pargraphs = [Div(text=Text("Clicked!"))]
+            new_paragraphs = [Div(text=Text("Clicked!"))]
         else:
-            new_pargraphs = []
-        await self.paragraphs.update(new_pargraphs)
+            new_paragraphs = []
+        await self.paragraphs.update(new_paragraphs)
 
 ```
 
 Dynamic collections and elements can also be nested.
 
-### Reactivity
+### Reacting to client-side events
 
 To call something in response to a client-side event, use either `@reactive` or `add_callback`.
 
-1. React to a client-side event with `@reactive`:
+- React to a client-side event with `@reactive`:
 
 ```python
+from schorle.elements.button import Button
+from schorle.utils import reactive
+
 
 class MyButton(Button):
     @reactive("click")
@@ -101,12 +122,17 @@ class MyButton(Button):
         await self.text.update("Clicked!")
 ```
 
-2. React to a client-side event with `add_callback`:
+- React to a client-side event with `add_callback`:
 
 ```python
+from schorle.elements.button import Button
+from schorle.elements.html import Paragraph
+from schorle.elements.page import Page
+from schorle.reactives.text import Text
+
 
 class MyPage(Page):
-    button: Button = Button.inline(text=Text("Click me!"))
+    button: Button = Button.factory(text=Text("Click me!"))
     p: Paragraph = Paragraph(text=Text("Not clicked!"))
 
     def __init__(self, **data):
@@ -117,5 +143,59 @@ class MyPage(Page):
         await self.p.text.update("Clicked!")
 ```
 
-### State
+### Server-side effects
+
+To call some updates from the server-side, use `@effector` decorator in combination with `subscribe` method:
+
+```python
+
+from __future__ import annotations
+
+from schorle.app import Schorle
+from schorle.effector import effector
+from schorle.elements.button import Button
+from schorle.elements.page import Page
+from schorle.reactives.classes import Classes
+from schorle.reactives.state import ReactiveModel
+from schorle.reactives.text import Text
+from schorle.utils import reactive
+
+app = Schorle()
+
+
+class Counter(ReactiveModel):
+    value: int = 0
+
+    @effector  # effector transforms a method into an effect generating function
+    async def increment(self):
+        self.value += 1
+
+
+class ButtonWithCounter(Button):
+    text: Text = Text("Click me!")
+    counter: Counter = Counter.factory()
+
+    @reactive("click")
+    async def handle(self):
+        await self.counter.increment()
+
+    async def _on_increment(self, counter: Counter):
+        await self.text.update(f"Clicked {counter.value} times")
+        await self.classes.toggle("btn-success")
+
+    async def before_render(self):
+        await self.counter.increment.subscribe(self._on_increment)  # subscribe to the effect
+
+
+class PageWithButton(Page):
+    classes: Classes = Classes("flex flex-col justify-center items-center h-screen w-screen")
+    first_button: ButtonWithCounter = ButtonWithCounter.factory()
+    second_button: ButtonWithCounter = ButtonWithCounter.factory()
+
+
+@app.get("/")
+def get_page():
+    return PageWithButton()
+
+```
 

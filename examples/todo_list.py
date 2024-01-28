@@ -4,13 +4,12 @@ from pydantic import Field
 
 from schorle.app import Schorle
 from schorle.effector import effector
+from schorle.elements.base.element import Collection, Reactive
 from schorle.elements.button import Button
 from schorle.elements.html import Div
 from schorle.elements.inputs import Input
 from schorle.elements.page import Page, PageReference
-from schorle.reactives.base import Reactive
 from schorle.reactives.classes import Classes
-from schorle.reactives.collection import Collection
 from schorle.reactives.state import ReactiveModel
 from schorle.reactives.text import Text
 

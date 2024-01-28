@@ -4,14 +4,14 @@ from pydantic.fields import computed_field
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
-from schorle.reactives.base import Reactive
+from schorle.reactives.base import ReactiveBase
 from schorle.reactives.classes import Classes
 from schorle.utils import reactive
 
 
 class Input(Element):
     tag: HTMLTag = HTMLTag.INPUT
-    value: Reactive[str] = Field(default=Reactive(""), description="Value of the input field")
+    value: ReactiveBase[str] = Field(default=ReactiveBase(""), description="Value of the input field")
     _base_classes: Classes = Classes("input", "form-control")
     hx_include: str = Attribute(default="this", alias="hx-include", private=True)
     placeholder: str | None = Attribute(default=None)

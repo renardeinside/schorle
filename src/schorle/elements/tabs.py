@@ -5,7 +5,7 @@ from pydantic import Field
 from schorle.elements.attribute import Attribute
 from schorle.elements.html import Div
 from schorle.elements.inputs import Input
-from schorle.reactives.base import Reactive
+from schorle.reactives.base import ReactiveBase
 from schorle.reactives.classes import Classes
 
 
@@ -17,4 +17,4 @@ class Tab(Div):
 
 class TabsList(Div):
     role: str = Attribute("tablist")
-    children: Reactive[List[Tab]] = Field(default_factory=Reactive)
+    children: ReactiveBase[List[Tab]] = Field(default_factory=ReactiveBase)

@@ -13,9 +13,8 @@ from pydantic.fields import FieldInfo
 
 from schorle.elements.base.mixins import AttrsMixin, FactoryMixin
 from schorle.elements.tags import HTMLTag
-from schorle.reactives.base import Reactive
+from schorle.reactives.base import ReactiveBase
 from schorle.reactives.classes import Classes
-from schorle.reactives.collection import Collection
 from schorle.reactives.text import Text
 
 
@@ -50,9 +49,7 @@ class BaseElement(AttrsMixin, FactoryMixin):
             return True
         elif isinstance(anno, UnionType) and self._union_related_to_element(anno):
             return True
-        elif isclass(anno) and issubclass(anno, Collection):
-            return True
-        elif isclass(anno) and issubclass(anno, Reactive) and not issubclass(anno, (Text, Classes)):
+        elif isclass(anno) and issubclass(anno, ReactiveBase) and not issubclass(anno, (Text, Classes)):
             return True
         else:
             return False
@@ -69,7 +66,7 @@ class BaseElement(AttrsMixin, FactoryMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.walk(self)
-                elif isinstance(element, Reactive):
+                elif isinstance(element, ReactiveBase):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:
@@ -93,7 +90,7 @@ class BaseElement(AttrsMixin, FactoryMixin):
                 element = getattr(self, k)
                 if isinstance(element, BaseElement):
                     yield from element.traverse()
-                elif isinstance(element, Reactive):
+                elif isinstance(element, ReactiveBase):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:

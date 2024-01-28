@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from schorle.reactives.base import Reactive
+from schorle.reactives.base import ReactiveBase
 
 
-class Text(Reactive[str]):
+class Text(ReactiveBase[str]):
     ...

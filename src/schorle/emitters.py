@@ -4,7 +4,7 @@ from starlette.websockets import WebSocket
 
 from schorle.elements.base.element import Element
 from schorle.elements.page import Page
-from schorle.reactives.base import Reactive
+from schorle.reactives.base import ReactiveBase
 
 
 class PageEmitter:
@@ -28,7 +28,7 @@ class PageEmitter:
         await asyncio.gather(*emitter_tasks)
 
 
-async def attr_to_queue(attr: Reactive, target: asyncio.Queue):
+async def attr_to_queue(attr: ReactiveBase, target: asyncio.Queue):
     # add a single reactive attribute to the queue.
     async for value in attr:
         await target.put(value)

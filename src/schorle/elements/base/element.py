@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 from lxml.etree import _Element as LxmlElement
 from pydantic import PrivateAttr, computed_field
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
-from schorle.reactives.base import Reactive
+from schorle.reactives.base import ReactiveBase
 from schorle.reactives.classes import Classes
 
 
@@ -52,7 +52,7 @@ class Element(BaseElement):
         fields = []
         for field_name in self.model_fields.keys():
             attr = getattr(self, field_name)
-            if attr is not None and isinstance(attr, Reactive):
+            if attr is not None and isinstance(attr, ReactiveBase):
                 fields.append(attr)
         return fields
 
@@ -87,3 +87,21 @@ class Element(BaseElement):
                 for attr_name, field in element.model_fields.items():
                     if field.json_schema_extra and field.json_schema_extra.get("page_reference"):
                         setattr(element, attr_name, page)
+
+
+T = TypeVar("T", bound=Element)  # todo- add strict typing for Element
+
+
+class Collection(ReactiveBase[list[T]]):
+    def __init__(self, value: list[T] | None = None):
+        super().__init__(value=value)
+
+    def __repr__(self):
+        return f"<Collection {self._value}>"
+
+    def __str__(self):
+        return f"<Collection {self._value}>"
+
+
+class Reactive(ReactiveBase[T]):
+    ...
