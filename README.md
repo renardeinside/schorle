@@ -4,8 +4,17 @@
     <img src="https://raw.githubusercontent.com/renardeinside/schorle/main/raw/logo.svg" class="align-center" width="200" height="200" alt="logo" />
 </p>
 
-`Schorle` (pronounced as [ˈʃɔʁlə](https://en.wikipedia.org/wiki/Schorle)) is a server-driven UI kit for Python with
-async support.
+**`Schorle` (pronounced as [ˈʃɔʁlə](https://en.wikipedia.org/wiki/Schorle)) is a server-driven UI kit for Python with
+async support.**
+
+---
+
+<p align="center">
+    <img src="https://img.shields.io/pypi/v/schorle?color=green&amp;style=for-the-badge" alt="Latest Python Release"/>
+    <img src="https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge" alt="We use black for formatting"/>
+</p>
+
+---
 
 **Note:** This project is in an early stage of development. It is not ready for production use.
 
