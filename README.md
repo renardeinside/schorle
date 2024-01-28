@@ -1,5 +1,3 @@
-# Schorle
-
 <p align="center">
     <img src="https://raw.githubusercontent.com/renardeinside/schorle/main/raw/with_text.svg" class="align-center" height="150" alt="logo" />
 </p>
