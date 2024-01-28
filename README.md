@@ -227,3 +227,15 @@ uvicorn examples.simple:app --reload
 - [Tailwind CSS](https://tailwindcss.com/) - CSS framework
 - [DaisyUI](https://daisyui.com/) - Component library for Tailwind CSS
 - [Pydantic](https://docs.pydantic.dev/latest/) - classes and utilities for elements
+
+
+## Roadmap
+
+- [ ] Add more elements
+- [ ] Introduce `suspense` for loading states
+- [ ] Add more examples
+- [ ] Add tests
+- [ ] Add CI/CD
+- [ ] Add documentation
+- [ ] Add support for Plotly-based charts
+- [ ] Refactor the imports
