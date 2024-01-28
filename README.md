@@ -1,7 +1,7 @@
 # Schorle
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/renardeinside/schorle/main/raw/logo.svg" class="align-center" width="200" height="200" alt="logo" />
+    <img src="https://raw.githubusercontent.com/renardeinside/schorle/main/raw/with_text.svg" class="align-center" width="200" height="200" alt="logo" />
 </p>
 
 **`Schorle` (pronounced as [ˈʃɔʁlə](https://en.wikipedia.org/wiki/Schorle)) is a server-driven UI kit for Python with
