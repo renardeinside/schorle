@@ -1,6 +1,11 @@
 # Schorle
 
-Server-driven UI kit for Python with async support.
+<p align="center">
+    <img src="https://raw.githubusercontent.com/renardeinside/schorle/main/raw/logo.svg" class="align-center" width="200" height="200" alt="logo" />
+</p>
+
+`Schorle` (pronounced as [ˈʃɔʁlə](https://en.wikipedia.org/wiki/Schorle)) is a server-driven UI kit for Python with
+async support.
 
 **Note:** This project is in an early stage of development. It is not ready for production use.
 
@@ -201,11 +206,12 @@ def get_page():
 
 ## Running the application
 
-Schorle application is a thin wrapper around [FastAPI](https://fastapi.tiangolo.com/). To run the application, use `uvicorn`:
+Schorle application is a thin wrapper around [FastAPI](https://fastapi.tiangolo.com/). To run the application,
+use `uvicorn`:
+
 ```bash
 uvicorn examples.simple:app --reload
 ```
-
 
 ## Tech stack
 
