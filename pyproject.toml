@@ -68,12 +68,12 @@ fmt = ["black {args:.}", "ruff --fix {args:.}", "style"]
 all = ["style", "typing"]
 
 [tool.black]
-target-version = ["py37"]
+target-version = ["py10"]
 line-length = 120
 skip-string-normalization = true
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py310"
 line-length = 120
 select = [
     "A",
@@ -137,6 +137,7 @@ ban-relative-imports = "all"
 
 [tool.coverage.run]
 source_pkgs = ["schorle", "tests"]
+source = ["src/schorle"]
 branch = true
 parallel = true
 omit = ["src/schorle/__about__.py"]
