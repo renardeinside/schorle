@@ -1,10 +1,11 @@
 import asyncio
 import pkgutil
 from asyncio import iscoroutinefunction
+from collections.abc import Callable
 from functools import partial
 from importlib.resources import files
 from pathlib import Path
-from typing import Callable, Union
+from typing import Union
 
 from fastapi import FastAPI
 from loguru import logger

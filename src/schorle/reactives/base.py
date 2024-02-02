@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from asyncio import Queue
-from typing import AsyncIterator, Generic, TypeVar
+from collections.abc import AsyncIterator
+from typing import Generic, TypeVar
 
 from loguru import logger
 from pydantic import BaseModel, PrivateAttr

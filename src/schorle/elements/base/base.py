@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-from inspect import isclass
-from types import GenericAlias, UnionType
-from typing import Any, Iterator, get_origin
+from collections.abc import Iterator
 
 from loguru import logger
 from lxml.etree import Element as LxmlElementFactory
 from lxml.etree import _Element as LxmlElement
 from lxml.etree import tostring
 from pydantic import ConfigDict, Field, PrivateAttr
-from pydantic.fields import FieldInfo
 
 from schorle.elements.base.mixins import AttrsMixin, FactoryMixin
 from schorle.elements.tags import HTMLTag
 from schorle.reactives.base import ReactiveBase
-from schorle.reactives.classes import Classes
 from schorle.reactives.text import Text
 
 
@@ -27,50 +23,24 @@ class BaseElement(AttrsMixin, FactoryMixin):
     _rendering_element: LxmlElement | None = PrivateAttr(default=None)
     render_behaviour: str = Field(default="default", description="Render behaviour of the element")
 
-    def _union_related_to_element(self, anno: UnionType):
-        for arg in anno.__args__:
-            if isclass(arg) and get_origin(arg) not in [list, dict] and issubclass(arg, BaseElement):
-                return True
-            elif isinstance(arg, UnionType):
-                return self._union_related_to_element(arg)
-
-    def _list_or_dict_related_to_element(self, anno: GenericAlias):
-        for arg in anno.__args__:
-            if isclass(arg) and issubclass(arg, BaseElement):
-                return True
-            elif isinstance(arg, UnionType):
-                return self._union_related_to_element(arg)
-
-    def _related_to_element(self, field: FieldInfo) -> bool:
-        anno: type[Any] | None = field.annotation
-        if get_origin(anno) in [list, dict] and type(anno) is GenericAlias:
-            return self._list_or_dict_related_to_element(anno)  # type: ignore[arg-type]
-        if isclass(anno) and issubclass(anno, BaseElement):
-            return True
-        elif isinstance(anno, UnionType) and self._union_related_to_element(anno):
-            return True
-        elif isclass(anno) and issubclass(anno, ReactiveBase) and not issubclass(anno, (Text, Classes)):
-            return True
-        else:
-            return False
-
     def walk(self, parent: BaseElement | None = None) -> Iterator[tuple[BaseElement | None, BaseElement]]:
         """
         Traverse the element tree and yield a tuple of [parent, child] elements.
         """
         yield parent, self
-        for k, v in self.model_fields.items():
-            if v.json_schema_extra and v.json_schema_extra.get("page_reference"):
+        for field_name, field_info in self.model_fields.items():
+            if field_info.json_schema_extra and field_info.json_schema_extra.get("page_reference"):
                 continue
-            elif self._related_to_element(v):
-                element = getattr(self, k)
+            else:
+                element = getattr(self, field_name)
                 if isinstance(element, BaseElement):
                     yield from element.walk(self)
                 elif isinstance(element, ReactiveBase):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:
-                            yield from _element.walk(self)
+                            if isinstance(_element, BaseElement):
+                                yield from _element.walk(self)
                     elif isinstance(value, BaseElement):
                         yield from value.walk(self)
                 elif isinstance(element, list):
@@ -83,23 +53,25 @@ class BaseElement(AttrsMixin, FactoryMixin):
         """
         if not skip_self:
             yield self
-        for k, v in self.model_fields.items():
-            if v.json_schema_extra and v.json_schema_extra.get("page_reference"):
+        for field_name, field_info in self.model_fields.items():
+            if field_info.json_schema_extra and field_info.json_schema_extra.get("page_reference"):
                 continue
-            elif self._related_to_element(v):
-                element = getattr(self, k)
+            else:
+                element = getattr(self, field_name)
                 if isinstance(element, BaseElement):
                     yield from element.traverse()
                 elif isinstance(element, ReactiveBase):
                     value = element.get()
                     if isinstance(value, list):
                         for _element in value:
-                            yield from _element.traverse()
+                            if isinstance(_element, BaseElement):
+                                yield from _element.traverse()
                     elif isinstance(value, BaseElement):
                         yield from value.traverse()
                 elif isinstance(element, list):
                     for _element in element:
-                        yield from _element.traverse()
+                        if isinstance(_element, BaseElement):
+                            yield from _element.traverse()
 
     def _add_classes(self, element: LxmlElement):
         pass

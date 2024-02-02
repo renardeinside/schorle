@@ -1,5 +1,3 @@
-from typing import List
-
 from pydantic import Field
 
 from schorle.elements.attribute import Attribute
@@ -17,4 +15,4 @@ class Tab(Div):
 
 class TabsList(Div):
     role: str = Attribute("tablist")
-    children: ReactiveBase[List[Tab]] = Field(default_factory=ReactiveBase)
+    children: ReactiveBase[list[Tab]] = Field(default_factory=ReactiveBase)

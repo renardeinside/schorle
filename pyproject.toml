@@ -137,6 +137,7 @@ ban-relative-imports = "all"
 
 [tool.coverage.run]
 source_pkgs = ["schorle", "tests"]
+source = ["src/schorle"]
 branch = true
 parallel = true
 omit = ["src/schorle/__about__.py"]
