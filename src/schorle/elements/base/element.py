@@ -90,7 +90,7 @@ class Element(BaseElement):
                         setattr(element, attr_name, page)
 
 
-T = TypeVar("T", bound=Element)  # todo- add strict typing for Element
+T = TypeVar("T", bound=Element)
 
 
 class Collection(ReactiveBase[list[T]]):
