@@ -97,7 +97,7 @@ class BaseElement(AttrsMixin, FactoryMixin):
 
         return self._rendering_element
 
-    def render(self) -> str:
+    def _render(self) -> LxmlElement:
         root_element = None
         for parent, child in self.walk():
             if not parent:
@@ -127,13 +127,18 @@ class BaseElement(AttrsMixin, FactoryMixin):
             msg = f"Failed to render element {self}."
             raise RuntimeError(msg)
 
-        result = tostring(root_element, pretty_print=True).decode("utf-8")
         for element in self.traverse():
             element._rendering_element = None
-        return result
+        return root_element
+
+    def render(self) -> str:
+        return self._lxml_to_string(self._render())
 
     def __repr__(self):
         return f"<{self.tag} {self.element_id}>"
 
     def __str__(self):
         return self.__repr__()
+
+    def _lxml_to_string(self, element: LxmlElement) -> str:
+        return tostring(element, pretty_print=True).decode("utf-8")

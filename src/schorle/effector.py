@@ -10,6 +10,7 @@ class Effector:
     def __init__(self, bounded_method):
         self.bounded_method = bounded_method
         self.subscribers = []
+        self.trigger_tasks = []
 
     async def __call__(self, *args, **kwargs):
         await self.bounded_method(*args, **kwargs)
@@ -19,7 +20,8 @@ class Effector:
     async def subscribe(self, callback, *, trigger: bool = True):
         self.subscribers.append(callback)
         if trigger:
-            await callback(self.bounded_method.__self__)
+            trigger = asyncio.create_task(callback(self.bounded_method.__self__))
+            self.trigger_tasks.append(trigger)
 
 
 class EffectorProtocol(Protocol):

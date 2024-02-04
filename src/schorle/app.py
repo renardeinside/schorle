@@ -122,7 +122,7 @@ class EventsEndpoint(WebSocketEndpoint):
         logger.debug(f"Events received message: {message}")
         if self._page:
             _element = self._page.find_by_id(message.headers.trigger_element_id)
-            if _element and isinstance(_element, Element):
+            if _element and isinstance(_element, Element) and not _element._suspended.get():
                 logger.debug(f"Events found element: {_element}")
                 method = _element.reactive_methods.get(message.headers.trigger_type)
                 if not method:
@@ -136,9 +136,12 @@ class EventsEndpoint(WebSocketEndpoint):
                     wrapped_method = wrap_in_coroutine(method)
                     if message.headers.trigger_type == "change" and _element.name:
                         new_value = getattr(message, _element.name)
-                        await wrapped_method(new_value)
+                        m = partial(wrapped_method, new_value)
                     else:
-                        await wrapped_method()
+                        m = wrapped_method
+
+                    logger.debug(f"Events executing method: {method}")
+                    _ = asyncio.create_task(m())
                     logger.debug(f"Events executed method: {method}")
             else:
                 logger.error(f"No reactive element found for id: {message.headers.trigger_element_id}")

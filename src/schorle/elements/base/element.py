@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 from typing import Any, TypeVar
 
 from lxml.etree import _Element as LxmlElement
-from pydantic import PrivateAttr, computed_field
+from pydantic import BaseModel, PrivateAttr, computed_field
 
 from schorle.elements.attribute import Attribute
 from schorle.elements.base.base import BaseElement
+from schorle.elements.tags import HTMLTag
 from schorle.reactives.base import ReactiveBase
 from schorle.reactives.classes import Classes
 
 
-class Element(BaseElement):
+class ProtoElement(BaseElement):
     _base_classes: Classes = PrivateAttr(default_factory=Classes)
     classes: Classes = Classes()
     role: str | None = Attribute(default=None)
@@ -55,6 +57,7 @@ class Element(BaseElement):
             attr = getattr(self, field_name)
             if attr is not None and isinstance(attr, ReactiveBase):
                 fields.append(attr)
+
         return fields
 
     def get_triggers_and_methods(self):
@@ -90,10 +93,57 @@ class Element(BaseElement):
                         setattr(element, attr_name, page)
 
 
+class Suspense(ProtoElement):
+    tag: HTMLTag = HTMLTag.SPAN
+    classes: Classes = Classes(
+        [
+            "loading",
+            "loading-xl",
+            "loading-infinity",
+        ]
+    )
+
+
+class SuspenseContainer(ProtoElement):
+    tag: HTMLTag = HTMLTag.DIV
+    classes: Classes = Classes("min-w-16 w-full h-full flex justify-center items-center")
+    suspense: Suspense = Suspense.factory()
+
+
+class SuspenseMixin(BaseModel):
+    _suspended: ReactiveBase[bool] = PrivateAttr(default_factory=lambda: ReactiveBase(value=False))
+
+    @asynccontextmanager
+    async def suspend(self):
+        await self._suspended.update(True)
+        try:
+            yield
+        finally:
+            await self._suspended.update(False)
+
+
+class Element(ProtoElement, SuspenseMixin):
+    _suspense: Element = PrivateAttr(default_factory=SuspenseContainer)
+
+    def render(self) -> str:
+        if self._suspended.get():
+            pre_render = self.get_prerender()
+            pre_render.text = ""
+            pre_render.append(self._suspense._render())
+            self._rendering_element = None  # cleanup
+            return self._lxml_to_string(pre_render)
+        return super().render()
+
+    def get_reactive_attributes(self):
+        return [*super().get_reactive_attributes(), self._suspended]
+
+
 T = TypeVar("T", bound=Element)
 
 
-class Collection(ReactiveBase[list[T]]):
+class Collection(ReactiveBase[list[T]], SuspenseMixin):
+    _suspense: Element = PrivateAttr(default_factory=SuspenseContainer)
+
     def __init__(self, value: list[T] | None = None):
         super().__init__(value=value)
 
