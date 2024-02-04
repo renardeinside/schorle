@@ -63,8 +63,9 @@ class TodoView(Div):
     page: TodoPage = PageReference()
 
     async def update_items(self, todo_list: TodoList):
-        new_items = [TodoItem(text=Text(item)) for item in todo_list.items]
-        await self.todo_items.update(new_items)
+        async with self.suspend():
+            new_items = [TodoItem(text=Text(item)) for item in todo_list.items]
+            await self.todo_items.update(new_items)
 
     async def update_headline(self, todo_list: TodoList):
         _text = (
