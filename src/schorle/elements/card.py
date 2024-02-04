@@ -33,5 +33,5 @@ class CardBody(Div):
 
 class Card(Div):
     _base_classes: Classes = Classes("card")
-    figure: Figure | None = None
+    figure: Element | Figure | None = None
     body: CardBody = Field(default_factory=CardBody)

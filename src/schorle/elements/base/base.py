@@ -45,7 +45,8 @@ class BaseElement(AttrsMixin, FactoryMixin):
                         yield from value.walk(self)
                 elif isinstance(element, list):
                     for _element in element:
-                        yield from _element.walk(self)
+                        if isinstance(_element, BaseElement):
+                            yield from _element.walk(self)
 
     def traverse(self, *, skip_self: bool = False) -> Iterator[BaseElement]:
         """
@@ -92,7 +93,8 @@ class BaseElement(AttrsMixin, FactoryMixin):
                 if v is not None:
                     element.set(k, v)
             if self.text is not None:
-                element.text = self.text.get() if isinstance(self.text, Text) else self.text
+                _text = self.text.get() if isinstance(self.text, Text) else self.text
+                element.text = _text
             self._rendering_element = element
 
         return self._rendering_element
@@ -141,4 +143,7 @@ class BaseElement(AttrsMixin, FactoryMixin):
         return self.__repr__()
 
     def _lxml_to_string(self, element: LxmlElement) -> str:
-        return tostring(element, pretty_print=True).decode("utf-8")
+        _result = tostring(element, pretty_print=True, with_comments=True).decode("utf-8")
+        # allow for unescaped characters in the text
+        unescaped = _result.replace("&gt;", ">").replace("&lt;", "<")
+        return unescaped

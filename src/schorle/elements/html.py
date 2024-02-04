@@ -22,7 +22,7 @@ class Title(BaseElement):
     text: str = "Schorle"
 
 
-class Link(BaseElement):
+class HeadLink(BaseElement):
     tag: HTMLTag = HTMLTag.LINK
     href: str = Attribute(default=None)
     rel: str = Attribute(default=None)
@@ -43,6 +43,12 @@ class CSRFMeta(Meta):
     content: str = Attribute(default_factory=lambda: str(uuid4()))
 
 
+class ExtraAssets(BaseElement):
+    render_behaviour: str = "flatten"
+    tag: HTMLTag = HTMLTag.DIV
+    elements: list[BaseElement] = Field(default_factory=list)
+
+
 class Head(BaseElement):
     tag: HTMLTag = HTMLTag.HEAD
     charset_meta: Meta = Meta(charset="utf-8")
@@ -50,10 +56,10 @@ class Head(BaseElement):
     csrf_meta: CSRFMeta = CSRFMeta()
     dev_meta: Meta | None = None
     title: Title = Title()
-    favicon: Link = Link(href="/favicon.svg", rel="icon", type_="image/svg+xml")
+    favicon: HeadLink = HeadLink(href="/favicon.svg", rel="icon", type_="image/svg+xml")
     # css-related
-    daisy_ui: Link = Link(
-        href="https://cdn.jsdelivr.net/npm/daisyui@4.4.22/dist/full.min.css", rel="stylesheet", type_="text/css"
+    daisy_ui: HeadLink = HeadLink(
+        href="https://cdn.jsdelivr.net/npm/daisyui@4.6.1/dist/full.min.css", rel="stylesheet", type_="text/css"
     )
     tailwind: Script = Script(src="https://cdn.tailwindcss.com")
     # htmx
@@ -64,6 +70,7 @@ class Head(BaseElement):
     # idiomorph_htmx: Script.provide(src="https://unpkg.com/idiomorph/dist/idiomorph-ext.min.js")
     # client-side bundle
     bundle: Script = Script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
+    extra_assets: ExtraAssets = ExtraAssets.factory()
 
 
 class Footer(BaseElement):

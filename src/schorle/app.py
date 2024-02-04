@@ -38,13 +38,14 @@ def assets(file_name: str) -> PlainTextResponse:
 
 
 class Schorle:
-    def __init__(self, theme: Theme = Theme.DARK) -> None:
+    def __init__(self, theme: Theme = Theme.DARK, extra_assets: list | None = None) -> None:
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}")(assets)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
         self.backend.get("/favicon.svg", response_model=None)(favicon)
         self.theme: Theme = theme
+        self.extra_assets = extra_assets
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
@@ -68,6 +69,10 @@ class Schorle:
         body = BodyWithPage(wrapper=MorphWrapper(handler=handler))
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
         html = Html(body=body, theme=self.theme)
+
+        if self.extra_assets:
+            logger.info("Adding extra assets...")
+            html.head.extra_assets = self.extra_assets
 
         if get_running_mode() == RunningMode.DEV:
             logger.info("Adding dev meta tags...")
