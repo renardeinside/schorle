@@ -1,5 +1,4 @@
-import pkgutil
-
+import requests
 from lxml import etree
 from lxml.etree import _Element as LxmlElement
 from lxml.etree import tostring
@@ -7,6 +6,11 @@ from pydantic import PrivateAttr
 
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
+
+
+def get_icon_payload(name: str) -> str:
+    return requests.get(
+        f"https://raw.githubusercontent.com/feathericons/feather/main/icons/{name}.svg").text
 
 
 class Icon(Element):
@@ -18,7 +22,7 @@ class Icon(Element):
 
     def __init__(self, **data):
         super().__init__(**data)
-        self._payload = pkgutil.get_data("schorle", f"assets/feather/{self.name}.svg").decode("utf-8")
+        self._payload = get_icon_payload(self.name)
 
     def get_prerender(self) -> LxmlElement:
         elem = etree.fromstring(self._payload)  # noqa: S320 since we trust the source

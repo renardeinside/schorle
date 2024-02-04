@@ -31,7 +31,8 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "loguru",
-    "defusedxml"
+    "defusedxml",
+    "requests"
 ]
 
 [project.scripts]
