@@ -4,7 +4,7 @@ import base64
 from os import PathLike
 from pathlib import Path
 
-from schorle.elements.attribute import Attribute
+from schorle.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
 

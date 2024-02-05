@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from pydantic import Field
 
-from schorle.elements.attribute import Attribute
+from schorle.attribute import Attribute
 from schorle.elements.base.base import BaseElement
 from schorle.elements.base.element import Element
 from schorle.elements.page import Page

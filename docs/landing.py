@@ -10,7 +10,11 @@ from schorle.elements.link import Link
 from schorle.elements.page import Page
 from schorle.reactives.classes import Classes
 
-app = Schorle(extra_assets=[HeadLink(rel="stylesheet", href="https://fonts.googleapis.com/css?family=Space+Mono")])
+app = Schorle(
+    extra_assets=[
+        HeadLink(rel="stylesheet", href="https://fonts.googleapis.com/css?family=Space+Mono"),
+    ]
+)
 
 
 def logo_with_text() -> Img:
@@ -57,9 +61,11 @@ LINKS = [
 
 
 class Buttons(Div):
-    classes: Classes = Classes("flex space-x-4")
+    classes: Classes = Classes("flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4")
     buttons: list[Link] = Field(
-        default_factory=lambda: [Link(href=link, text=text, classes=Classes("btn btn-primary")) for link, text in LINKS]
+        default_factory=lambda: [
+            Link(href=link, text=text, classes=Classes("btn btn-primary")) for link, text in LINKS
+        ]
     )
 
 
@@ -71,14 +77,13 @@ class Content(Div):
 
 
 class ContentWrapper(Div):
-    classes: Classes = Classes("flex flex-col justify-center items-center")
+    classes: Classes = Classes("flex flex-col justify-center items-center h-screen")
     content: Content = Content.factory()
 
 
 class LandingPage(Page):
     style: dict[str, str] = Field(default_factory=lambda: {"font-family": "Space Mono"})
-    classes: Classes = Classes("mx-auto w-full h-full")
-    navbar: Navbar = Navbar.factory()
+    classes: Classes = Classes("w-full h-full")
     content_wrapper: ContentWrapper = ContentWrapper.factory()
 
 

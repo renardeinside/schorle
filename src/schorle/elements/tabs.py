@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from schorle.elements.attribute import Attribute
+from schorle.attribute import Attribute
 from schorle.elements.html import Div
 from schorle.elements.inputs import Input
 from schorle.reactives.base import ReactiveBase

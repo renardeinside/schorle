@@ -1,7 +1,7 @@
 from pydantic import Field
 from pydantic.fields import computed_field
 
-from schorle.elements.attribute import Attribute
+from schorle.attribute import Attribute
 from schorle.elements.base.element import Element
 from schorle.elements.tags import HTMLTag
 from schorle.reactives.base import ReactiveBase

@@ -2,6 +2,8 @@ from enum import Enum
 
 
 class HTMLTag(str, Enum):
+    PRE = "pre"
+    CODE = "code"
     SVG = "svg"
     ICON = "i"
     FIGURE = "figure"

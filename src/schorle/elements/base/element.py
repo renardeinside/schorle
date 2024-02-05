@@ -7,7 +7,7 @@ from typing import Any, TypeVar
 from lxml.etree import _Element as LxmlElement
 from pydantic import BaseModel, PrivateAttr, computed_field
 
-from schorle.elements.attribute import Attribute
+from schorle.attribute import Attribute
 from schorle.elements.base.base import BaseElement
 from schorle.elements.tags import HTMLTag
 from schorle.reactives.base import ReactiveBase
