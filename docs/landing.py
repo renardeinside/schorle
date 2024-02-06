@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from pydantic import Field
@@ -16,69 +18,51 @@ app = Schorle(
     ]
 )
 
-
-def logo_with_text() -> Img:
-    # path relative to the current file
-    _path = Path(__file__).parent.parent / Path("raw/with_text.svg")
-    return Img.from_file(_path, alt="Schorle logo", mime_type="svg+xml")
-
-
-class LogoContainer(Div):
-    classes: Classes = Classes("w-10")
-    logo: Img
-
-
-def logo_without_text() -> LogoContainer:
-    # path relative to the current file
-    _path = Path(__file__).parent.parent / Path("raw/logo.svg")
-    container = LogoContainer(logo=Img.from_file(_path, alt="Schorle logo", mime_type="svg+xml"))
-    return container
-
-
-class ImageContainer(Div):
-    classes: Classes = Classes("max-w-md m-4")
-    image: Img = Field(default_factory=logo_with_text)
-
-
-class Headline(Div):
-    classes: Classes = Classes("text-2xl font-bold p-4 w-5/6 text-center")
-    text: str = """Pythonic Server-Driven UI Kit for building modern apps."""
-
-
-class Navbar(Div):
-    _base_classes: Classes = Classes("navbar bg-base-300")
-    logo: Div = Field(default_factory=logo_without_text)
-
-
 LINKS = [
-    ("https://github.com/renardeinside/schorle", f"{Icon(name='github')} GitHub"),
-    ("https://github.com/renardeinside/schorle/tree/main/examples", f"{Icon(name='code')} Examples"),
+    ("https://github.com/renardeinside/schorle", Icon(name="github"), "GitHub"),
+    ("https://github.com/renardeinside/schorle/tree/main/examples", Icon(name="code"), "Examples"),
     (
         "https://medium.com/@polarpersonal/schorle-testing-the-waters-with-a-python-server-driven-ui-kit-053f85ee6574",
-        f"{Icon(name='book')} Concepts",
+        Icon(name="book"),
+        "Concepts",
     ),
 ]
 
+ImageContainer = Div.derive(
+    classes=Classes("max-w-md m-4"),
+    image=Img.factory(
+        file_path=Path(__file__).parent.parent / Path("raw/with_text.svg"),
+        alt="Schorle logo",
+        mime_type="image/svg+xml",
+    ),
+)
 
-class Buttons(Div):
-    classes: Classes = Classes("flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4")
-    buttons: list[Link] = Field(
-        default_factory=lambda: [
-            Link(href=link, text=text, classes=Classes("btn btn-primary")) for link, text in LINKS
-        ]
-    )
+Headline = Div.derive(
+    classes=Classes("text-2xl font-bold p-4 w-5/6 text-center"),
+    text="""Pythonic Server-Driven UI Kit for building modern apps.""",
+)
 
+LinkWithIcon = Link.derive(icon=Icon.factory())
 
-class Content(Div):
-    classes: Classes = Classes("max-w-screen-md flex flex-col justify-center items-center h-5/6 space-y-4")
-    image_container: ImageContainer = ImageContainer.factory()
-    headline: Headline = Headline.factory()
-    buttons: Buttons = Buttons.factory()
+wrapped_links = [
+    LinkWithIcon(href=link, icon=icon, text=text, classes=Classes("btn btn-primary")) for link, icon, text in LINKS
+]
 
+Buttons = Div.derive(
+    classes=(Classes, Classes("flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4")),
+    buttons=(list[LinkWithIcon], Field(default_factory=lambda: wrapped_links)),
+)
 
-class ContentWrapper(Div):
-    classes: Classes = Classes("flex flex-col justify-center items-center h-screen")
-    content: Content = Content.factory()
+Content = Div.derive(
+    classes=Classes("max-w-screen-md flex flex-col justify-center items-center h-5/6 space-y-4"),
+    image_container=ImageContainer.factory(),
+    headline=Headline.factory(),
+    buttons=Buttons.factory(),
+)
+
+ContentWrapper = Div.derive(
+    classes=Classes("flex flex-col justify-center items-center h-screen"), content=Content.factory()
+)
 
 
 class LandingPage(Page):

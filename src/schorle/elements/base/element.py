@@ -3,15 +3,18 @@ from __future__ import annotations
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from typing import Any, TypeVar
+from uuid import uuid4
 
 from lxml.etree import _Element as LxmlElement
-from pydantic import BaseModel, PrivateAttr, computed_field
+from pydantic import BaseModel, PrivateAttr, computed_field, create_model
+from pydantic.fields import FieldInfo
 
 from schorle.attribute import Attribute
 from schorle.elements.base.base import BaseElement
 from schorle.elements.tags import HTMLTag
 from schorle.reactives.base import ReactiveBase
 from schorle.reactives.classes import Classes
+from schorle.reactives.text import Text
 
 
 class ProtoElement(BaseElement):
@@ -91,6 +94,31 @@ class ProtoElement(BaseElement):
                 for attr_name, field in element.model_fields.items():
                     if field.json_schema_extra and field.json_schema_extra.get("page_reference"):
                         setattr(element, attr_name, page)
+
+    @classmethod
+    def derive(cls, model_name: str | None = None, **kwargs) -> type[Element]:
+        """
+        Creates a new pydantic model with the same fields as the current model and any extra fields passed in as kwargs.
+        :return:
+        """
+        model_name = model_name or f"{cls.__name__}Derived{str(uuid4())[:8]}"
+        adjusted_kwargs = {}
+
+        for k, v in kwargs.items():
+            if isinstance(v, Classes):
+                adjusted_kwargs[k] = (Classes, v)
+            elif isinstance(v, Text):
+                adjusted_kwargs[k] = (Text, v)
+            elif isinstance(v, str):
+                adjusted_kwargs[k] = (str, v)
+            elif isinstance(v, FieldInfo) and v.json_schema_extra.get("class_meta"):
+                adjusted_kwargs[k] = (v.json_schema_extra.get("class_meta"), v)
+            elif isinstance(v, Element):
+                adjusted_kwargs[k] = (v.__class__, v)
+            else:
+                adjusted_kwargs[k] = v
+
+        return create_model(model_name, __base__=cls, **adjusted_kwargs)
 
 
 class Suspense(ProtoElement):

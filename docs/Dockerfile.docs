@@ -1,0 +1,26 @@
+FROM python:3.10.6-slim as base
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on
+RUN python -m pip install hatch
+RUN mkdir /package
+WORKDIR /package
+COPY pyproject.toml pyproject.toml
+COPY src src
+COPY LICENSE.md LICENSE.md
+COPY README.md README.md
+RUN hatch build -t wheel --clean
+#
+FROM python:3.10.6-slim as runtime
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on
+
+COPY --from=base /package/dist/*.whl /package/
+RUN python -m pip install /package/*.whl
+RUN mkdir -p /app/docs
+RUN mkdir -p /app/raw
+WORKDIR /app
+COPY docs/landing.py /app/docs/landing.py
+COPY raw /app/raw
+ENTRYPOINT ["uvicorn", "docs.landing:app", "--host", "0.0.0.0", "--port", "4444"]

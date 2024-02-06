@@ -36,4 +36,4 @@ class AttrsMixin(BaseModel):
 class FactoryMixin:
     @classmethod
     def factory(cls, *args, **kwargs) -> FieldInfo:
-        return Field(default_factory=partial(cls, *args, **kwargs))
+        return Field(default_factory=partial(cls, *args, **kwargs), json_schema_extra={"class_meta": cls})

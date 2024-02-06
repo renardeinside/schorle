@@ -94,3 +94,11 @@ site/
 typescript/node_modules/
 src/schorle/assets/dependencies
 .dev.log.md
+
+
+**/.terraform
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.tfvars
+**/.terraform.tfstate.lock.info

@@ -11,7 +11,8 @@
     };
 
     let getDevMode = () => {
-        return document.querySelector('meta[name="schorle-dev"]').getAttribute('content');
+        let devEl = document.querySelector('meta[name="schorle-dev"]');
+        return !!devEl;
     }
 
     // if (getDevMode() === "true") {
@@ -20,7 +21,7 @@
 
 
     htmx.on("htmx:wsBeforeMessage", (evt) => {
-        if (getDevMode() === "true") {
+        if (getDevMode()) {
             if (evt.detail.message === "reload") {
                 devReload();
             }
@@ -117,7 +118,7 @@
         document.getElementById("schorle-footer").appendChild(loadingElement);
     }
 
-    if (getDevMode() === "true") {
+    if (getDevMode()) {
         document.addEventListener("DOMContentLoaded", applyLoadingElement);
     }
     let prepareLoadingElement = () => {

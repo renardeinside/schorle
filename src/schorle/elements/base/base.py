@@ -144,6 +144,4 @@ class BaseElement(AttrsMixin, FactoryMixin):
 
     def _lxml_to_string(self, element: LxmlElement) -> str:
         _result = tostring(element, pretty_print=True, with_comments=True).decode("utf-8")
-        # allow for unescaped characters in the text
-        unescaped = _result.replace("&gt;", ">").replace("&lt;", "<")
-        return unescaped
+        return _result

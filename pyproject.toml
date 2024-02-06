@@ -29,7 +29,7 @@ classifiers = [
 dependencies = [
     "lxml",
     "fastapi",
-    "uvicorn",
+    "uvicorn[standard]",
     "loguru",
     "defusedxml",
     "requests"
