@@ -9,7 +9,7 @@ from schorle.elements.tags import HTMLTag
 
 
 def get_icon_payload(name: str) -> str:
-    url = f"https://raw.githubusercontent.com/feathericons/feather/main/icons/{name}.svg"
+    url = f"https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/{name}.svg"
     return requests.get(url, timeout=10).text
 
 
