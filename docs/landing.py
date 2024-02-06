@@ -49,7 +49,7 @@ wrapped_links = [
 ]
 
 Buttons = Div.derive(
-    classes=(Classes, Classes("flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4")),
+    classes=Classes("flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4"),
     buttons=(list[LinkWithIcon], Field(default_factory=lambda: wrapped_links)),
 )
 
