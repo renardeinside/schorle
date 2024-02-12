@@ -9,16 +9,16 @@ from typing import Union
 
 from fastapi import FastAPI
 from loguru import logger
+from lxml import etree
 from starlette.endpoints import WebSocketEndpoint
 from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-from schorle.elements.base.element import Element
-from schorle.elements.html import BodyWithPage, EventHandler, Html, Meta, MorphWrapper
-from schorle.elements.page import Page
-from schorle.emitters import PageEmitter
+from schorle.context_vars import REACTIVES
+from schorle.document import Document
 from schorle.models import HtmxMessage
+from schorle.page import Page
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -62,26 +62,22 @@ class Schorle:
 
     async def render_to_response(self, page_provider: Callable[..., Page]) -> HTMLResponse:
         page = page_provider()
-        await page.execute_all_before_render()
         logger.info(f"Rendering page: {page}...")
-
-        handler = EventHandler(content=page)
-        body = BodyWithPage(wrapper=MorphWrapper(handler=handler))
-        logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
-        html = Html(body=body, theme=self.theme)
-
-        if self.extra_assets:
-            logger.info("Adding extra assets...")
-            html.head.extra_assets = self.extra_assets
 
         if get_running_mode() == RunningMode.DEV:
             logger.info("Adding dev meta tags...")
-            html.head.dev_meta = Meta(name="schorle-dev", content="true")
 
-        response = HTMLResponse(html.render(), status_code=200)
-        logger.info(f"Adding page to cache with token: {html.head.csrf_meta.content}")
+        doc = Document(
+            title="Schorle", page=page, theme=self.theme, with_dev_meta=get_running_mode() == RunningMode.DEV
+        )
+        logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
 
-        self._pages[html.head.csrf_meta.content] = page
+        rendered = etree.tostring(doc.render(), pretty_print=True).decode("utf-8")
+        response = HTMLResponse(rendered, status_code=200)
+
+        logger.info(f"Adding page to cache with token: {doc.csrf_token}")
+
+        self._pages[str(doc.csrf_token)] = page
 
         logger.debug("Page rendered.")
 
@@ -107,7 +103,7 @@ class EventsEndpoint(WebSocketEndpoint):
         if page:
             await websocket.accept()
             self._page = page
-            self.page_emitter_task = asyncio.create_task(PageEmitter(page).emit(websocket))
+            # self.page_emitter_task = asyncio.create_task(PageEmitter(page).emit(websocket))
             logger.info("Events connected.")
 
         elif not page and get_running_mode() == RunningMode.DEV:
@@ -125,31 +121,13 @@ class EventsEndpoint(WebSocketEndpoint):
         logger.warning(f"Events received message: {data}")
         message = HtmxMessage.model_validate_json(data)
         logger.debug(f"Events received message: {message}")
-        if self._page:
-            _element = self._page.find_by_id(message.headers.trigger_element_id)
-            if _element and isinstance(_element, Element) and not _element._suspended.get():
-                logger.debug(f"Events found element: {_element}")
-                method = _element.reactive_methods.get(message.headers.trigger_type)
-                if not method:
-                    msg = (
-                        f"No method found for trigger: {message.headers.trigger_element_id} "
-                        f"{message.headers.trigger_type}"
-                    )
-                    logger.warning(msg)
-                else:
-                    logger.debug(f"Events found method: {method}")
-                    wrapped_method = wrap_in_coroutine(method)
-                    if message.headers.trigger_type == "change" and _element.name:
-                        new_value = getattr(message, _element.name)
-                        m = partial(wrapped_method, new_value)
-                    else:
-                        m = wrapped_method
-
-                    logger.debug(f"Events executing method: {method}")
-                    _ = asyncio.create_task(m())
-                    logger.debug(f"Events executed method: {method}")
+        if self._page and REACTIVES.get() and message.headers.trigger_element_id in REACTIVES.get():
+            _callback = REACTIVES.get().get(message.headers.trigger_element_id)
+            logger.debug(f"Events found callback: {_callback}")
+            if iscoroutinefunction(_callback):
+                _ = asyncio.create_task(_callback())
             else:
-                logger.error(f"No reactive element found for id: {message.headers.trigger_element_id}")
+                _callback()
         else:
             logger.error("No page found, closing websocket...")
             await ws.close()
