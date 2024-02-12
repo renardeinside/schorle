@@ -23,9 +23,8 @@ class Element:
         element_id = [v for v in self.attributes.values() if isinstance(v, Id)]
         if element_id:
             _element.attrib["id"] = element_id[0].value
-        else:
-            if PAGE_CONTEXT.get():
-                _element.attrib["id"] = f"schorle-{id(_element)}"
+        elif PAGE_CONTEXT.get():
+            _element.attrib["id"] = f"schorle-{id(_element)}"
 
         for key, value in self.attributes.items():
             if isinstance(value, Attribute):

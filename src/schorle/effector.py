@@ -50,7 +50,7 @@ def effector(func) -> EffectorProtocol:
     return func
 
 
-def inject_effectors(_object: object):
+def effector_listing(_object: object):
     if isinstance(_object, BaseModel) and not _object.model_config.get("extra", None) == "allow":
         raise ValueError("Pydantic models must be declared with extra='allow' to use inject_emitters")
     for attr in dir(_object):
@@ -60,5 +60,10 @@ def inject_effectors(_object: object):
             if callable(getattr(_object, attr)) and ismethod(getattr(_object, attr)):
                 _method = getattr(_object, attr)
                 if hasattr(_method, "is_emitter"):
-                    wrapped_method = create_emitter(_method)
-                    setattr(_object, attr, wrapped_method)
+                    yield _method, attr
+
+
+def inject_effectors(_object: object):
+    for _method, attr in effector_listing(_object):
+        wrapped_method = create_emitter(_method)
+        setattr(_object, attr, wrapped_method)
