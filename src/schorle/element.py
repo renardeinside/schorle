@@ -36,7 +36,7 @@ class Element:
                 _element.attrib[key] = str(value) if value is not None else ""
 
         if self.tag_name in ["script", "link"]:
-            _element.text = ""  # prevent lxml from adding a closing tag
+            _element.text = ""  # prevent lxml from adding a self-closing tag
 
         if PAGE_CONTEXT.get():
             _element.attrib["hx-swap-oob"] = "morph"
