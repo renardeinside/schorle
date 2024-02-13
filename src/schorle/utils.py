@@ -3,8 +3,8 @@ from enum import Enum
 
 from lxml import etree
 
+from schorle.component import Component
 from schorle.context_vars import CURRENT_PARENT
-from schorle.page import Page
 
 
 class RunningMode(str, Enum):
@@ -21,19 +21,10 @@ def get_running_mode() -> RunningMode:
         return RunningMode.PRODUCTION
 
 
-def reactive(trigger: str | None = None):
-    def decorator(func):
-        func.trigger = trigger
-        return func
-
-    return decorator
-
-
-def render_in_context(page: Page):
+def render_in_context(component: Component):
     try:
-        CURRENT_PARENT.set(etree.Element("fragment"))
-        with page:
-            page()
+        CURRENT_PARENT.set(etree.Element("root"))
+        component()
         return CURRENT_PARENT.get().getchildren()[0]
     finally:
         CURRENT_PARENT.set(None)

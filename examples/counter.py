@@ -3,7 +3,6 @@ from __future__ import annotations
 from pydantic import Field
 
 from schorle.app import Schorle
-from schorle.attribute import Id
 from schorle.classes import Classes
 from schorle.component import Component
 from schorle.effector import effector
@@ -46,6 +45,7 @@ class PageWithButton(Page):
     def render(self):
         with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
             Button(counter=self.counter, inline=True)
+
 
 @app.get("/")
 def get_page():

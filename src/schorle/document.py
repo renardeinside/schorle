@@ -17,9 +17,10 @@ class Document(Component):
     page: Page | None = None
     with_dev_meta: bool = False
     extra_assets: list | None = None
+    lang: str = "en"
 
     def render(self):
-        with html(theme=Attribute(alias="data-theme", value=self.theme.value)) as doc:
+        with html(theme=Attribute(alias="data-theme", value=self.theme.value), lang=self.lang):
             with head():
                 meta(charset="utf-8")
                 meta(name="viewport", content="width=device-width, initial-scale=1.0")
@@ -55,4 +56,3 @@ class Document(Component):
                                 self.page()
                 if self.with_dev_meta:
                     footer(_id=Id("schorle-footer"))
-        return doc

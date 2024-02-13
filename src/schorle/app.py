@@ -1,4 +1,3 @@
-import asyncio
 import pkgutil
 from asyncio import iscoroutinefunction
 from collections.abc import Callable
@@ -15,7 +14,6 @@ from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-from schorle.context_vars import REACTIVES
 from schorle.document import Document
 from schorle.models import HtmxMessage
 from schorle.page import Page
@@ -38,7 +36,7 @@ def assets(file_name: str) -> PlainTextResponse:
 
 
 class Schorle:
-    def __init__(self, theme: Theme = Theme.DARK, extra_assets: list | None = None) -> None:
+    def __init__(self, theme: Theme = Theme.DARK, lang: str = "en", extra_assets: list | None = None) -> None:
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}")(assets)
@@ -46,6 +44,7 @@ class Schorle:
         self.backend.get("/favicon.svg", response_model=None)(favicon)
         self.theme: Theme = theme
         self.extra_assets = extra_assets
+        self.lang = lang
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
@@ -73,10 +72,12 @@ class Schorle:
             theme=self.theme,
             with_dev_meta=get_running_mode() == RunningMode.DEV,
             extra_assets=self.extra_assets,
+            lang=self.lang,
         )
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
 
-        rendered = etree.tostring(doc.render(), pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
+        lxml_element = render_in_context(doc)
+        rendered = etree.tostring(lxml_element, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
         response = HTMLResponse(rendered, status_code=200)
 
         logger.info(f"Adding page to cache with token: {doc.csrf_token}")
