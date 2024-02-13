@@ -98,9 +98,11 @@ resource "azurerm_linux_web_app" "webapp" {
 
   app_settings = {
     WEBSITES_PORT = "4444"
+    DOCKER_ENABLE_CI = "true"
   }
 
   site_config {
+    health_check_path = "/health"
 
     application_stack {
       docker_image_name        = "${local.container_name}:latest"

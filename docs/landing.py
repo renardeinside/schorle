@@ -2,6 +2,7 @@ from functools import partial
 from pathlib import Path
 
 from pydantic import Field
+from starlette.responses import JSONResponse
 
 from schorle.app import Schorle
 from schorle.classes import Classes
@@ -63,3 +64,8 @@ class LandingPage(Page):
 @app.get("/")
 def landing_page():
     return LandingPage()
+
+
+@app.backend.get("/health", response_class=JSONResponse)
+def health():
+    return {"status": "ok"}

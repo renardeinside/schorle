@@ -2,9 +2,10 @@ from pathlib import Path
 
 from lxml import etree
 
-from schorle.attribute import Attribute
+from schorle.attribute import Attribute, Id
 from schorle.classes import Classes
 from schorle.context_vars import CURRENT_PARENT, PAGE_CONTEXT
+from schorle.on import On
 
 
 class Element:
@@ -21,6 +22,16 @@ class Element:
         else:
             _element = etree.SubElement(parent, self.tag_name)
 
+        provided_id = next(
+            (value for key, value in self.attributes.items() if isinstance(value, Id)),
+            None,
+        )
+
+        if provided_id is not None:
+            _element.attrib["id"] = provided_id.value
+        elif not provided_id and PAGE_CONTEXT.get():
+            _element.attrib["id"] = f"sle-{self.tag_name}-{id(_element)}"
+
         for key, value in self.attributes.items():
             if isinstance(value, Attribute):
                 _element.attrib[value.alias] = value.value
@@ -29,9 +40,14 @@ class Element:
                 current.append(value)
                 _element.attrib["class"] = current.render()
             elif isinstance(value, dict) and key == "style":
-                _element.attrib[key] = "; ".join([f"{k}: {v}" for k, v in value.items()])
+                if len(value) > 0:
+                    _element.attrib[key] = "; ".join([f"{k}: {v}" for k, v in value.items()])
             elif isinstance(value, Path) and key == "src":
                 _element.attrib[key] = f"data:image/svg+xml;utf8,{value.read_text()}"
+            elif isinstance(value, On):
+                _element.attrib["hx-trigger"] = value.trigger
+                if value.ws_based:
+                    _element.attrib["ws-send"] = ""
             else:
                 _element.attrib[key] = str(value) if value is not None else ""
 

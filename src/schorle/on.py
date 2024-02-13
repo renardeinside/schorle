@@ -1,9 +1,10 @@
 from typing import Callable
 
-import pydantic
+from pydantic.dataclasses import dataclass
 
 
-@pydantic.dataclasses.dataclass
+@dataclass
 class On:
     trigger: str
     callback: Callable
+    ws_based: bool = True

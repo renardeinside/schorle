@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import Field
 
 from schorle.app import Schorle
+from schorle.attribute import Id
 from schorle.classes import Classes
 from schorle.component import Component
 from schorle.effector import effector
@@ -32,7 +33,7 @@ class Button(Component):
 
     def render(self):
         with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
-            text(f"Clicked {self.counter.count} times")
+            text("Click me" if self.counter.count == 0 else f"Clicked {self.counter.count} times")
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -44,11 +45,7 @@ class PageWithButton(Page):
 
     def render(self):
         with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
-            Button(counter=self.counter).add()
-
-            with div(classes=Classes("text-2xl")):
-                text(f"Counter: {self.counter.count}")
-
+            Button(counter=self.counter, inline=True)
 
 @app.get("/")
 def get_page():

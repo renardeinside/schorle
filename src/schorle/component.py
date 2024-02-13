@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -7,6 +8,12 @@ from schorle.reactives.state import ReactiveModel
 
 
 class Component(ABC, BaseModel):
+    inline: bool = False
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.inline:
+            self.add()
+
     def add(self):
         if CURRENT_PARENT.get() is None:
             raise ValueError("Components can only be rendered inside a parent element")

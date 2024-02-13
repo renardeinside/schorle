@@ -76,7 +76,7 @@ class Schorle:
         )
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
 
-        rendered = etree.tostring(doc.render(), pretty_print=True).decode("utf-8")
+        rendered = etree.tostring(doc.render(), pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
         response = HTMLResponse(rendered, status_code=200)
 
         logger.info(f"Adding page to cache with token: {doc.csrf_token}")
@@ -125,19 +125,20 @@ class EventsEndpoint(WebSocketEndpoint):
         logger.warning(f"Events received message: {data}")
         message = HtmxMessage.model_validate_json(data)
         logger.debug(f"Events received message: {message}")
-        if self._page and REACTIVES.get() and message.headers.trigger_element_id in REACTIVES.get():
-            _callback = REACTIVES.get().get(message.headers.trigger_element_id)
-            logger.debug(f"Events found callback: {_callback}")
-            if iscoroutinefunction(_callback):
-                _ = asyncio.create_task(_callback())
-            else:
-                _callback()
-            logger.debug("Events callback executed.")
-
-            logger.debug("Rendering page...")
-            new_page = render_in_context(self._page)
-            await ws.send_text(etree.tostring(new_page, pretty_print=True).decode("utf-8"))
-            logger.debug("Events page rendered.")
+        if self._page:
+            pass
+            # _callback = REACTIVES.get().get(message.headers.trigger_element_id)
+            # logger.debug(f"Events found callback: {_callback}")
+            # if iscoroutinefunction(_callback):
+            #     _ = asyncio.create_task(_callback())
+            # else:
+            #     _callback()
+            # logger.debug("Events callback executed.")
+            #
+            # logger.debug("Rendering page...")
+            # new_page = render_in_context(self._page)
+            # await ws.send_text(etree.tostring(new_page, pretty_print=True).decode("utf-8"))
+            # logger.debug("Events page rendered.")
         else:
             logger.error("No page found, closing websocket...")
             await ws.close()
