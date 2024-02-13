@@ -3,15 +3,17 @@ from pydantic import BaseModel
 from schorle.effector import effector_listing, inject_effectors
 
 
-class ReactiveModel(BaseModel, extra="allow"):
+class EffectorMixin:
+    def get_effectors(self):
+        return effector_listing(self)
+
+
+class ReactiveModel(BaseModel, EffectorMixin, extra="allow"):
     def __init__(self, **data):
         super().__init__(**data)
         inject_effectors(self)
 
-    def get_effectors(self):
-        yield from effector_listing(self)
 
-
-class ReactiveState:
+class ReactiveState(EffectorMixin):
     def __init__(self):
         inject_effectors(self)

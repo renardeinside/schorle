@@ -1,20 +1,20 @@
 from __future__ import annotations
 
+from functools import partial
 from pathlib import Path
 
 from pydantic import Field
 
 from schorle.app import Schorle
-from schorle.elements.html import Div, HeadLink
-from schorle.elements.icon import Icon
-from schorle.elements.img import Img
-from schorle.elements.link import Link
-from schorle.elements.page import Page
-from schorle.reactives.classes import Classes
+from schorle.classes import Classes
+from schorle.element import a, div, img, link, p
+from schorle.icon import Icon
+from schorle.page import Page
+from schorle.text import text
 
 app = Schorle(
     extra_assets=[
-        HeadLink(rel="stylesheet", href="https://fonts.googleapis.com/css?family=Space+Mono"),
+        partial(link, href="https://fonts.googleapis.com/css?family=Space+Mono"),
     ]
 )
 
@@ -27,40 +27,28 @@ LINKS = [
         "Concepts",
     ),
 ]
-LinkWithIcon = Link.derive(icon=Icon.factory())
-
-wrapped_links = [
-    LinkWithIcon(href=link, icon=icon, text=text, classes=Classes("btn btn-primary")) for link, icon, text in LINKS
-]
-
-ContentWrapper = Div.derive(
-    classes=Classes("flex flex-col justify-center items-center h-screen"),
-    content=Div.derive(
-        classes=Classes("max-w-screen-md flex flex-col justify-center items-center h-5/6 space-y-4"),
-        image_container=Div.derive(
-            classes=Classes("max-w-md m-4"),
-            image=Img.factory(
-                file_path=Path(__file__).parent.parent / Path("raw/with_text.svg"),
-                alt="Schorle logo",
-                mime_type="image/svg+xml",
-            ),
-        ).factory(),
-        headline=Div.derive(
-            classes=Classes("text-2xl font-bold p-4 w-5/6 text-center"),
-            text="""Pythonic Server-Driven UI Kit for building modern apps.""",
-        ).factory(),
-        buttons=Div.derive(
-            classes=Classes("flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4"),
-            buttons=(list[LinkWithIcon], Field(default_factory=lambda: wrapped_links)),
-        ).factory(),
-    ).factory(),
-)
 
 
 class LandingPage(Page):
     style: dict[str, str] = Field(default_factory=lambda: {"font-family": "Space Mono"})
-    classes: Classes = Classes("w-full h-full")
-    content_wrapper: ContentWrapper = ContentWrapper.factory()
+
+    def render(self):
+        with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
+            with div(classes=Classes("max-w-screen-md flex flex-col justify-center items-center space-y-4")):
+                img(
+                    src=Path(__file__).parent.parent / Path("raw/with_text.svg"),
+                    alt="Schorle logo",
+                    mime_type="image/svg+xml",
+                    classes=Classes("max-w-md m-4"),
+                )
+            with p(classes=Classes("text-2xl font-bold p-4 w-5/6 text-center")):
+                text("Pythonic Server-Driven UI Kit for building modern apps.")
+
+            with div(classes=Classes("flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4")):
+                for href, icon, _text in LINKS:
+                    with a(href=href, classes=Classes("btn btn-primary font-normal")):
+                        text(_text)
+                        icon.add()
 
 
 @app.get("/")

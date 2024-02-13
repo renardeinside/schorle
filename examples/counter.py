@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pydantic import Field
+
 from schorle.app import Schorle
 from schorle.classes import Classes
 from schorle.component import Component
@@ -17,11 +19,11 @@ class Counter(ReactiveModel):
     count: int = 0
 
     @effector
-    async def increment(self):
+    def increment(self):
         self.count += 1
 
     @effector
-    async def decrement(self):
+    def decrement(self):
         self.count -= 1
 
 
@@ -36,16 +38,16 @@ class Button(Component):
         super().__init__(**data)
         self.bind(self.counter)
 
-    def bind(self, reactive: ReactiveModel):
-        for _effector in reactive.get_effectors():
-            print(_effector)
-            # _effector.subscribe(self.render)
-
 
 class PageWithButton(Page):
+    counter: Counter = Field(default_factory=Counter)
+
     def render(self):
-        with div(classes=Classes("flex justify-center items-center h-screen")):
-            Button(counter=Counter()).add()
+        with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
+            Button(counter=self.counter).add()
+
+            with div(classes=Classes("text-2xl")):
+                text(f"Counter: {self.counter.count}")
 
 
 @app.get("/")

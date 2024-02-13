@@ -1,9 +1,10 @@
+from pathlib import Path
+
 from lxml import etree
 
-from schorle.attribute import Attribute, Id
+from schorle.attribute import Attribute
 from schorle.classes import Classes
-from schorle.context_vars import CURRENT_PARENT, PAGE_CONTEXT, REACTIVES
-from schorle.on import On
+from schorle.context_vars import CURRENT_PARENT, PAGE_CONTEXT
 
 
 class Element:
@@ -20,12 +21,6 @@ class Element:
         else:
             _element = etree.SubElement(parent, self.tag_name)
 
-        element_id = [v for v in self.attributes.values() if isinstance(v, Id)]
-        if element_id:
-            _element.attrib["id"] = element_id[0].value
-        elif PAGE_CONTEXT.get():
-            _element.attrib["id"] = f"schorle-{id(_element)}"
-
         for key, value in self.attributes.items():
             if isinstance(value, Attribute):
                 _element.attrib[value.alias] = value.value
@@ -33,15 +28,18 @@ class Element:
                 current = Classes(_element.attrib.get("class", ""))
                 current.append(value)
                 _element.attrib["class"] = current.render()
-            elif isinstance(value, On):
-                _element.attrib["ws-send"] = ""
-                _element.attrib["hx-trigger"] = value.trigger
-                REACTIVES.get()[_element.attrib["id"]] = value.callback
+            elif isinstance(value, dict) and key == "style":
+                _element.attrib[key] = "; ".join([f"{k}: {v}" for k, v in value.items()])
+            elif isinstance(value, Path) and key == "src":
+                _element.attrib[key] = f"data:image/svg+xml;utf8,{value.read_text()}"
             else:
                 _element.attrib[key] = str(value) if value is not None else ""
 
         if self.tag_name in ["script", "link"]:
             _element.text = ""  # prevent lxml from adding a closing tag
+
+        if PAGE_CONTEXT.get():
+            _element.attrib["hx-swap-oob"] = "morph"
 
         return _element
 
@@ -100,3 +98,15 @@ def script(**attributes):
 
 def footer(**attributes):
     return Element("footer", **attributes)
+
+
+def p(**attributes):
+    return Element("p", **attributes)
+
+
+def img(**attributes):
+    return Element("img", **attributes)
+
+
+def a(**attributes):
+    return Element("a", **attributes)

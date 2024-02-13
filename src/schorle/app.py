@@ -20,7 +20,7 @@ from schorle.document import Document
 from schorle.models import HtmxMessage
 from schorle.page import Page
 from schorle.theme import Theme
-from schorle.utils import RunningMode, get_running_mode
+from schorle.utils import RunningMode, get_running_mode, render_in_context
 
 
 def favicon() -> Union[FileResponse, HTMLResponse]:
@@ -68,7 +68,11 @@ class Schorle:
             logger.info("Adding dev meta tags...")
 
         doc = Document(
-            title="Schorle", page=page, theme=self.theme, with_dev_meta=get_running_mode() == RunningMode.DEV
+            title="Schorle",
+            page=page,
+            theme=self.theme,
+            with_dev_meta=get_running_mode() == RunningMode.DEV,
+            extra_assets=self.extra_assets,
         )
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
 
@@ -128,6 +132,12 @@ class EventsEndpoint(WebSocketEndpoint):
                 _ = asyncio.create_task(_callback())
             else:
                 _callback()
+            logger.debug("Events callback executed.")
+
+            logger.debug("Rendering page...")
+            new_page = render_in_context(self._page)
+            await ws.send_text(etree.tostring(new_page, pretty_print=True).decode("utf-8"))
+            logger.debug("Events page rendered.")
         else:
             logger.error("No page found, closing websocket...")
             await ws.close()

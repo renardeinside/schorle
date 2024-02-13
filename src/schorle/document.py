@@ -16,6 +16,7 @@ class Document(Component):
     theme: Theme = Theme.DARK
     page: Page | None = None
     with_dev_meta: bool = False
+    extra_assets: list | None = None
 
     def render(self):
         with html(theme=Attribute(alias="data-theme", value=self.theme.value)) as doc:
@@ -31,11 +32,14 @@ class Document(Component):
                 script(src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js")
                 script(src="https://unpkg.com/idiomorph@0.3.0")
                 link(
-                    href="https://cdn.jsdelivr.net/npm/daisyui@4.6.2/dist/full.min.css",
+                    href="https://cdn.jsdelivr.net/npm/daisyui@4.7.0/dist/full.min.css",
                     rel="stylesheet",
                     type="text/css",
                 )
                 script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
+                if self.extra_assets:
+                    for asset in self.extra_assets:
+                        asset()
 
                 with title():
                     text(self.title)

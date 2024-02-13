@@ -11,6 +11,7 @@ download-htmx-dev-deps:
 	cd $(HTMX_DEPS_DIR) && wget https://raw.githubusercontent.com/bigskysoftware/idiomorph/v$(IDIOMORPH_VERSION)/src/idiomorph.js
 
 
-deploy-docs:
-	@echo "Deploying docs page..."
-	cd docs/deployment && terraform apply -auto-approve --var-file=.tfvars
+docs-deploy:
+	@echo "Deploying docs infrastructure..."
+	cd docs/deployment && terraform apply --var-file=.tfvars
+	@echo "Done."
