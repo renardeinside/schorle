@@ -1,7 +1,6 @@
-from schorle.context_vars import CURRENT_PARENT
+from schorle.context_vars import RENDER_CONTROLLER
 
 
 def text(content):
-    parent = CURRENT_PARENT.get()
-    if parent is not None:
-        parent.text = content
+    element = RENDER_CONTROLLER.get().current
+    element.text = content

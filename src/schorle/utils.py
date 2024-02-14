@@ -1,10 +1,9 @@
 import sys
 from enum import Enum
 
-from lxml import etree
-
 from schorle.component import Component
-from schorle.context_vars import CURRENT_PARENT
+from schorle.context_vars import RENDER_CONTROLLER, RenderController
+from schorle.types import LXMLElement
 
 
 class RunningMode(str, Enum):
@@ -21,10 +20,10 @@ def get_running_mode() -> RunningMode:
         return RunningMode.PRODUCTION
 
 
-def render_in_context(component: Component):
+def render_in_context(component: Component) -> LXMLElement:
+    _token = RENDER_CONTROLLER.set(RenderController())
     try:
-        CURRENT_PARENT.set(etree.Element("root"))
         component()
-        return CURRENT_PARENT.get().getchildren()[0]
+        return RENDER_CONTROLLER.get().get_root().getchildren()[0]
     finally:
-        CURRENT_PARENT.set(None)
+        RENDER_CONTROLLER.reset(_token)

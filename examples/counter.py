@@ -44,7 +44,7 @@ class PageWithButton(Page):
 
     def render(self):
         with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
-            Button(counter=self.counter, inline=True)
+            Button(counter=self.counter).add()
 
 
 @app.get("/")

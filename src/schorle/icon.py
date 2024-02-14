@@ -2,7 +2,7 @@ import requests
 from lxml import etree
 
 from schorle.component import Component
-from schorle.context_vars import CURRENT_PARENT
+from schorle.context_vars import AST
 
 
 class Icon(Component):
@@ -16,4 +16,4 @@ class Icon(Component):
         # we can disable security check here because we've set the parser to not resolve entities
         # read https://github.com/PyCQA/bandit/issues/767 for more information
         icon = etree.fromstring(response.text, parser)  # noqa: S320
-        CURRENT_PARENT.get().append(icon)
+        AST.get().append(icon)

@@ -1,24 +1,29 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from schorle.context_vars import CURRENT_PARENT, RENDERING_QUEUE
+from schorle.classes import Classes
+from schorle.element import Element
 from schorle.reactives.state import ReactiveModel
+from schorle.tags import HTMLTag
 
 
 class Component(ABC, BaseModel):
+    tag: HTMLTag = HTMLTag.DIV
+    classes: Classes = Classes()
+    style: dict[str, str] = Field(default_factory=dict)
     inline: bool = False
+    element_id: str | None = None
+    attributes: dict[str, str] = Field(default_factory=dict)
+
+    def add(self):
+        with Element(self.tag, self.element_id, classes=self.classes, style=self.style, **self.attributes):
+            self.render()
 
     def model_post_init(self, __context: Any) -> None:
         if self.inline:
             self.add()
-
-    def add(self):
-        if CURRENT_PARENT.get() is None:
-            raise ValueError("Components can only be rendered inside a parent element")
-        else:
-            self.render()
 
     @abstractmethod
     def render(self):
@@ -34,5 +39,4 @@ class Component(ABC, BaseModel):
         return self.__repr__()
 
     def bind(self, reactive: ReactiveModel):
-        for effector_info in reactive.get_effectors():
-            effector_info.method.subscribe(lambda: RENDERING_QUEUE.get().put_nowait(self))
+        pass
