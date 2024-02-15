@@ -2,7 +2,6 @@ from uuid import UUID, uuid4
 
 from pydantic import Field
 
-from schorle.attribute import Id
 from schorle.component import Component
 from schorle.element import body, div, footer, head, link, meta, script, title
 from schorle.page import Page
@@ -58,4 +57,4 @@ class Document(Component):
                         with self.page:
                             self.page()
             if self.with_dev_meta:
-                footer(_id=Id("schorle-footer"))
+                footer(element_id="schorle-footer")
