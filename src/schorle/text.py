@@ -1,4 +1,4 @@
-from schorle.context_vars import RENDER_CONTROLLER
+from schorle.render_controller import RENDER_CONTROLLER
 
 
 def text(content):

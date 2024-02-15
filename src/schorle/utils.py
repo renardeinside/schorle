@@ -2,7 +2,8 @@ import sys
 from enum import Enum
 
 from schorle.component import Component
-from schorle.context_vars import RENDER_CONTROLLER, RenderController
+from schorle.page import Page
+from schorle.render_controller import RENDER_CONTROLLER, RenderController
 from schorle.types import LXMLElement
 
 
@@ -20,9 +21,10 @@ def get_running_mode() -> RunningMode:
         return RunningMode.PRODUCTION
 
 
-def render_in_context(component: Component) -> LXMLElement:
+def render_in_context(component: Component, page: Page | None = None) -> LXMLElement:
+    token = RENDER_CONTROLLER.set(RenderController(page=page))
     try:
         component()
         return RENDER_CONTROLLER.get().get_root().getchildren()[0]
     finally:
-        RENDER_CONTROLLER.set(RenderController())
+        RENDER_CONTROLLER.reset(token)

@@ -1,8 +1,8 @@
 from lxml import etree
 
 from schorle.classes import Classes
-from schorle.context_vars import RenderControllerMixin
 from schorle.on import On
+from schorle.render_controller import RenderControllerMixin
 from schorle.tags import HTMLTag
 
 
@@ -30,13 +30,20 @@ class Element(RenderControllerMixin):
             _rendered = classes.render()
             if _rendered:
                 self._element.set("class", _rendered)
+
         if element_id:
             self._element.set("id", self._element_id)
+        elif self.controller.page:
+            self._element_id = f"sle-{self.tag}-{id(self)}"
+            self._element.set("id", self._element_id)
+            self._element.set("hx-swap-oob", "morph")
+
         if on:
             on = [on] if isinstance(on, On) else on
             self._element.set("ws-send", "")
             _triggers = ",".join([o.trigger for o in on])
             self._element.set("hx-trigger", _triggers)
+            self.controller.page.reactives[self._element_id] = {_on.trigger: _on.callback for _on in on}
 
     def get_element(self):
         elem = etree.SubElement(self.controller.current, self.tag)

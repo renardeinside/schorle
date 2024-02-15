@@ -1,3 +1,4 @@
+import asyncio
 import pkgutil
 from asyncio import iscoroutinefunction
 from collections.abc import Callable
@@ -15,6 +16,7 @@ from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 from schorle.document import Document
+from schorle.emitter import PageEmitter
 from schorle.models import HtmxMessage
 from schorle.page import Page
 from schorle.theme import Theme
@@ -108,7 +110,7 @@ class EventsEndpoint(WebSocketEndpoint):
         if page:
             await websocket.accept()
             self._page = page
-            # self.page_emitter_task = asyncio.create_task(PageEmitter(page).emit(websocket))
+            self.page_emitter_task = asyncio.create_task(PageEmitter(page).emit(websocket))
             logger.info("Events connected.")
 
         elif not page and get_running_mode() == RunningMode.DEV:
@@ -127,19 +129,19 @@ class EventsEndpoint(WebSocketEndpoint):
         message = HtmxMessage.model_validate_json(data)
         logger.debug(f"Events received message: {message}")
         if self._page:
-            pass
-            # _callback = REACTIVES.get().get(message.headers.trigger_element_id)
-            # logger.debug(f"Events found callback: {_callback}")
-            # if iscoroutinefunction(_callback):
-            #     _ = asyncio.create_task(_callback())
-            # else:
-            #     _callback()
-            # logger.debug("Events callback executed.")
-            #
-            # logger.debug("Rendering page...")
-            # new_page = render_in_context(self._page)
-            # await ws.send_text(etree.tostring(new_page, pretty_print=True).decode("utf-8"))
-            # logger.debug("Events page rendered.")
+            reactive = self._page.reactives.get(message.headers.trigger_element_id)
+            if reactive:
+                logger.debug(f"Events found reactive: {reactive}")
+                _callback = reactive.get(message.headers.trigger_type)
+                if _callback:
+                    logger.debug(f"Events found callback: {_callback}")
+                    _callback()
+                    logger.debug("Events callback executed.")
+                else:
+                    logger.error(f"Events no callback found for type: {message.headers.trigger_type}")
+            else:
+                logger.error(f"Events no reactive found for id: {message.headers.trigger_element_id}")
+
         else:
             logger.error("No page found, closing websocket...")
             await ws.close()

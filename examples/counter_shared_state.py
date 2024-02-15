@@ -4,6 +4,7 @@ from pydantic import Field
 
 from schorle.app import Schorle
 from schorle.classes import Classes
+from schorle.component import Component
 from schorle.effector import effector
 from schorle.element import button, div
 from schorle.on import On
@@ -26,22 +27,36 @@ class Counter(ReactiveModel):
         self.value -= 1
 
 
+class View(Component):
+    counter: Counter
+
+    def render(self):
+        with div(classes=Classes("text-2xl")):
+            text(f"Counter: {self.counter.value}")
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.bind(self.counter)
+
+
+class Buttons(Component):
+    counter: Counter
+
+    def render(self):
+        with div(classes=Classes("flex flex-row justify-center items-center space-x-4")):
+            with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
+                text("Increment")
+            with button(on=On("click", self.counter.decrement), classes=Classes("btn btn-secondary")):
+                text("Decrement")
+
+
 class PageWithButton(Page):
     counter: Counter = Field(default_factory=Counter)
 
     def render(self):
         with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
-            with div(classes=Classes("flex flex-row justify-center items-center space-x-4")):
-                with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
-                    text("Increment")
-                with button(on=On("click", self.counter.decrement), classes=Classes("btn btn-secondary")):
-                    text("Decrement")
-            with div(classes=Classes("text-2xl")):
-                text(f"Counter: {self.counter.value}")
-
-    def __init__(self):
-        super().__init__()
-        self.bind(self.counter)
+            Buttons(counter=self.counter)
+            View(counter=self.counter)
 
 
 @app.get("/")

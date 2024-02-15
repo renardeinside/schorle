@@ -4,9 +4,9 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from schorle.classes import Classes
-from schorle.context_vars import RENDER_CONTROLLER, RenderControllerMixin
 from schorle.element import Element
 from schorle.reactives.state import ReactiveModel
+from schorle.render_controller import RenderControllerMixin
 from schorle.tags import HTMLTag
 
 
@@ -16,10 +16,15 @@ class Component(ABC, BaseModel, RenderControllerMixin):
     style: dict[str, str] = Field(default_factory=dict)
     element_id: str | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
+    _page_ref: Any | None = None
 
     def add(self):
         pre_previous = self.controller.previous
         pre_current = self.controller.current
+        self._page_ref = self.controller.page
+
+        if not self.element_id:
+            self.element_id = f"sle-{self.tag}-{id(self)}"
 
         with Element(self.tag, self.element_id, classes=self.classes, style=self.style, **self.attributes):
             self.render()
@@ -28,7 +33,7 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         self.controller.current = pre_current
 
     def model_post_init(self, __context: Any) -> None:
-        if RENDER_CONTROLLER.get().in_page_context:
+        if self.controller.page:
             self.add()
 
     @abstractmethod
@@ -45,4 +50,8 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         return self.__repr__()
 
     def bind(self, reactive: ReactiveModel):
-        pass
+        def _appender():
+            self._page_ref.append_to_queue(self)
+
+        for effector in reactive.get_effectors():
+            effector.method.subscribe(_appender)
