@@ -21,9 +21,8 @@ def get_running_mode() -> RunningMode:
 
 
 def render_in_context(component: Component) -> LXMLElement:
-    _token = RENDER_CONTROLLER.set(RenderController())
     try:
         component()
         return RENDER_CONTROLLER.get().get_root().getchildren()[0]
     finally:
-        RENDER_CONTROLLER.reset(_token)
+        RENDER_CONTROLLER.set(RenderController())

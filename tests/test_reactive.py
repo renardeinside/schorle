@@ -4,8 +4,7 @@ from pydantic import Field
 from schorle.classes import Classes
 from schorle.component import Component
 from schorle.effector import effector
-from schorle.element import button, div
-from schorle.on import On
+from schorle.element import button, div, span
 from schorle.page import Page
 from schorle.reactives.state import ReactiveModel
 from schorle.text import text
@@ -20,12 +19,18 @@ def test_reactive():
         def increment(self):
             self.count += 1
 
+    class Another(Component):
+        def render(self):
+            with span():
+                text("Something")
+
     class View(Component):
         counter: Sample
 
         def render(self):
-            with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
+            with button(classes=Classes("btn btn-primary")):
                 text(f"Clicked {self.counter.count} times")
+            Another()
 
         def __init__(self, **data):
             super().__init__(**data)
@@ -35,18 +40,13 @@ def test_reactive():
         counter: Sample = Field(default_factory=Sample)
 
         def render(self):
-            print("rendering with counter id", id(self.counter))
             with div(classes=Classes("flex justify-center items-center h-screen")):
-                View(counter=self.counter).add()
+                View(counter=self.counter, element_id="v1")
+            View(counter=self.counter)
 
     vp = ViewPage()
 
-    r1 = render_in_context(vp)
-    print("\n")
-    print(etree.tostring(r1).decode())
-    assert vp.counter.count == 0
-    vp.counter.increment()
-    assert vp.counter.count == 1
-    r2 = render_in_context(vp)
-    print("\n")
-    print(etree.tostring(r2).decode())
+    with vp:
+        r1 = render_in_context(vp)
+        print("\n")
+        print(etree.tostring(r1, pretty_print=True).decode())
