@@ -2,6 +2,7 @@ from lxml import etree
 
 from schorle.classes import Classes
 from schorle.context_vars import RenderControllerMixin
+from schorle.on import On
 from schorle.tags import HTMLTag
 
 
@@ -12,12 +13,16 @@ class Element(RenderControllerMixin):
         element_id: str | None = None,
         classes: Classes | None = None,
         style: dict[str, str] | None = None,
+        on: list[On] | On | None = None,
         **attributes,
     ):
         self.tag = tag.value
-        self.attributes = attributes
         self._element_id = element_id
         self._element = self.get_element()
+
+        if attributes:
+            for k, v in attributes.items():
+                self._element.set(k, v)
 
         if style:
             self._element.set("style", ";".join([f"{k}: {v}" for k, v in style.items()]))
@@ -27,6 +32,11 @@ class Element(RenderControllerMixin):
                 self._element.set("class", _rendered)
         if element_id:
             self._element.set("id", self._element_id)
+        if on:
+            on = [on] if isinstance(on, On) else on
+            self._element.set("ws-send", "")
+            _triggers = ",".join([o.trigger for o in on])
+            self._element.set("hx-trigger", _triggers)
 
     def get_element(self):
         elem = etree.SubElement(self.controller.current, self.tag)
@@ -56,9 +66,13 @@ class Element(RenderControllerMixin):
 
 def element_function_factory(tag: HTMLTag):
     def func(
-        element_id: str | None = None, classes: Classes | None = None, style: dict[str, str] | None = None, **attributes
+        element_id: str | None = None,
+        classes: Classes | None = None,
+        style: dict[str, str] | None = None,
+        on: list[On] | On | None = None,
+        **attributes,
     ):
-        return Element(tag, element_id, classes, style, **attributes)
+        return Element(tag, element_id, classes, style, on, **attributes)
 
     return func
 
@@ -91,3 +105,4 @@ tr = element_function_factory(HTMLTag.TR)
 td = element_function_factory(HTMLTag.TD)
 th = element_function_factory(HTMLTag.TH)
 form = element_function_factory(HTMLTag.FORM)
+footer = element_function_factory(HTMLTag.FOOTER)
