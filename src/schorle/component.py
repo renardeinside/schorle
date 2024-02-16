@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 
 from schorle.classes import Classes
 from schorle.element import Element
-from schorle.reactives.state import ReactiveModel
 from schorle.render_controller import RenderControllerMixin
+from schorle.state import ReactiveModel
 from schorle.tags import HTMLTag
 
 
@@ -34,8 +34,13 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         if not self.element_id:
             self.element_id = f"sle-{self.tag}-{str(uuid4())[:8]}"
 
+        self.initialize()
+
         if self.controller.page:
             self.add()
+
+    def initialize(self):
+        pass
 
     @abstractmethod
     def render(self):

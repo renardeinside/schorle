@@ -20,7 +20,6 @@ class PageEmitter:
                 with self._page:
                     rendered = render_in_context(component, self._page)
                     _html = etree.tostring(rendered, pretty_print=True).decode()
-                    logger.debug(f"Rendered {component} into \n {_html}")
                     await ws.send_text(_html)
             except Exception as e:
                 logger.error(f"Error while emitting: {e}")

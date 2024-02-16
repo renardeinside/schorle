@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from schorle.effector import effector_listing, inject_effectors
 
@@ -12,6 +12,10 @@ class ReactiveModel(BaseModel, EffectorMixin, extra="allow"):
     def __init__(self, **data):
         super().__init__(**data)
         inject_effectors(self)
+
+    @classmethod
+    def factory(cls, **data):
+        return Field(default_factory=lambda: cls(**data))
 
 
 class ReactiveState(EffectorMixin):

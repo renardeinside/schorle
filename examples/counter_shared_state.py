@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from pydantic import Field
-
 from schorle.app import Schorle
+from schorle.button import Button
 from schorle.classes import Classes
 from schorle.effector import effector
-from schorle.element import button, div
+from schorle.element import div, p
 from schorle.on import On
 from schorle.page import Page
-from schorle.reactives.state import ReactiveModel
+from schorle.state import ReactiveModel
 from schorle.text import text
 
 app = Schorle()
@@ -27,23 +26,23 @@ class Counter(ReactiveModel):
 
 
 class PageWithButton(Page):
-    counter: Counter = Field(default_factory=Counter)
+    counter: Counter = Counter.factory()
 
     def render(self):
         with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
             with div(classes=Classes("flex flex-row justify-center items-center space-x-4")):
-                with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
+                with Button(on=On("click", self.counter.increment), modifier="primary"):
                     text("Increment")
-                with button(
-                    on=On("click", self.counter.decrement),
-                    classes=Classes(f"btn btn-secondary {'btn-disabled' if self.counter.value <= 0 else ''}"),
+                with Button(
+                        on=On("click", self.counter.decrement),
+                        modifier="secondary",
+                        disabled=self.counter.value <= 0,
                 ):
                     text("Decrement")
-            with div(classes=Classes("text-2xl")):
+            with p(classes=Classes("text-2xl")):
                 text(f"Counter: {self.counter.value}")
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def initialize(self):
         self.bind(self.counter)
 
 
