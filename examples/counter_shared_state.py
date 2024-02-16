@@ -61,9 +61,10 @@ class PageWithButton(Page):
     counter: Counter = Field(default_factory=Counter)
 
     def render(self):
-        with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
+        with div(classes=Classes("flex flex-col justify-center items-center h-5/6")):
             Buttons(counter=self.counter)
-            View(counter=self.counter)
+
+        View(counter=self.counter)
 
 
 @app.get("/")
