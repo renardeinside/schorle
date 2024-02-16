@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import Field
@@ -19,6 +20,10 @@ class Document(Component):
     with_dev_meta: bool = False
     extra_assets: list | None = None
     lang: str = "en"
+
+    def model_post_init(self, __context: Any) -> None:
+        self.attributes["lang"] = self.lang
+        super().model_post_init(__context)
 
     def render(self):
         with head():
@@ -48,11 +53,11 @@ class Document(Component):
         with body():
             with div(element_id="schorle-morph-wrapper", **{"hx-ext": "morph"}):
                 with div(
-                    element_id="schorle-event-handler",
-                    **{
-                        "hx-ext": "ws,event-header",
-                        "ws-connect": "/_schorle/events",
-                    },
+                        element_id="schorle-event-handler",
+                        **{
+                            "hx-ext": "ws,event-header",
+                            "ws-connect": "/_schorle/events",
+                        },
                 ):
                     if self.page:
                         with self.page:

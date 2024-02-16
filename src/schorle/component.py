@@ -33,7 +33,7 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         self.controller.current = pre_current
 
     def model_post_init(self, __context: Any) -> None:
-        if not self.element_id:
+        if not self.element_id and self.tag not in [HTMLTag.HTML, HTMLTag.BODY]:
             self.element_id = f"sle-{self.tag}-{str(uuid4())[:8]}"
 
         self.initialize()
