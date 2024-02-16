@@ -62,11 +62,13 @@ class Element(RenderControllerMixin):
         return elem
 
     def __enter__(self):
+        self._pre_previous = self.controller.previous
         self.controller.previous = self.controller.current
         self.controller.current = self._element
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.controller.current = self.controller.previous
+        self.controller.previous = self._pre_previous
         pass
 
     def add(self):
