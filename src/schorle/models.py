@@ -7,6 +7,7 @@ class HtmxHeaders(BaseModel):
     request: Annotated[bool, Field(alias="HX-Request")]
     trigger_element_id: Annotated[str, Field(alias="HX-Trigger")]
     trigger_type: Annotated[str | None, Field(None, alias="HX-Trigger-Type")]
+    trigger_name: Annotated[str | None, Field(None, alias="HX-Trigger-Name")]
 
 
 class HtmxMessage(BaseModel):

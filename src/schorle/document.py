@@ -32,6 +32,7 @@ class Document(Component):
             script(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
             script(src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js")
             script(src="https://unpkg.com/idiomorph@0.3.0")
+            script(src="https://unpkg.com/htmx.org/dist/ext/event-header.js")
             link(
                 href="https://cdn.jsdelivr.net/npm/daisyui@4.7.0/dist/full.min.css",
                 rel="stylesheet",
@@ -49,7 +50,7 @@ class Document(Component):
                 with div(
                     element_id="schorle-event-handler",
                     **{
-                        "hx-ext": "ws, event-header",
+                        "hx-ext": "ws,event-header",
                         "ws-connect": "/_schorle/events",
                     },
                 ):

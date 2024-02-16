@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from schorle.classes import Classes
 from schorle.element import Element
+from schorle.on import On
 from schorle.render_controller import RenderControllerMixin
 from schorle.state import ReactiveModel
 from schorle.tags import HTMLTag
@@ -17,6 +18,7 @@ class Component(ABC, BaseModel, RenderControllerMixin):
     style: dict[str, str] = Field(default_factory=dict)
     element_id: str | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
+    on: list[On] | On = Field(default_factory=list)
     _page_ref: Any | None = None
 
     def add(self):
@@ -24,7 +26,7 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         pre_current = self.controller.current
         self._page_ref = self.controller.page
 
-        with Element(self.tag, self.element_id, classes=self.classes, style=self.style, **self.attributes):
+        with Element(self.tag, self.element_id, classes=self.classes, style=self.style, on=self.on, **self.attributes):
             self.render()
 
         self.controller.previous = pre_previous

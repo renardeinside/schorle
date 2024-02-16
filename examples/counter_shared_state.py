@@ -34,9 +34,9 @@ class PageWithButton(Page):
                 with Button(on=On("click", self.counter.increment), modifier="primary"):
                     text("Increment")
                 with Button(
-                        on=On("click", self.counter.decrement),
-                        modifier="secondary",
-                        disabled=self.counter.value <= 0,
+                    on=On("click", self.counter.decrement),
+                    modifier="secondary",
+                    disabled=self.counter.value <= 0,
                 ):
                     text("Decrement")
             with p(classes=Classes("text-2xl")):

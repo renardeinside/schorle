@@ -14,8 +14,8 @@ class Effector:
         self.bounded_method = bounded_method
         self.subscribers = []
 
-    def __call__(self, *args, **kwargs):  # noqa: ARG002
-        self.bounded_method()
+    def __call__(self, *args, **kwargs):
+        self.bounded_method(*args[1:], **kwargs)
         for subscriber in self.subscribers:
             subscriber()
 

@@ -135,7 +135,11 @@ class EventsEndpoint(WebSocketEndpoint):
                 _callback = reactive.get(message.headers.trigger_type)
                 if _callback:
                     logger.debug(f"Events found callback: {_callback}")
-                    _callback()
+                    if message.headers.trigger_name is not None:
+                        _value = getattr(message, message.headers.trigger_name)
+                        _callback(_value)
+                    else:
+                        _callback()
                     logger.debug("Events callback executed.")
                 else:
                     logger.error(f"Events no callback found for type: {message.headers.trigger_type}")
