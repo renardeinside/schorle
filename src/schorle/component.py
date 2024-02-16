@@ -13,7 +13,7 @@ from schorle.tags import HTMLTag
 
 class Component(ABC, BaseModel, RenderControllerMixin):
     tag: HTMLTag = HTMLTag.DIV
-    classes: Classes = Classes()
+    classes: Classes = Field(default_factory=Classes)
     style: dict[str, str] = Field(default_factory=dict)
     element_id: str | None = None
     attributes: dict[str, str] = Field(default_factory=dict)
