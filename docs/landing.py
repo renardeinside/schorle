@@ -2,7 +2,7 @@ from functools import partial
 from pathlib import Path
 
 from pydantic import Field
-from starlette.responses import JSONResponse, FileResponse
+from starlette.responses import FileResponse, JSONResponse
 
 from schorle.app import Schorle
 from schorle.classes import Classes

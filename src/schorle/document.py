@@ -53,11 +53,11 @@ class Document(Component):
         with body():
             with div(element_id="schorle-morph-wrapper", **{"hx-ext": "morph"}):
                 with div(
-                        element_id="schorle-event-handler",
-                        **{
-                            "hx-ext": "ws,event-header",
-                            "ws-connect": "/_schorle/events",
-                        },
+                    element_id="schorle-event-handler",
+                    **{
+                        "hx-ext": "ws,event-header",
+                        "ws-connect": "/_schorle/events",
+                    },
                 ):
                     if self.page:
                         with self.page:
