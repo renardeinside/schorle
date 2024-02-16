@@ -2,7 +2,7 @@ from functools import partial
 from pathlib import Path
 
 from pydantic import Field
-from starlette.responses import HTMLResponse, JSONResponse
+from starlette.responses import JSONResponse, FileResponse
 
 from schorle.app import Schorle
 from schorle.classes import Classes
@@ -48,10 +48,9 @@ LINKS = [
 ]
 
 
-@app.backend.get("/logo", response_class=HTMLResponse)
+@app.backend.get("/logo", response_class=FileResponse)
 def logo():
-    payload = (Path(__file__).parent.parent / Path("raw/with_text.svg")).read_bytes().decode("utf-8")
-    return HTMLResponse(content=payload, media_type="image/svg+xml")
+    return FileResponse(path=Path(__file__).parent.parent / Path("raw/with_text.svg"), media_type="image/svg+xml")
 
 
 class LandingPage(Page):
