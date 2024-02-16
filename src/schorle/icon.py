@@ -1,8 +1,6 @@
 import requests
 from lxml import etree
-from pydantic import Field
 
-from schorle.classes import Classes
 from schorle.component import Component
 
 
