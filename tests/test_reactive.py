@@ -1,4 +1,3 @@
-from lxml import etree
 from pydantic import Field
 
 from schorle.classes import Classes
@@ -6,8 +5,9 @@ from schorle.component import Component
 from schorle.effector import effector
 from schorle.element import button, div, span
 from schorle.page import Page
-from schorle.reactives.state import ReactiveModel
+from schorle.state import ReactiveModel
 from schorle.text import text
+from schorle.types import LXMLElement
 from schorle.utils import render_in_context
 
 
@@ -48,5 +48,4 @@ def test_reactive():
 
     with vp:
         r1 = render_in_context(vp)
-        print("\n")
-        print(etree.tostring(r1, pretty_print=True).decode())
+        assert isinstance(r1, LXMLElement)

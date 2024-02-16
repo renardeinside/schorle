@@ -22,4 +22,5 @@ def test_doc():
 
     doc = Document(title="Test Document", page=SamplePage())
     root = render_in_context(doc)
-    print(etree.tostring(root, pretty_print=True).decode())
+    result = etree.tostring(root, pretty_print=True).decode()
+    assert isinstance(result, str)
