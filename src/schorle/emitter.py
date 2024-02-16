@@ -1,5 +1,6 @@
 import asyncio
 
+from loguru import logger
 from lxml import etree
 from starlette.websockets import WebSocket
 
@@ -18,7 +19,9 @@ class PageEmitter:
                 component = await self._page._render_queue.get()
                 with self._page:
                     rendered = render_in_context(component, self._page)
-                    await ws.send_text(etree.tostring(rendered, pretty_print=True).decode())
+                    _html = etree.tostring(rendered, pretty_print=True).decode()
+                    logger.debug(f"Rendered {component} into \n {_html}")
+                    await ws.send_text(_html)
             except Exception as e:
                 print(e)
                 break

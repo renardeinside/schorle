@@ -46,8 +46,15 @@ class Buttons(Component):
         with div(classes=Classes("flex flex-row justify-center items-center space-x-4")):
             with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
                 text("Increment")
-            with button(on=On("click", self.counter.decrement), classes=Classes("btn btn-secondary")):
+            with button(
+                on=On("click", self.counter.decrement),
+                classes=Classes(f"btn btn-secondary {'btn-disabled' if self.counter.value <= 0 else ''}"),
+            ):
                 text("Decrement")
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.bind(self.counter)
 
 
 class PageWithButton(Page):

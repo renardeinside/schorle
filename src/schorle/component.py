@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
+from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
@@ -23,9 +24,6 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         pre_current = self.controller.current
         self._page_ref = self.controller.page
 
-        if not self.element_id:
-            self.element_id = f"sle-{self.tag}-{id(self)}"
-
         with Element(self.tag, self.element_id, classes=self.classes, style=self.style, **self.attributes):
             self.render()
 
@@ -33,6 +31,9 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         self.controller.current = pre_current
 
     def model_post_init(self, __context: Any) -> None:
+        if not self.element_id:
+            self.element_id = f"sle-{self.tag}-{str(uuid4())[:8]}"
+
         if self.controller.page:
             self.add()
 

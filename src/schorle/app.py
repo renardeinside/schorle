@@ -80,6 +80,7 @@ class Schorle:
 
         lxml_element = render_in_context(doc)
         rendered = etree.tostring(lxml_element, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
+        logger.debug(f"Page rendered into \n {rendered}")
         response = HTMLResponse(rendered, status_code=200)
 
         logger.info(f"Adding page to cache with token: {doc.csrf_token}")

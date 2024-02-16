@@ -1,3 +1,5 @@
+import hashlib
+
 from lxml import etree
 
 from schorle.classes import Classes
@@ -33,17 +35,25 @@ class Element(RenderControllerMixin):
 
         if element_id:
             self._element.set("id", self._element_id)
-        elif self.controller.page:
-            self._element_id = f"sle-{self.tag}-{id(self)}"
-            self._element.set("id", self._element_id)
+
+        if self.controller.page:
             self._element.set("hx-swap-oob", "morph")
 
-        if on:
+        if on and self.controller.page:
             on = [on] if isinstance(on, On) else on
             self._element.set("ws-send", "")
             _triggers = ",".join([o.trigger for o in on])
             self._element.set("hx-trigger", _triggers)
+
+            if not self._element_id:
+                self._element_id = self._generate_hash("|".join(str(id(_on.callback)) for _on in on))[:8]
+                self._element.set("id", self._element_id)
+
             self.controller.page.reactives[self._element_id] = {_on.trigger: _on.callback for _on in on}
+
+    @staticmethod
+    def _generate_hash(string: str) -> str:
+        return hashlib.sha256(string.encode("utf-8")).hexdigest()
 
     def get_element(self):
         elem = etree.SubElement(self.controller.current, self.tag)
