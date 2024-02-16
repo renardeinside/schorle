@@ -39,7 +39,7 @@ class TodoListPage(Page):
 
     def render(self):
         with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
-            with div(classes=Classes("flex flex-row justify-center items-center space-x-4")):
+            with div(classes=Classes("flex flex-row w-3/4 justify-center items-center space-x-4")):
                 TextInput(
                     value=self.state.current,
                     placeholder="Add a todo",
@@ -49,17 +49,18 @@ class TodoListPage(Page):
                 with Button(on=On("click", self.state.add_todo), modifier="primary"):
                     text("Add")
 
-            with div(classes=Classes("flex flex-col justify-center items-center space-y-2 w-3/4 m-4")):
+            with div(classes=Classes("flex flex-col justify-center items-center space-y-2 max-w-screen-sm w-1/2 m-4")):
                 with p(classes=Classes("text-xl")):
-                    text(f"Todo List with {len(self.state.todos) if self.state.todos else 'no'} items")
+                    _text = "No todos yet." if not self.state.todos else "Your todos:"
+                    text(_text)
 
                 for todo in self.state.todos:
-                    with div(classes=Classes("flex flex-row w-3/4 items-center justify-between")):
-                        with p(classes=Classes("")):
+                    with div(classes=Classes("flex flex-row w-full items-center justify-between")):
+                        with p():
                             text(todo)
                         with Button(
-                            on=On("click", partial(self.state.remove, todo)),
-                            modifier="error",
+                                on=On("click", partial(self.state.remove, todo)),
+                                modifier="error",
                         ):
                             text("Delete")
 
