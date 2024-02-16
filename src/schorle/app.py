@@ -5,7 +5,6 @@ from collections.abc import Callable
 from functools import partial
 from importlib.resources import files
 from pathlib import Path
-from typing import Union
 
 from fastapi import FastAPI
 from loguru import logger
@@ -23,7 +22,7 @@ from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode, render_in_context
 
 
-def favicon() -> Union[FileResponse, HTMLResponse]:
+def favicon() -> FileResponse:
     package_path = files("schorle")
     favicon_path = Path(str(package_path)) / "assets" / "favicon.svg"
     return FileResponse(favicon_path, media_type="image/svg+xml")
