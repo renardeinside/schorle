@@ -16,7 +16,7 @@ from schorle.text import text
 
 app = Schorle(
     extra_assets=[
-        partial(link, href="https://fonts.googleapis.com/css?family=Space+Mono"),
+        partial(link, href="https://fonts.googleapis.com/css?family=Space+Mono", rel="stylesheet", type="text/css"),
     ]
 )
 
