@@ -42,8 +42,8 @@ def create_emitter(func: MethodType) -> EffectorProtocol:
     async def _wrapper(*args, **kwargs):
         await _emitter_instance(*args, **kwargs)
 
-    wrapper: EffectorProtocol = wraps(func)(_wrapper)
-    wrapper.subscribe = _emitter_instance.subscribe
+    wrapper: EffectorProtocol = wraps(func)(_wrapper)  # type: ignore[assignment]
+    wrapper.subscribe = _emitter_instance.subscribe  # type: ignore[method-assign, assignment]
     return wrapper
 
 
@@ -51,8 +51,8 @@ def effector(func: Callable) -> EffectorProtocol:
     if not asyncio.iscoroutinefunction(func):
         msg = f"Effector must be a coroutine function. {func.__name__} is not a coroutine function"
         raise ValueError(msg)
-    func.is_emitter = True
-    return func  # type: ignore
+    func.is_emitter = True  # type: ignore[attr-defined]
+    return func  # type: ignore[return-value]
 
 
 @dataclass

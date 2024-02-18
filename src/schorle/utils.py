@@ -25,6 +25,6 @@ def render_in_context(component: Component, page: Page | None = None) -> LXMLEle
     token = RENDER_CONTROLLER.set(RenderController(page=page))
     try:
         component()
-        return RENDER_CONTROLLER.get().get_root().getchildren()[0]
+        return RENDER_CONTROLLER.get().get_root().getchildren()[0]  # type: ignore[attr-defined]
     finally:
         RENDER_CONTROLLER.reset(token)

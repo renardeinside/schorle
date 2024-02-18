@@ -20,6 +20,10 @@ class Document(Component):
     with_dev_meta: bool = False
     extra_assets: list | None = None
     lang: str = "en"
+    with_tailwind: bool = True
+    with_daisyui: bool = True
+    with_htmx: bool = True
+    daisyui_version: str = "4.7.2"
 
     def model_post_init(self, __context: Any) -> None:
         self.attributes["lang"] = self.lang
@@ -33,16 +37,20 @@ class Document(Component):
             if self.with_dev_meta:
                 meta(name="schorle-dev", content="true")
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
-            script(src="https://cdn.tailwindcss.com")
-            script(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
-            script(src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js")
-            script(src="https://unpkg.com/idiomorph@0.3.0")
-            script(src="https://unpkg.com/htmx.org/dist/ext/event-header.js")
-            link(
-                href="https://cdn.jsdelivr.net/npm/daisyui@4.7.0/dist/full.min.css",
-                rel="stylesheet",
-                type="text/css",
-            )
+            if self.with_tailwind:
+                script(src="https://cdn.tailwindcss.com")
+            if self.with_daisyui:
+                link(
+                    href=f"https://cdn.jsdelivr.net/npm/daisyui@{self.daisyui_version}/dist/full.min.css",
+                    rel="stylesheet",
+                    type="text/css",
+                )
+            if self.with_htmx:
+                script(src="https://unpkg.com/htmx.org@1.9.10", crossorigin="anonymous")
+                script(src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js")
+                script(src="https://unpkg.com/idiomorph@0.3.0")
+                script(src="https://unpkg.com/htmx.org/dist/ext/event-header.js")
+
             script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
             if self.extra_assets:
                 for asset in self.extra_assets:
