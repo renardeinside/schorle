@@ -42,7 +42,7 @@ class Schorle:
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}")(assets)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
-        self.backend.get("/favicon.svg", response_model=None)(favicon)
+        self.backend.get("/favicon.svg", response_class=FileResponse)(favicon)
         self.theme: Theme = theme
         self.extra_assets = extra_assets
         self.lang = lang
