@@ -34,16 +34,19 @@ class Classes(BaseModel):
     def append(self, *args: RawClassesPayload):
         new_value = self._value + parse_args(*args)
         self._value = new_value
+        return self
 
     def remove(self, *args: RawClassesPayload):
         new_value = [x for x in self._value if x not in parse_args(*args)]
         self._value = new_value
+        return self
 
     def toggle(self, class_name: str):
         if class_name in self._value:
             self.remove(class_name)
         else:
             self.append(class_name)
+        return self
 
     def render(self) -> str:
         return "" if not self._value else " ".join(set(self._value)).strip()
