@@ -16,7 +16,7 @@ def test_reactive():
         count: int = 0
 
         @effector
-        def increment(self):
+        async def increment(self):
             self.count += 1
 
     class Another(Component):
