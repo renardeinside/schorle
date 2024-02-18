@@ -138,11 +138,13 @@ class EventsEndpoint(WebSocketEndpoint):
 
                     if message.headers.trigger_name is not None:
                         _value = getattr(message, message.headers.trigger_name)
-                        await _callback(_value)
+                        _cb = partial(_callback, _value)
                     else:
-                        await _callback()
+                        _cb = _callback
 
-                    logger.debug("Events callback executed.")
+                    # TODO: catch exceptions in _cb
+                    asyncio.ensure_future(_cb())  # noqa: RUF006
+
                 else:
                     logger.error(f"Events no callback found for type: {message.headers.trigger_type}")
             else:

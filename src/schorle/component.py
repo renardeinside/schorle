@@ -20,6 +20,7 @@ class Component(ABC, BaseModel, RenderControllerMixin):
     attributes: dict[str, str] = Field(default_factory=dict)
     on: list[On] | On = Field(default_factory=list)
     _page_ref: Any | None = None
+    lazy_append: bool = False
 
     def add(self):
         pre_previous = self.controller.previous
@@ -38,7 +39,7 @@ class Component(ABC, BaseModel, RenderControllerMixin):
 
         self.initialize()
 
-        if self.controller.page:
+        if self.controller.page and not self.lazy_append:
             self.add()
 
     def initialize(self):

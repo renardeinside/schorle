@@ -1,6 +1,6 @@
 import hashlib
-from copy import deepcopy
 
+from loguru import logger
 from lxml import etree
 
 from schorle.classes import Classes
@@ -12,14 +12,14 @@ from schorle.tags import HTMLTag
 
 class Element(RenderControllerMixin):
     def __init__(
-            self,
-            tag: HTMLTag,
-            element_id: str | None = None,
-            classes: Classes | None = None,
-            style: dict[str, str] | None = None,
-            on: list[On] | On | None = None,
-            suspense: Suspense | None = None,
-            **attributes,
+        self,
+        tag: HTMLTag,
+        element_id: str | None = None,
+        classes: Classes | None = None,
+        style: dict[str, str] | None = None,
+        on: list[On] | On | None = None,
+        suspense: Suspense | None = None,
+        **attributes,
     ):
         self.tag = tag.value
         self._element_id = element_id
@@ -50,18 +50,17 @@ class Element(RenderControllerMixin):
                 self._element.set("hx-trigger", _triggers)
 
                 if not self._element_id:
-                    self._element_id = self._generate_hash("|".join(str(id(_on.callback)) for _on in on))[:8]
+                    self._element_id = "sle-" + self._generate_hash("|".join(str(id(_on.callback)) for _on in on))[:8]
                     self._element.set("id", self._element_id)
 
                 self.controller.page.reactives[self._element_id] = {_on.trigger: _on.callback for _on in on}
 
             if suspense:
-                if self._element_id:
-                    pass
-                else:
-                    self._element_id = self._generate_hash(f"suspense-{id(suspense.on)}")[:8]
+                if not self._element_id:
+                    self._element_id = "sle-" + self._generate_hash(f"suspense-{id(suspense.on)}")[:8]
                     self._element.set("id", self._element_id)
-                    suspense._parent = deepcopy(self._element)
+                logger.debug(f"Setting suspense for {self._element_id}")
+                suspense._parent = self._element
 
     @staticmethod
     def _generate_hash(string: str) -> str:
@@ -97,12 +96,12 @@ class Element(RenderControllerMixin):
 
 def element_function_factory(tag: HTMLTag):
     def func(
-            element_id: str | None = None,
-            classes: Classes | None = None,
-            style: dict[str, str] | None = None,
-            on: list[On] | On | None = None,
-            suspense: Suspense | None = None,
-            **attributes,
+        element_id: str | None = None,
+        classes: Classes | None = None,
+        style: dict[str, str] | None = None,
+        on: list[On] | On | None = None,
+        suspense: Suspense | None = None,
+        **attributes,
     ):
         return Element(tag, element_id, classes, style, on, suspense, **attributes)
 

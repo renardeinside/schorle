@@ -15,3 +15,9 @@ docs-deploy:
 	@echo "Deploying docs infrastructure..."
 	cd docs/deployment && terraform apply --var-file=.tfvars
 	@echo "Done."
+
+fmt:
+	hatch run lint:fmt .
+
+test:
+	hatch run test

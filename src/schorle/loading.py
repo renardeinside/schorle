@@ -5,6 +5,8 @@ from schorle.text import text
 
 
 class Loading(Component):
+    lazy_append: bool = True
+
     def render(self):
-        with span(classes=Classes("loading loading-md loading-spinner")):
+        with span(classes=Classes("loading loading-lg loading-infinity")):
             text("")
