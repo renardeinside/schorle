@@ -8,7 +8,9 @@ async support.**
 ---
 
 <p align="center">
-    <img src="https://img.shields.io/pypi/v/schorle?color=green&amp;style=for-the-badge" alt="Latest Python Release"/>
+    <a href="https://pypi.org/project/schorle/">
+        <img src="https://img.shields.io/pypi/v/schorle?color=green&amp;style=for-the-badge" alt="Latest Python Release"/>
+    </a>
     <img src="https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge" alt="We use black for formatting"/>
 </p>
 
@@ -56,7 +58,6 @@ uvicorn examples.simple:app --reload
 - [Tailwind CSS](https://tailwindcss.com/) - CSS framework
 - [DaisyUI](https://daisyui.com/) - Component library for Tailwind CSS
 - [Pydantic](https://docs.pydantic.dev/latest/) - classes and utilities for elements
-
 
 ## Roadmap
 
