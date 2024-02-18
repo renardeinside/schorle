@@ -25,5 +25,5 @@ jobs:
           pip install hatch
       - name: Lint
         run: hatch run lint:all .
-      - name: Test package
+      - name: Test
         run: hatch run test
