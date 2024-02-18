@@ -79,6 +79,7 @@ class Schorle:
 
         lxml_element = render_in_context(doc)
         rendered = etree.tostring(lxml_element, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
+        logger.debug(f"Page rendered into: {rendered}")
         response = HTMLResponse(rendered, status_code=200)
 
         logger.info(f"Adding page to cache with token: {doc.csrf_token}")
@@ -134,11 +135,13 @@ class EventsEndpoint(WebSocketEndpoint):
                 _callback = reactive.get(message.headers.trigger_type)
                 if _callback:
                     logger.debug(f"Events found callback: {_callback}")
+
                     if message.headers.trigger_name is not None:
                         _value = getattr(message, message.headers.trigger_name)
-                        _callback(_value)
+                        await _callback(_value)
                     else:
-                        _callback()
+                        await _callback()
+
                     logger.debug("Events callback executed.")
                 else:
                     logger.error(f"Events no callback found for type: {message.headers.trigger_type}")

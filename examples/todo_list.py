@@ -21,13 +21,13 @@ class State(ReactiveModel):
     todos: list[str] = Field(default_factory=lambda: ["Buy milk", "Do laundry"])
 
     @effector
-    def set_current(self, value):
+    async def set_current(self, value):
         self.current = value
 
     @effector
-    def add_todo(self):
+    async def add_todo(self):
         self.todos.append(self.current)
-        self.set_current("")
+        await self.set_current("")
 
     @effector
     def remove(self, todo):

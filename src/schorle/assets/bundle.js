@@ -15,9 +15,9 @@
         return !!devEl;
     }
 
-    // if (getDevMode() === "true") {
-    //     htmx.logAll();
-    // }
+    if (getDevMode()) {
+        htmx.logAll();
+    }
 
 
     htmx.on("htmx:wsBeforeMessage", (evt) => {

@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import Protocol
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -14,8 +15,12 @@ class Effector:
         self.bounded_method = bounded_method
         self.subscribers: list[Callable] = []
 
-    def __call__(self, *args, **kwargs):
-        self.bounded_method(*args[1:], **kwargs)
+    async def __call__(self, *args, **kwargs):
+        if asyncio.iscoroutinefunction(self.bounded_method):
+            await self.bounded_method(*args[1:], **kwargs)
+        else:
+            self.bounded_method(*args[1:], **kwargs)
+
         for subscriber in self.subscribers:
             subscriber()
 
@@ -34,8 +39,8 @@ class EffectorProtocol(Protocol):
 def create_emitter(func: MethodType) -> EffectorProtocol:
     _emitter_instance = Effector(func)
 
-    def _wrapper(*args, **kwargs):
-        _emitter_instance(*args, **kwargs)
+    async def _wrapper(*args, **kwargs):
+        await _emitter_instance(*args, **kwargs)
 
     wrapper: EffectorProtocol = wraps(func)(_wrapper)
     wrapper.subscribe = _emitter_instance.subscribe
@@ -43,6 +48,9 @@ def create_emitter(func: MethodType) -> EffectorProtocol:
 
 
 def effector(func: Callable) -> EffectorProtocol:
+    if not asyncio.iscoroutinefunction(func):
+        msg = f"Effector must be a coroutine function. {func.__name__} is not a coroutine function"
+        raise ValueError(msg)
     func.is_emitter = True
     return func  # type: ignore
 
