@@ -62,7 +62,7 @@ uvicorn examples.simple:app --reload
 ## Roadmap
 
 - [ ] Add more elements
-- [ ] Introduce `suspense` for loading states
+- [x] Introduce `suspense` for loading states
 - [ ] Add more examples
 - [ ] Add tests
 - [ ] Add CI/CD
