@@ -61,28 +61,25 @@ class InputSection(Component):
 
 class TodoView(Component):
     state: State
-    classes: Classes = Classes("w-full flex flex-col items-center")
+    classes: Classes = Classes("max-w-96 w-2/3 space-y-2 flex flex-col items-center")
 
     def render(self):
-        with div(
-            classes=Classes("flex flex-col items-center space-y-2 w-3/4 max-w-md m-4 min-h-96"),
-            suspense=Suspense(on=self.state, fallback=Loading()),
-        ):
-            with p(classes=Classes("text-xl")):
-                _text = "No todos yet." if not self.state.todos else "Your todos:"
-                text(_text)
+        with p(classes=Classes("text-xl")):
+            _text = "No todos yet." if not self.state.todos else "Your todos:"
+            text(_text)
 
-            for todo in self.state.todos:
-                with div(classes=Classes("flex flex-row items-center justify-between w-full")):
-                    with p():
-                        text(todo)
-                    with Button(
-                        on=On("click", partial(self.state.remove, todo)),
-                        modifier="error",
-                    ):
-                        text("Delete")
+        for todo in self.state.todos:
+            with div(classes=Classes("flex flex-row items-center justify-between w-full")):
+                with p():
+                    text(todo)
+                with Button(
+                    on=On("click", partial(self.state.remove, todo)),
+                    modifier="error",
+                ):
+                    text("Delete")
 
     def initialize(self):
+        self.suspense = Suspense(on=self.state, fallback=Loading())
         self.bind(self.state)
 
 

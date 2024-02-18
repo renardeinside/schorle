@@ -2,17 +2,20 @@ from abc import ABC, abstractmethod
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from schorle.classes import Classes
 from schorle.element import Element
 from schorle.on import On
 from schorle.render_controller import RenderControllerMixin
 from schorle.state import ReactiveModel
+from schorle.suspense import Suspense
 from schorle.tags import HTMLTag
 
 
 class Component(ABC, BaseModel, RenderControllerMixin):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     tag: HTMLTag = HTMLTag.DIV
     classes: Classes = Field(default_factory=Classes)
     style: dict[str, str] = Field(default_factory=dict)
@@ -20,6 +23,7 @@ class Component(ABC, BaseModel, RenderControllerMixin):
     attributes: dict[str, str] = Field(default_factory=dict)
     on: list[On] | On = Field(default_factory=list)
     _page_ref: Any | None = None
+    suspense: Suspense | None = None
     lazy_append: bool = False
 
     def add(self):
@@ -27,7 +31,15 @@ class Component(ABC, BaseModel, RenderControllerMixin):
         pre_current = self.controller.current
         self._page_ref = self.controller.page
 
-        with Element(self.tag, self.element_id, classes=self.classes, style=self.style, on=self.on, **self.attributes):
+        with Element(
+            self.tag,
+            self.element_id,
+            classes=self.classes,
+            style=self.style,
+            on=self.on,
+            suspense=self.suspense,
+            **self.attributes,
+        ):
             self.render()
 
         self.controller.previous = pre_previous
