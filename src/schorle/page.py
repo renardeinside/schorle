@@ -12,6 +12,7 @@ class Page(Component):
     tag: HTMLTag = HTMLTag.DIV
     element_id: str = "schorle-page"
     reactives: dict[str, Any] = Field(default_factory=dict)
+    suspense: dict[str, Any] = Field(default_factory=dict)
     _render_queue: Queue[Component] = PrivateAttr(default_factory=Queue)
 
     def append_to_queue(self, component: Component):

@@ -12,10 +12,14 @@ from pydantic import BaseModel
 
 class Effector:
     def __init__(self, bounded_method: MethodType):
+        self.pre_actions: list[Callable] = []
         self.bounded_method = bounded_method
         self.subscribers: list[Callable] = []
 
     async def __call__(self, *args, **kwargs):
+        _tasks = [asyncio.create_task(_pre_action()) for _pre_action in self.pre_actions]
+        await asyncio.gather(*_tasks)
+
         if asyncio.iscoroutinefunction(self.bounded_method):
             await self.bounded_method(*args[1:], **kwargs)
         else:
@@ -27,12 +31,18 @@ class Effector:
     def subscribe(self, callback):
         self.subscribers.append(callback)
 
+    def prepend(self, _pre_action):
+        self.pre_actions.append(_pre_action)
+
 
 class EffectorProtocol(Protocol):
     async def subscribe(self, callback, *, trigger: bool = True):
         ...
 
     async def __call__(self, *args, **kwargs):
+        ...
+
+    def prepend(self, _pre_action):
         ...
 
 
@@ -44,6 +54,7 @@ def create_emitter(func: MethodType) -> EffectorProtocol:
 
     wrapper: EffectorProtocol = wraps(func)(_wrapper)
     wrapper.subscribe = _emitter_instance.subscribe
+    wrapper.prepend = _emitter_instance.prepend
     return wrapper
 
 
@@ -66,7 +77,7 @@ def effector_listing(_object: object) -> Iterable[EffectorInfo]:
         raise ValueError("Pydantic models must be declared with extra='allow' to use inject_emitters")
     for attr in dir(_object):
         if attr not in ["__fields__", "__fields_set__", "__signature__"] and (
-            attr not in _object.model_computed_fields.keys() if isinstance(_object, BaseModel) else True
+                attr not in _object.model_computed_fields.keys() if isinstance(_object, BaseModel) else True
         ):
             if callable(getattr(_object, attr)) and ismethod(getattr(_object, attr)):
                 _method: MethodType = getattr(_object, attr)

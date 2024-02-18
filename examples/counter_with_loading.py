@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from functools import partial
 
 from pydantic import Field
 
@@ -8,10 +9,12 @@ from schorle.app import Schorle
 from schorle.classes import Classes
 from schorle.component import Component
 from schorle.effector import effector
-from schorle.element import button, div, span
+from schorle.element import button, div
+from schorle.loading import Loading
 from schorle.on import On
 from schorle.page import Page
 from schorle.state import ReactiveModel
+from schorle.suspense import Suspense
 from schorle.text import text
 
 app = Schorle()
@@ -31,11 +34,7 @@ class Button(Component):
 
     def render(self):
         with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
-            with span(classes=Classes("htmx-indicator")):
-                with span(classes=Classes("loading loading-infinity")):
-                    text("")
-
-            with div():
+            with div(suspense=Suspense(self.counter.increment, partial(Loading))):
                 text("Click me" if self.counter.count == 0 else f"Clicked {self.counter.count} times")
 
     def initialize(self):
