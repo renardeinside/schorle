@@ -61,7 +61,9 @@ class InputSection(Component):
 
 class TodoView(Component):
     state: State
-    classes: Classes = Classes("max-w-96 w-2/3 space-y-2 flex flex-col items-center h-96 m-4")
+    classes: Classes = Classes(
+        "max-w-96 w-2/3 space-y-2 flex flex-col items-center h-96 m-4 shadow-lg p-4 rounded-lg bg-base-300"
+    )
 
     def render(self):
         with p(classes=Classes("text-xl")):
@@ -85,12 +87,11 @@ class TodoView(Component):
 
 class TodoListPage(Page):
     state: State = State.factory()
-    classes: Classes = Classes("m-4")
+    classes: Classes = Classes("m-4 flex flex-col items-center h-screen")
 
     def render(self):
-        with div(classes=Classes("flex flex-col items-center h-screen")):
-            InputSection(state=self.state)
-            TodoView(state=self.state)
+        InputSection(state=self.state)
+        TodoView(state=self.state)
 
 
 @app.get("/")
