@@ -6,7 +6,8 @@ from schorle.text import text
 
 class Loading(Component):
     lazy_append: bool = True
+    classes: Classes = Classes("flex justify-center items-center w-full h-full")
 
     def render(self):
-        with span(classes=Classes("loading loading-lg loading-infinity")):
+        with span(classes=Classes("loading loading-lg loading-spinner text-primary")):
             text("")

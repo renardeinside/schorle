@@ -23,7 +23,7 @@ class Suspense(RenderControllerMixin):
                 return
             else:
                 _copy = deepcopy(self._parent)
-                required_attrs = ["id", "classes", "style", "hx-swap-oob"]
+                required_attrs = ["id", "class", "style", "hx-swap-oob"]
                 _saved = {k: _copy.get(k) for k in required_attrs}
                 _copy.clear()
                 for k, v in _saved.items():

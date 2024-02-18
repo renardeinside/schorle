@@ -43,17 +43,17 @@ class State(ReactiveModel):
 
 class InputSection(Component):
     state: State
+    classes: Classes = Classes("flex flex-row w-3/4 justify-center items-center space-x-4")
 
     def render(self):
-        with div(classes=Classes("flex flex-row w-3/4 justify-center items-center space-x-4")):
-            TextInput(
-                value=self.state.current,
-                placeholder="Add a todo",
-                classes=Classes("input-bordered"),
-                on=On("change", self.state.set_current),
-            )
-            with Button(on=On("click", self.state.add_todo), modifier="primary"):
-                text("Add")
+        TextInput(
+            value=self.state.current,
+            placeholder="Add a todo",
+            classes=Classes("input-bordered"),
+            on=On("change", self.state.set_current),
+        )
+        with Button(on=On("click", self.state.add_todo), modifier="primary"):
+            text("Add")
 
     def initialize(self):
         self.bind(self.state)
@@ -61,7 +61,7 @@ class InputSection(Component):
 
 class TodoView(Component):
     state: State
-    classes: Classes = Classes("max-w-96 w-2/3 space-y-2 flex flex-col items-center")
+    classes: Classes = Classes("max-w-96 w-2/3 space-y-2 flex flex-col items-center h-96 m-4")
 
     def render(self):
         with p(classes=Classes("text-xl")):
