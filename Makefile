@@ -21,3 +21,7 @@ fmt:
 
 test:
 	hatch run test
+
+
+lint:
+	hatch run lint:style .
