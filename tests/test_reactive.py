@@ -11,39 +11,43 @@ from schorle.types import LXMLElement
 from schorle.utils import render_in_context
 
 
+class Sample(ReactiveModel):
+    count: int = 0
+
+    @effector
+    async def increment(self):
+        self.count += 1
+
+
+class Another(Component):
+    def render(self):
+        with span():
+            text("Something")
+
+
+class View(Component):
+    counter: Sample
+
+    def render(self):
+        with button(classes=Classes("btn btn-primary")):
+            text(f"Clicked {self.counter.count} times")
+        Another()
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.bind(self.counter)
+
+
+class ViewPage(Page):
+    counter: Sample = Field(default_factory=Sample)
+
+    def render(self):
+        with div(classes=Classes("flex justify-center items-center h-screen")):
+            View(counter=self.counter, element_id="v1")
+        View(counter=self.counter)
+
+
 def test_reactive():
-    class Sample(ReactiveModel):
-        count: int = 0
-
-        @effector
-        def increment(self):
-            self.count += 1
-
-    class Another(Component):
-        def render(self):
-            with span():
-                text("Something")
-
-    class View(Component):
-        counter: Sample
-
-        def render(self):
-            with button(classes=Classes("btn btn-primary")):
-                text(f"Clicked {self.counter.count} times")
-            Another()
-
-        def __init__(self, **data):
-            super().__init__(**data)
-            self.bind(self.counter)
-
-    class ViewPage(Page):
-        counter: Sample = Field(default_factory=Sample)
-
-        def render(self):
-            with div(classes=Classes("flex justify-center items-center h-screen")):
-                View(counter=self.counter, element_id="v1")
-            View(counter=self.counter)
-
     vp = ViewPage()
 
     with vp:
