@@ -23,7 +23,6 @@ class SamplePage(Page):
 
 
 def test_context_rendering():
-    print("\n\n\n")
     page = SamplePage()
     rendered = render_in_context(page)
-    print(etree.tostring(rendered, pretty_print=True).decode())
+    assert isinstance(rendered, etree._Element)

@@ -9,7 +9,7 @@ from schorle.effector import effector
 from schorle.element import button, div
 from schorle.on import On
 from schorle.page import Page
-from schorle.reactives.state import ReactiveModel
+from schorle.state import ReactiveModel
 from schorle.text import text
 
 app = Schorle()

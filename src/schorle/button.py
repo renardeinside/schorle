@@ -3,7 +3,7 @@ from schorle.element import button
 from schorle.on import On
 
 
-def Button(
+def Button(  # noqa: N802
     element_id: str | None = None,
     modifier: str | None = None,
     disabled: bool | None = None,

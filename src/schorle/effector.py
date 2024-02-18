@@ -12,7 +12,7 @@ from pydantic import BaseModel
 class Effector:
     def __init__(self, bounded_method: MethodType):
         self.bounded_method = bounded_method
-        self.subscribers = []
+        self.subscribers: list[Callable] = []
 
     def __call__(self, *args, **kwargs):
         self.bounded_method(*args[1:], **kwargs)

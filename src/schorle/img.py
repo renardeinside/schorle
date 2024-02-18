@@ -6,7 +6,7 @@ from schorle.element import img
 from schorle.on import On
 
 
-def Image(
+def Image(  # noqa: N802
     src: str | Path,
     alt: str,
     media_type: str | None = None,

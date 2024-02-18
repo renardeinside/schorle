@@ -1,6 +1,6 @@
 import asyncio
 import pkgutil
-from asyncio import iscoroutinefunction
+from asyncio import Task, iscoroutinefunction
 from collections.abc import Callable
 from functools import partial
 from importlib.resources import files
@@ -97,7 +97,7 @@ class EventsEndpoint(WebSocketEndpoint):
         super().__init__(scope, receive, send)
         self._page: Page | None = None
         self._pages: dict[str, Page] = pages
-        self.page_emitter_task = None
+        self.page_emitter_task: Task | None = None
 
     async def on_connect(self, websocket: WebSocket) -> None:
         token = websocket.query_params.get("token")
