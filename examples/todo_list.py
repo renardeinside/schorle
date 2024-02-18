@@ -30,7 +30,7 @@ class State(ReactiveModel):
         await self.set_current("")
 
     @effector
-    def remove(self, todo):
+    async def remove(self, todo):
         self.todos.remove(todo)
 
 

@@ -17,11 +17,11 @@ class Counter(ReactiveModel):
     value: int = 0
 
     @effector
-    def increment(self):
+    async def increment(self):
         self.value += 1
 
     @effector
-    def decrement(self):
+    async def decrement(self):
         self.value -= 1
 
 

@@ -19,11 +19,11 @@ class Counter(ReactiveModel):
     count: int = 0
 
     @effector
-    def increment(self):
+    async def increment(self):
         self.count += 1
 
     @effector
-    def decrement(self):
+    async def decrement(self):
         self.count -= 1
 
 
