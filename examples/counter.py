@@ -34,8 +34,7 @@ class Button(Component):
         with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
             text("Click me" if self.counter.count == 0 else f"Clicked {self.counter.count} times")
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def initialize(self):
         self.bind(self.counter)
 
 
