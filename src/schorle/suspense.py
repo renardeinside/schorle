@@ -5,12 +5,13 @@ from loguru import logger
 
 from schorle.effector import EffectorProtocol
 from schorle.render_controller import RenderControllerMixin
+from schorle.state import ReactiveModel
 from schorle.types import LXMLElement
 from schorle.utils import render_in_context
 
 
 class Suspense(RenderControllerMixin):
-    def __init__(self, on: EffectorProtocol, fallback: Any):
+    def __init__(self, on: EffectorProtocol | ReactiveModel, fallback: Any):
         self.on = on
         self._parent: LXMLElement | None = None
         self._page_ref = self.controller.page
@@ -22,11 +23,17 @@ class Suspense(RenderControllerMixin):
                 return
             else:
                 _copy = deepcopy(self._parent)
-                _copy.text = ""
+                required_attrs = ["id", "classes", "style", "hx-swap-oob"]
+                _saved = {k: _copy.get(k) for k in required_attrs}
+                _copy.clear()
+                for k, v in _saved.items():
+                    if v is not None:
+                        _copy.set(k, v)
                 _copy.append(self._fallback)
-                for key in ["hx-trigger", "ws-send"]:
-                    if key in _copy.attrib:
-                        _copy.attrib.pop(key)
                 self._page_ref.append_to_queue(_copy)
 
-        self.on.prepend(_pre_action)
+        if isinstance(on, ReactiveModel):
+            for effector_info in on.get_effectors():
+                effector_info.method.prepend(_pre_action)
+        elif isinstance(on, EffectorProtocol):
+            self.on.prepend(_pre_action)

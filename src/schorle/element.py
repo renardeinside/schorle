@@ -1,6 +1,5 @@
 import hashlib
 
-from loguru import logger
 from lxml import etree
 
 from schorle.classes import Classes
@@ -59,7 +58,6 @@ class Element(RenderControllerMixin):
                 if not self._element_id:
                     self._element_id = "sle-" + self._generate_hash(f"suspense-{id(suspense.on)}")[:8]
                     self._element.set("id", self._element_id)
-                logger.debug(f"Setting suspense for {self._element_id}")
                 suspense._parent = self._element
 
     @staticmethod
