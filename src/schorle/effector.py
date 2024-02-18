@@ -29,11 +29,9 @@ class Effector:
 
 
 class EffectorProtocol(Protocol):
-    async def subscribe(self, callback, *, trigger: bool = True):
-        ...
+    async def subscribe(self, callback, *, trigger: bool = True): ...
 
-    async def __call__(self, *args, **kwargs):
-        ...
+    async def __call__(self, *args, **kwargs): ...
 
 
 def create_emitter(func: MethodType) -> EffectorProtocol:
