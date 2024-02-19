@@ -28,3 +28,13 @@ lint:
 
 typing:
 	hatch run lint:typing . --exclude=out
+
+restart-docs-app:
+	@echo "Restarting docs app..."
+	az webapp restart --name schorle-webapp --resource-group schorle-rg
+	@echo "Done."
+
+serve-docs:
+	@echo "Serving docs..."
+	docker build -t schorle-docs -f docs/Dockerfile.docs .
+	docker run -p 4444:4444 -it schorle-docs
