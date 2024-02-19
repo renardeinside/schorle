@@ -51,6 +51,8 @@ class Document(Component):
                 script(src="https://unpkg.com/idiomorph@0.3.0")
                 script(src="https://unpkg.com/htmx.org/dist/ext/event-header.js")
 
+            script(src="https://unpkg.com/lucide@latest")
+
             script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
             if self.extra_assets:
                 for asset in self.extra_assets:
@@ -59,6 +61,7 @@ class Document(Component):
             with title():
                 text(self.title)
         with body():
+
             with div(element_id="schorle-morph-wrapper", **{"hx-ext": "morph"}):
                 with div(
                     element_id="schorle-event-handler",
@@ -70,5 +73,9 @@ class Document(Component):
                     if self.page:
                         with self.page:
                             self.page()
+
+            with script():
+                text("lucide.createIcons();")
+
             if self.with_dev_meta:
                 footer(element_id="schorle-footer")
