@@ -104,6 +104,8 @@
                     Idiomorph.morph(document.body, newDocument.body, {morphStyle: "outerHTML"});
                     // finally we need to reinitialize htmx
                     htmx.process(document.body);
+                    // and we need to reinitialize lucide icons
+                    lucide.createIcons();
                     applyLoadingElement();
                 })
             })
