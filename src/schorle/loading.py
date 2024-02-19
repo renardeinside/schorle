@@ -9,5 +9,5 @@ class Loading(Component):
     classes: Classes = Classes("flex justify-center items-center w-full h-full")
 
     def render(self):
-        with span(classes=Classes("loading loading-lg loading-spinner text-primary")):
+        with span(classes=Classes("loading loading-md loading-bars")):
             text("")

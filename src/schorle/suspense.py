@@ -3,7 +3,6 @@ from typing import Any
 
 from loguru import logger
 
-from schorle.effector import EffectorProtocol
 from schorle.render_controller import RenderControllerMixin
 from schorle.state import ReactiveModel
 from schorle.types import LXMLElement
@@ -11,7 +10,7 @@ from schorle.utils import render_in_context
 
 
 class Suspense(RenderControllerMixin):
-    def __init__(self, on: EffectorProtocol | ReactiveModel, fallback: Any):
+    def __init__(self, on: ReactiveModel, fallback: Any):
         self.on = on
         self._parent: LXMLElement | None = None
         self._page_ref = self.controller.page
@@ -32,8 +31,5 @@ class Suspense(RenderControllerMixin):
                 _copy.append(self._fallback)
                 self._page_ref.append_to_queue(_copy)
 
-        if isinstance(on, ReactiveModel):
-            for effector_info in on.get_effectors():
-                effector_info.method.prepend(_pre_action)
-        elif isinstance(on, EffectorProtocol):
-            self.on.prepend(_pre_action)
+        for effector_info in on.get_effectors():
+            effector_info.method.prepend(_pre_action)

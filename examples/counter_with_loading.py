@@ -34,7 +34,7 @@ class StatefulButton(Component):
     def render(self):
         with Button(
             on=On("click", self.counter.increment),
-            suspense=Suspense(on=self.counter.increment, fallback=Loading()),
+            suspense=Suspense(on=self.counter, fallback=Loading()),
             classes=self.classes.append("w-48"),
             modifier=self.modifier,
         ):
