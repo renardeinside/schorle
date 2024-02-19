@@ -62,7 +62,7 @@ class InputSection(Component):
 class TodoView(Component):
     state: State
     classes: Classes = Classes(
-        "max-w-96 w-2/3 space-y-2 flex flex-col items-center h-96 m-4 shadow-lg p-4 rounded-lg bg-base-300"
+        "max-w-xl w-2/3 space-y-2 flex flex-col items-center h-96 m-4 shadow-lg p-10 rounded-lg bg-base-300"
     )
 
     def render(self):
