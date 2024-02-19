@@ -33,10 +33,10 @@ class StatefulButton(Component):
 
     def render(self):
         with Button(
-                on=On("click", self.counter.increment),
-                suspense=Suspense(on=self.counter, fallback=Loading()),
-                classes=self.classes.append("w-48"),
-                modifier=self.modifier,
+            on=On("click", self.counter.increment),
+            suspense=Suspense(on=self.counter, fallback=Loading()),
+            classes=self.classes.append("w-48"),
+            modifier=self.modifier,
         ):
             text("Click me" if self.counter.count == 0 else f"Clicked {self.counter.count} times")
 
