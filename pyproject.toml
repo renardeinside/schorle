@@ -147,7 +147,6 @@ source_pkgs = ["schorle", "tests"]
 source = ["src/schorle"]
 branch = true
 parallel = true
-omit = ["src/schorle/__about__.py"]
 
 [tool.coverage.paths]
 schorle = ["src/schorle", "*/schorle/src/schorle"]
