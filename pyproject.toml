@@ -1,11 +1,11 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "schorle"
-dynamic = ["version"]
 description = ''
+dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.7"
 license = "MIT"
@@ -44,7 +44,7 @@ Issues = "https://github.com/renardeinside/schorle/issues"
 Source = "https://github.com/renardeinside/schorle"
 
 [tool.hatch.version]
-path = "src/schorle/__about__.py"
+source = "vcs"
 
 [tool.hatch.envs.default]
 dependencies = [
