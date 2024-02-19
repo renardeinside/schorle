@@ -25,3 +25,6 @@ test:
 
 lint:
 	hatch run lint:style .
+
+typing:
+	hatch run lint:typing . --exclude=out
