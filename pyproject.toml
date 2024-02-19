@@ -49,7 +49,8 @@ source = "vcs"
 [tool.hatch.envs.default]
 dependencies = [
     "coverage[toml]>=6.5", "pytest",
-    "betterproto[compiler]"
+    "betterproto[compiler]",
+    "hatch-vcs",
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
