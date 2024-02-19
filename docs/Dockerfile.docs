@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on
 
 
-RUN python -m pip install schorle
+RUN python -m pip install -U schorle
 RUN mkdir -p /app/docs
 RUN mkdir -p /app/raw
 WORKDIR /app
