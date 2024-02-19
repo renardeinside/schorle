@@ -35,7 +35,7 @@ class Element(RenderControllerMixin):
             if _rendered:
                 self._element.set("class", _rendered)
 
-        if element_id:
+        if self._element_id:
             self._element.set("id", self._element_id)
 
         if self.controller.page:
@@ -47,17 +47,8 @@ class Element(RenderControllerMixin):
                 self._element.set("ws-send", "")
                 _triggers = ",".join([o.trigger for o in on])
                 self._element.set("hx-trigger", _triggers)
-
-                if not self._element_id:
-                    self._element_id = "sle-" + self._generate_hash("|".join(str(id(_on.callback)) for _on in on))[:8]
-                    self._element.set("id", self._element_id)
-
                 self.controller.page.reactives[self._element_id] = {_on.trigger: _on.callback for _on in on}
-
             if suspense:
-                if not self._element_id:
-                    self._element_id = "sle-" + self._generate_hash(f"suspense-{id(suspense.on)}")[:8]
-                    self._element.set("id", self._element_id)
                 suspense._parent = self._element
 
     @staticmethod
@@ -66,6 +57,12 @@ class Element(RenderControllerMixin):
 
     def get_element(self):
         elem = etree.SubElement(self.controller.current, self.tag)
+        if not self._element_id and self.controller.page:
+            _parent = self.controller.current
+            _parent_id = _parent.get("id")
+            index_in_parent = len(_parent.getchildren()) + 1
+            self._element_id = f'sle-{self.tag}-{self._generate_hash(f"{_parent_id}{index_in_parent}")[:8]}'
+
         if self.tag in [HTMLTag.SCRIPT, HTMLTag.LINK]:
             elem.text = ""  # Prevents self-closing tags
         return elem
