@@ -35,9 +35,6 @@ dependencies = [
     "requests"
 ]
 
-[project.scripts]
-schorle = "schorle.cli:entrypoint"
-
 [project.urls]
 Documentation = "https://github.com/renardeinside/schorle#readme"
 Issues = "https://github.com/renardeinside/schorle/issues"
@@ -46,8 +43,11 @@ Source = "https://github.com/renardeinside/schorle"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/python/schorle"]
+
 [tool.hatch.build.hooks.vcs]
-version-file = "src/schorle/_version.py"
+version-file = "src/python/schorle/_version.py"
 
 [tool.hatch.envs.default]
 dependencies = [
@@ -155,13 +155,13 @@ ban-relative-imports = "all"
 
 [tool.coverage.run]
 source_pkgs = ["schorle", "tests"]
-source = ["src/schorle"]
+source = ["src/python/schorle"]
 branch = true
 parallel = true
 
 [tool.coverage.paths]
-schorle = ["src/schorle", "*/schorle/src/schorle"]
-tests = ["tests", "*/schorle/tests"]
+schorle = ["src/python/schorle"]
+tests = ["tests"]
 
 [tool.coverage.report]
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
