@@ -92,11 +92,11 @@ site/
 .ruff_cache/
 
 typescript/node_modules/
-src/schorle/assets/dependencies
+src/python/schorle/assets/dependencies
 .dev.log.md
 
 
-src/schorle/_version.py
+src/python/schorle/_version.py
 
 **/.terraform
 **/.terraform.lock.hcl
