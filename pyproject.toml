@@ -47,7 +47,7 @@ Source = "https://github.com/renardeinside/schorle"
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "_version.py"
+version-file = "src/schorle/_version.py"
 
 [tool.hatch.envs.default]
 dependencies = [
@@ -136,6 +136,10 @@ ignore = [
 unfixable = [
     # Don't touch unused imports
     "F401",
+]
+
+exclude = [
+    "src/schorle/_version.py"
 ]
 
 [tool.ruff.lint.isort]

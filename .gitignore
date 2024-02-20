@@ -96,6 +96,8 @@ src/schorle/assets/dependencies
 .dev.log.md
 
 
+src/schorle/_version.py
+
 **/.terraform
 **/.terraform.lock.hcl
 **/terraform.tfstate
