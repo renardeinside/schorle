@@ -81,6 +81,7 @@ all = ["style", "typing"]
 target-version = ["py37"]
 line-length = 120
 skip-string-normalization = true
+extend-exclude = "src/python/schorle/_version.py"
 
 [tool.ruff]
 target-version = "py37"
@@ -139,7 +140,7 @@ unfixable = [
 ]
 
 exclude = [
-    "src/schorle/_version.py"
+    "src/python/schorle/_version.py"
 ]
 
 [tool.ruff.lint.isort]
