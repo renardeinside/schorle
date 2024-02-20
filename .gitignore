@@ -93,6 +93,7 @@ site/
 
 typescript/node_modules/
 src/python/schorle/assets/dependencies
+src/python/schorle/assets/bundle.js
 .dev.log.md
 
 

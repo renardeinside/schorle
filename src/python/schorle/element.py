@@ -39,14 +39,10 @@ class Element(RenderControllerMixin):
             self._element.set("id", self._element_id)
 
         if self.controller.page:
-            self._element.set("hx-swap-oob", "morph")
-
-        if self.controller.page:
             if on:
                 on = [on] if isinstance(on, On) else on
-                self._element.set("ws-send", "")
-                _triggers = ",".join([o.trigger for o in on])
-                self._element.set("hx-trigger", _triggers)
+                _triggers = " ".join([_on.trigger for _on in on])
+                self._element.set("sle-trigger", _triggers)
                 self.controller.page.reactives[self._element_id] = {_on.trigger: _on.callback for _on in on}
             if suspense:
                 suspense._parent = self._element
