@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class Theme(str, Enum):
+    SYSTEM = "system"
     LIGHT = "light"
     DARK = "dark"
     CUPCAKE = "cupcake"

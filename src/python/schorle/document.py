@@ -1,5 +1,6 @@
 from typing import Any
 
+from schorle._dev import dev_loading_spinner
 from schorle.component import Component
 from schorle.element import body, footer, head, link, meta, script, title
 from schorle.page import Page
@@ -18,11 +19,11 @@ class Document(Component):
     lang: str = "en"
     with_tailwind: bool = True
     with_daisyui: bool = True
-    with_htmx: bool = True
     daisyui_version: str = "4.7.2"
 
     def model_post_init(self, __context: Any) -> None:
         self.attributes["lang"] = self.lang
+        self.attributes["data-theme"] = self.theme.value
         super().model_post_init(__context)
 
     def render(self):
@@ -54,4 +55,5 @@ class Document(Component):
                     self.page()
 
             if self.with_dev_meta:
-                footer(element_id="schorle-footer")
+                with footer(element_id="schorle-footer"):
+                    dev_loading_spinner()

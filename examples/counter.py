@@ -3,16 +3,18 @@ from __future__ import annotations
 from pydantic import Field
 
 from schorle.app import Schorle
+from schorle.button import Button
 from schorle.classes import Classes
 from schorle.component import Component
 from schorle.effector import effector
-from schorle.element import button, div
+from schorle.element import div
 from schorle.on import On
 from schorle.page import Page
 from schorle.state import ReactiveModel
 from schorle.text import text
+from schorle.theme import Theme
 
-app = Schorle()
+app = Schorle(theme=Theme.CYBERPUNK)
 
 
 class Counter(ReactiveModel):
@@ -27,11 +29,11 @@ class Counter(ReactiveModel):
         self.count -= 1
 
 
-class Button(Component):
+class StatefulButton(Component):
     counter: Counter
 
     def render(self):
-        with button(on=On("click", self.counter.increment), classes=Classes("btn btn-primary")):
+        with Button(on=On("click", self.counter.increment), modifier="primary"):
             text("Click me" if self.counter.count == 0 else f"Clicked {self.counter.count} times")
 
     def initialize(self):
@@ -43,7 +45,7 @@ class PageWithButton(Page):
 
     def render(self):
         with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
-            Button(counter=self.counter)
+            StatefulButton(counter=self.counter)
 
 
 @app.get("/")

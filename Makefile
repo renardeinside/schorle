@@ -30,11 +30,11 @@ docs-restart-app:
 	az webapp restart --name schorle-webapp --resource-group schorle-rg
 	@echo "Done."
 
-build-bundle:
+bundle-build:
 	@echo "Building bundle..."
 	yarn --cwd src/typescript build
 	@echo "Done."
 
-watch-bundle:
+bundle-watch:
 	@echo "Watching bundle..."
 	yarn --cwd src/typescript watch
