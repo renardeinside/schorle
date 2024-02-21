@@ -53,6 +53,7 @@ resource "null_resource" "build_and_upload" {
   provisioner "local-exec" {
     command = <<EOT
       docker build \
+        --no-cache \
         --platform=linux/amd64 \
         -t ${azurerm_container_registry.acr.login_server}/${local.container_name}:latest \
         -f ../Dockerfile.docs ../.. && \
