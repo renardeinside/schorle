@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import mimetypes
 from asyncio import Task, iscoroutinefunction
 from collections.abc import Callable
@@ -143,11 +144,24 @@ class EventsEndpoint(WebSocketEndpoint):
                 _callback = reactive.get(message.trigger)
                 if _callback:
                     logger.debug(f"Events found callback: {_callback}")
-
-                    if message.value:
-                        _cb = partial(_callback, message.value)
-                    else:
+                    is_partial = isinstance(_callback, partial)
+                    if is_partial:
                         _cb = _callback
+                    else:
+                        sign = (
+                            inspect.signature(_callback)
+                            if inspect.isfunction(_callback)
+                            else inspect.signature(_callback.__func__)
+                        )
+                        if len(sign.parameters) == 0:
+                            _cb = _callback
+                        elif len(sign.parameters) == 1:
+                            _cb = partial(_callback, message.value)
+                        else:
+                            msg = f"Events callback {_callback} with signature {sign} has too many parameters."
+                            logger.error(f"Events callback has too many parameters: {sign.parameters}")
+                            await ws.close(code=1011, reason="Server error.")
+                            raise ValueError(msg)
 
                     # TODO: catch exceptions in _cb
                     asyncio.ensure_future(_cb())  # noqa: RUF006

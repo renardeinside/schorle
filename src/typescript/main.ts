@@ -67,7 +67,7 @@ const applyTriggers = async (io: WebSocket) => {
                 {
                     trigger: event,
                     target: trigger.id,
-                    value: (e.target as HTMLInputElement).value
+                    value: e.target instanceof HTMLInputElement ? e.target.value : null
                 }
             ).catch(e => console.error(`Error sending message: ${e} on event ${trigger.id}`))
         };

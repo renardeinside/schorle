@@ -1,6 +1,4 @@
-import asyncio
 from functools import partial
-from random import random
 
 from pydantic import Field
 
@@ -21,23 +19,26 @@ from schorle.text import text
 app = Schorle()
 
 
+class Current(ReactiveModel):
+    value: str = ""
+
+    @effector
+    async def set(self, value):
+        self.value = value
+
+
 class State(ReactiveModel):
-    current: str = ""
+    current: Current = Current.factory()
     todos: list[str] = Field(default_factory=lambda: ["Buy milk", "Do laundry"])
 
     @effector
-    async def set_current(self, value):
-        self.current = value
-
-    @effector
     async def add_todo(self):
-        await asyncio.sleep(random() * 2)  # Simulate a slow network request
-        self.todos.append(self.current)
-        await self.set_current("")
+        if self.current:
+            self.todos.append(self.current.value)
+        await self.current.set("")
 
     @effector
     async def remove(self, todo):
-        await asyncio.sleep(random() * 2)  # Simulate a slow network request
         self.todos.remove(todo)
 
 
@@ -47,22 +48,22 @@ class InputSection(Component):
 
     def render(self):
         TextInput(
-            value=self.state.current,
+            value=self.state.current.value,
             placeholder="Add a todo",
             classes=Classes("input-bordered"),
-            on=On("change", self.state.set_current),
+            on=On("keyup", self.state.current.set),
         )
-        with Button(on=On("click", self.state.add_todo), modifier="primary"):
+        with Button(on=On("click", self.state.add_todo), modifier="primary", disabled=not self.state.current.value):
             text("Add")
 
     def initialize(self):
-        self.bind(self.state)
+        self.bind(self.state.current)
 
 
 class TodoView(Component):
     state: State
     classes: Classes = Classes(
-        "max-w-xl w-2/3 space-y-2 flex flex-col items-center h-96 m-4 shadow-lg p-10 rounded-lg bg-base-300"
+        "max-w-xl w-5/6 space-y-2 flex flex-col items-center m-4 shadow-lg p-10 rounded-lg bg-base-300"
     )
 
     def render(self):
