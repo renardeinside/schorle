@@ -42,7 +42,7 @@ class Document(Component):
                     type="text/css",
                 )
 
-            script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
+            script(src="/_schorle/assets/bundle.js", crossorigin="anonymous", **{"defer": ""})
             if self.extra_assets:
                 for asset in self.extra_assets:
                     asset()
