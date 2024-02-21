@@ -43,3 +43,7 @@ build-bundle:
 	@echo "Building bundle..."
 	cd src/typescript && yarn build
 	@echo "Done."
+
+watch-bundle:
+	@echo "Watching bundle..."
+	cd src/typescript && yarn watch
