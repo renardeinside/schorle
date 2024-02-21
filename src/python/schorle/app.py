@@ -7,6 +7,7 @@ from importlib.resources import files
 from pathlib import Path
 from uuid import uuid4
 
+import msgpack
 from fastapi import FastAPI
 from loguru import logger
 from lxml import etree
@@ -95,7 +96,7 @@ class Schorle:
 
 
 class EventsEndpoint(WebSocketEndpoint):
-    encoding = "text"
+    encoding = "bytes"
 
     def __init__(self, scope, receive, send, pages: dict[str, Page]) -> None:
         super().__init__(scope, receive, send)
@@ -118,21 +119,17 @@ class EventsEndpoint(WebSocketEndpoint):
             self._page = page
             self.page_emitter_task = asyncio.create_task(PageEmitter(page).emit(websocket))
             logger.info("Events connected.")
-
-        elif not page and get_running_mode() == RunningMode.DEV:
-            logger.info("Sending reload message to client...")
-            await websocket.accept()
-            await websocket.send_text("reload")  # standard schorle reload message
-            await websocket.close()
-            return
         else:
-            await websocket.close()
+            await websocket.close(1001, "Page not found.")
             return
 
     async def on_receive(self, ws: WebSocket, data: str) -> None:
-        logger.warning(f"Events received message: {data}")
+        logger.warning("Events received message, decoding it")
         try:
-            message = ClientMessage.model_validate_json(data)
+            _parsed = msgpack.unpackb(data, raw=False)
+            message = ClientMessage.model_validate(_parsed)
+            logger.debug(f"Events parsed message: {message}")
+
         except ValueError as e:
             msg = f"Cannot parse message: {e}, format is invalid."
             logger.error(msg)

@@ -1,5 +1,6 @@
 import asyncio
 
+import msgpack
 from loguru import logger
 from lxml import etree
 from starlette.websockets import WebSocket
@@ -36,7 +37,7 @@ class PageEmitter:
                     "target": target,
                     "html": _html,
                 }
-                await ws.send_json(_msg)
+                await ws.send_bytes(msgpack.packb(_msg))
             except Exception as e:
                 logger.error(f"Error while emitting: {e}")
                 break

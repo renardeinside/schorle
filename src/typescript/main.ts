@@ -1,6 +1,7 @@
 // @ts-ignore
 import {Idiomorph} from 'idiomorph/dist/idiomorph.esm';
 import {createIcons, icons} from 'lucide';
+import {decode, encode} from "@msgpack/msgpack";
 
 interface Cookie {
     name: string;
@@ -19,7 +20,9 @@ const prepareIO = () => {
     // prepare a websocket with sessionId passed as protocol
     // it should connect to the server at the same host and port, with same scheme
     let scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    return new WebSocket(`${scheme}://${window.location.host}/_schorle/events`);
+    let socket = new WebSocket(`${scheme}://${window.location.host}/_schorle/events`);
+    socket.binaryType = 'arraybuffer';
+    return socket;
 }
 
 const runningInDevMode = (): boolean => {
@@ -40,9 +43,9 @@ const triggerable = () => {
     return Array.from(page.querySelectorAll('[sle-trigger]'));
 }
 
-const sendWhenReady = async (io: WebSocket, message: string) => {
+const sendWhenReady = async (io: WebSocket, message: object) => {
     if (io.readyState === WebSocket.OPEN) {
-        io.send(message);
+        io.send(encode(message));
     } else {
         setTimeout(() => sendWhenReady(io, message), 100);
     }
@@ -61,11 +64,11 @@ const applyTriggers = async (io: WebSocket) => {
         let listener = (e: Event) => {
             sendWhenReady(
                 io,
-                JSON.stringify({
+                {
                     trigger: event,
                     target: trigger.id,
-                    value: event === 'click' ? null : (e.target as HTMLInputElement).value
-                })
+                    value: (e.target as HTMLInputElement).value
+                }
             ).catch(e => console.error(`Error sending message: ${e} on event ${trigger.id}`))
         };
 
@@ -76,11 +79,11 @@ const applyTriggers = async (io: WebSocket) => {
 
         // if the event is load, send a message to the server immediately
         if (event === 'load') {
-            sendWhenReady(io, JSON.stringify({
+            sendWhenReady(io, {
                 trigger: event,
                 target: trigger.id,
                 value: null
-            }));
+            });
         }
     });
 }
@@ -163,7 +166,7 @@ const schorleSetup = () => {
     }
 
     io.onmessage = (e) => {
-        let payload: { target: string, html: string } = JSON.parse(e.data);
+        let payload: { target: string, html: string } = decode(e.data) as { target: string, html: string };
         let target = document.getElementById(payload.target);
         if (target === null) {
             throw new Error(`Element with id ${payload.target} not found`);
