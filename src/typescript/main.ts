@@ -166,7 +166,7 @@ const schorleSetup = () => {
     }
 
     io.onmessage = (e) => {
-        let payload: { target: string, html: string } = decode(e.data) as { target: string, html: string };
+        let payload= decode(e.data) as { target: string, html: string };
         let target = document.getElementById(payload.target);
         if (target === null) {
             throw new Error(`Element with id ${payload.target} not found`);
