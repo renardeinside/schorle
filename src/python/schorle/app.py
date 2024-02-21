@@ -9,7 +9,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import msgpack
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, UploadFile
 from loguru import logger
 from lxml import etree
 from starlette.endpoints import WebSocketEndpoint
@@ -40,6 +40,7 @@ def assets(file_name: str) -> FileResponse:
 
 PATH_HEADER = "X-Schorle-Session-Path"
 SESSION_ID_HEADER = "X-Schorle-Session-Id"
+TRIGGER_ID_HEADER = "X-Schorle-Trigger-Id"
 
 
 class Schorle:
@@ -47,11 +48,31 @@ class Schorle:
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}", response_class=FileResponse)(assets)
+        self.backend.post("/_schorle/upload")(self._file_upload)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
         self.backend.get("/favicon.svg", response_class=FileResponse)(favicon)
         self.theme: Theme = theme
         self.extra_assets = extra_assets
         self.lang = lang
+
+    async def _file_upload(self, uploaded_files: list[UploadFile], request: Request):
+        trigger_id = request.headers.get(TRIGGER_ID_HEADER)
+        session_id = request.cookies.get(SESSION_ID_HEADER)
+
+        if (
+            not trigger_id
+            or not session_id
+            or session_id not in self._pages
+            or trigger_id not in self._pages[session_id].reactives
+        ):
+            logger.warning(f"Invalid file upload request: {request}")
+            return HTMLResponse("Invalid request.", status_code=400)
+        else:
+            reactive = self._pages[session_id].reactives[trigger_id]
+            callback = reactive.get("change")
+            if callback:
+                _arg = uploaded_files[0] if len(uploaded_files) == 1 else uploaded_files
+                await callback(_arg)
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
@@ -119,6 +140,7 @@ class EventsEndpoint(WebSocketEndpoint):
             await websocket.accept()
             self._page = page
             self.page_emitter_task = asyncio.create_task(PageEmitter(page).emit(websocket))
+            self._page._io = websocket
             logger.info("Events connected.")
         else:
             await websocket.close(1001, "Page not found.")
@@ -128,8 +150,9 @@ class EventsEndpoint(WebSocketEndpoint):
         logger.warning("Events received message, decoding it")
         try:
             _parsed = msgpack.unpackb(data, raw=False)
+            logger.debug(f"Events parsed message: {_parsed}")
             message = ClientMessage.model_validate(_parsed)
-            logger.debug(f"Events parsed message: {message}")
+            logger.debug(f"Events validated message: {message}")
 
         except ValueError as e:
             msg = f"Cannot parse message: {e}, format is invalid."

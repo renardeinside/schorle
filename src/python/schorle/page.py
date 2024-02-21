@@ -3,6 +3,7 @@ from asyncio import Queue
 from typing import Any
 
 from pydantic import Field, PrivateAttr
+from starlette.websockets import WebSocket
 
 from schorle.component import Component
 from schorle.tags import HTMLTag
@@ -13,6 +14,7 @@ class Page(Component):
     element_id: str = "schorle-page"
     reactives: dict[str, Any] = Field(default_factory=dict)
     _render_queue: Queue[Component] = PrivateAttr(default_factory=Queue)
+    _io: WebSocket | None = PrivateAttr(default=None)
 
     def append_to_queue(self, component: Component):
         self._render_queue.put_nowait(component)

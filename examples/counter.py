@@ -14,7 +14,7 @@ from schorle.state import ReactiveModel
 from schorle.text import text
 from schorle.theme import Theme
 
-app = Schorle(theme=Theme.CYBERPUNK)
+app = Schorle(theme=Theme.DARK)
 
 
 class Counter(ReactiveModel):

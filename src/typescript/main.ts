@@ -8,6 +8,19 @@ interface Cookie {
     value: string;
 }
 
+interface ClientMessage {
+    trigger: string;
+    target: string;
+    value: string | null;
+    meta?: { [key: string]: string };
+}
+
+interface ServerMessage {
+    target: string;
+    html: string;
+    action?: string;
+}
+
 const parseCookie = (rawString: string): Array<Cookie> => {
     const cookies = rawString.split(';');
     return cookies.map((cookie) => {
@@ -43,12 +56,47 @@ const triggerable = () => {
     return Array.from(page.querySelectorAll('[sle-trigger]'));
 }
 
-const sendWhenReady = async (io: WebSocket, message: object) => {
+const sendWhenReady = async (io: WebSocket, message: ClientMessage) => {
     if (io.readyState === WebSocket.OPEN) {
         io.send(encode(message));
     } else {
         setTimeout(() => sendWhenReady(io, message), 100);
     }
+}
+
+
+const defaultListener = (e: Event, io: WebSocket, event: string, trigger: Element) => {
+    sendWhenReady(
+        io,
+        {
+            trigger: event!,
+            target: trigger.id,
+            value: e.target instanceof HTMLInputElement ? e.target.value : null
+        }
+    ).catch(e => console.error(`Error sending message: ${e} on event ${trigger.id}`))
+}
+
+const fileUploadListener = (e: Event) => {
+    // get the file from the input
+    // and send it in parts to the server
+    // add the file name to the message meta
+    // do it for each file
+    let input = e.target as HTMLInputElement;
+    let files = input.files;
+    if (files === null) {
+        throw new Error('No files found');
+    }
+    let formData = new FormData();
+
+    Array.from(files).forEach((file) => {
+        formData.append('uploaded_files', file);
+    });
+
+    fetch(`/_schorle/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {"X-Schorle-Trigger-Id": input.id}
+    }).catch(e => console.error(e));
 }
 
 const applyTriggers = async (io: WebSocket) => {
@@ -61,18 +109,12 @@ const applyTriggers = async (io: WebSocket) => {
             throw new Error('Attribute sle-trigger not found');
         }
 
-        let listener = (e: Event) => {
-            sendWhenReady(
-                io,
-                {
-                    trigger: event,
-                    target: trigger.id,
-                    value: e.target instanceof HTMLInputElement ? e.target.value : null
-                }
-            ).catch(e => console.error(`Error sending message: ${e} on event ${trigger.id}`))
-        };
+        if (event === 'change' && trigger instanceof HTMLInputElement && trigger.type === 'file') {
+            trigger.addEventListener(event, fileUploadListener);
+        } else {
+            trigger.addEventListener(event, (e) => defaultListener(e, io, event!, trigger));
+        }
 
-        trigger.addEventListener(event, listener);
 
         // mark the element as processed
         trigger.setAttribute('sle-processed', 'true');
@@ -115,6 +157,45 @@ const devToggleLoading = (b: boolean) => {
     }
 }
 
+
+const devReload = () => {
+    console.log('[schorle][dev mode] reloading page');
+    devToggleLoading(true);
+    fetch(window.location.href, {cache: 'reload'}).then((response) => {
+        if (response.ok) {
+            return response.text();
+        } else {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+    }).then((html) => {
+        let newDocument = new DOMParser().parseFromString(html, 'text/html');
+        // check if data-theme is presented on html tag and set it
+        let theme = newDocument.documentElement.getAttribute('data-theme');
+        if (theme !== null) {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        // morph the head and body
+        Idiomorph.morph(document.head, newDocument.head);
+        Idiomorph.morph(document.body, newDocument.body, {
+            callbacks: {
+                beforeNodeMorphed: (node: Node) => {
+                    // skip an element with id loadingIndicatorId
+                    if (node instanceof HTMLElement && node.id === loadingIndicatorId) {
+                        return false;
+                    }
+                    else if (node instanceof HTMLInputElement) {
+                        // clear the value of input elements
+                        node.value = '';
+                    }
+                }
+            }
+        });
+        schorleSetup();
+    }).catch(e => console.error(e));
+    console.log('[schorle][dev mode] finished reloading page');
+}
+
 const schorleSetup = () => {
     console.log(`[schorle] setup started`)
     devToggleLoading(true);
@@ -131,56 +212,34 @@ const schorleSetup = () => {
     }
     io.onclose = (e) => {
         if (e.code === 1012 && runningInDevMode()) {
-            console.log('[dev mode] reloading page');
-            devToggleLoading(true);
-            fetch(window.location.href, {cache: 'reload'}).then((response) => {
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    throw new Error(`HTTP error: ${response.status}`);
-                }
-            }).then((html) => {
-                let newDocument = new DOMParser().parseFromString(html, 'text/html');
-                // check if data-theme is presented on html tag and set it
-                let theme = newDocument.documentElement.getAttribute('data-theme');
-                if (theme !== null) {
-                    document.documentElement.setAttribute('data-theme', theme);
-                }
-
-                // morph the head and body
-                Idiomorph.morph(document.head, newDocument.head);
-                Idiomorph.morph(document.body, newDocument.body, {
-                    callbacks: {
-                        beforeNodeMorphed: (node: Node) => {
-                            // skip an element with id loadingIndicatorId
-                            if (node instanceof HTMLElement && node.id === loadingIndicatorId) {
-                                return false;
-                            }
-                        }
-                    }
-                });
-                schorleSetup();
-            }).catch(e => console.error(e));
-            console.log('[dev mode] finished reloading page');
+            console.log(`[schorle] connection closed by server, reloading page`);
+            devReload();
         }
     }
 
     io.onmessage = (e) => {
-        let payload= decode(e.data) as { target: string, html: string };
+        let payload = decode(e.data) as ServerMessage;
         let target = document.getElementById(payload.target);
         if (target === null) {
             throw new Error(`Element with id ${payload.target} not found`);
         }
-        Idiomorph.morph(target, payload.html, {
-            callbacks: {
-                beforeAttributeUpdated: (attributeName: string) => {
-                    if (attributeName === 'sle-processed') {
-                        return false;
+        if (payload.action === 'morph') {
+            console.log(`[schorle] morphing element with id ${payload.target} and html ${payload.html}`);
+            Idiomorph.morph(target, payload.html, {
+                callbacks: {
+                    beforeAttributeUpdated: (attributeName: string) => {
+                        if (attributeName === 'sle-processed') {
+                            console.log(`[schorle] skipping attribute sle-processed`);
+                            return false;
+                        }
                     }
                 }
-            }
-        });
-        applyTriggers(io).catch(e => console.error(e));
+            });
+            applyTriggers(io).catch(e => console.error(e));
+        } else if (payload.action === 'clear' && target instanceof HTMLInputElement) {
+            console.log(`[schorle] clearing element with id ${payload.target}`);
+            target.value = '';
+        }
     }
 
     applyTriggers(io).catch(e => console.error(e));

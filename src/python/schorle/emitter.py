@@ -36,6 +36,7 @@ class PageEmitter:
                 _msg = {
                     "target": target,
                     "html": _html,
+                    "action": "morph",
                 }
                 await ws.send_bytes(msgpack.packb(_msg))
             except Exception as e:
