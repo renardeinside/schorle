@@ -131,8 +131,14 @@ class EventsEndpoint(WebSocketEndpoint):
 
     async def on_receive(self, ws: WebSocket, data: str) -> None:
         logger.warning(f"Events received message: {data}")
-        message = ClientMessage.model_validate_json(data)
-        logger.debug(f"Events received message: {message}")
+        try:
+            message = ClientMessage.model_validate_json(data)
+        except ValueError as e:
+            msg = f"Cannot parse message: {e}, format is invalid."
+            logger.error(msg)
+            await ws.close(code=1011, reason=msg)
+            return
+
         if self._page:
             reactive = self._page.reactives.get(message.target)
             if reactive:

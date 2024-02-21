@@ -30,11 +30,6 @@ docs-restart-app:
 	az webapp restart --name schorle-webapp --resource-group schorle-rg
 	@echo "Done."
 
-docs-serve:
-	@echo "Serving docs..."
-	docker build -t schorle-docs -f docs/Dockerfile.docs .
-	docker run -p 4444:4444 -it schorle-docs
-
 build-bundle:
 	@echo "Building bundle..."
 	yarn --cwd src/typescript build
