@@ -16,6 +16,14 @@ docs-deploy:
 	cd docs/deployment && terraform apply --var-file=.tfvars
 	@echo "Done."
 
+docs-build:
+	docker build --no-cache -t schorle-docs -f docs/Dockerfile.docs .
+
+docs-serve: docs-build
+	@echo "Serving docs..."
+	docker run -p 4444:4444 -it schorle-docs
+	@echo "Done."
+
 fmt:
 	hatch run lint:fmt .
 
@@ -41,9 +49,9 @@ serve-docs:
 
 build-bundle:
 	@echo "Building bundle..."
-	cd src/typescript && yarn build
+	yarn --cwd src/typescript build
 	@echo "Done."
 
 watch-bundle:
 	@echo "Watching bundle..."
-	cd src/typescript && yarn watch
+	yarn --cwd src/typescript watch
