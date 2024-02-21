@@ -5,6 +5,7 @@ from collections.abc import Callable
 from functools import partial
 from importlib.resources import files
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import FastAPI
 from loguru import logger
@@ -16,7 +17,7 @@ from starlette.websockets import WebSocket
 
 from schorle.document import Document
 from schorle.emitter import PageEmitter
-from schorle.models import HtmxMessage
+from schorle.models import ClientMessage
 from schorle.page import Page
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode, render_in_context
@@ -36,6 +37,10 @@ def assets(file_name: str) -> PlainTextResponse:
         return PlainTextResponse(f"File not found: {file_name}", status_code=404)
 
 
+PATH_HEADER = "X-Schorle-Session-Path"
+SESSION_ID_HEADER = "X-Schorle-Session-Id"
+
+
 class Schorle:
     def __init__(self, theme: Theme = Theme.DARK, lang: str = "en", extra_assets: list | None = None) -> None:
         self._pages: dict[str, Page] = {}
@@ -49,7 +54,7 @@ class Schorle:
 
     def get(self, path: str):
         def decorator(func: Callable[..., Page]):
-            self.backend.get(path, response_class=HTMLResponse)(partial(self.render_to_response, func))
+            self.backend.get(path, response_class=HTMLResponse)(partial(self.render_to_response, func, path))
             return func
 
         return decorator
@@ -60,7 +65,7 @@ class Schorle:
         """
         await self.backend(scope=scope, receive=receive, send=send)
 
-    async def render_to_response(self, page_provider: Callable[..., Page]) -> HTMLResponse:
+    async def render_to_response(self, page_provider: Callable[..., Page], path: str) -> HTMLResponse:
         page = page_provider()
         logger.info(f"Rendering page: {page}...")
 
@@ -80,10 +85,10 @@ class Schorle:
         lxml_element = render_in_context(doc)
         rendered = etree.tostring(lxml_element, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
         response = HTMLResponse(rendered, status_code=200)
-
-        logger.info(f"Adding page to cache with token: {doc.csrf_token}")
-
-        self._pages[str(doc.csrf_token)] = page
+        _session_id = str(uuid4())
+        response.set_cookie(SESSION_ID_HEADER, _session_id)
+        response.set_cookie(PATH_HEADER, path)
+        self._pages[_session_id] = page
 
         logger.debug("Page rendered.")
 
@@ -100,12 +105,15 @@ class EventsEndpoint(WebSocketEndpoint):
         self.page_emitter_task: Task | None = None
 
     async def on_connect(self, websocket: WebSocket) -> None:
-        token = websocket.query_params.get("token")
-        if not token:
-            logger.error("No token provided.")
-            await websocket.close()
-            return
-        page: Page | None = self._pages.get(token)
+        for expected_header in [PATH_HEADER, SESSION_ID_HEADER]:
+            if expected_header not in websocket.cookies:
+                logger.error(f"Missing header: {expected_header}")
+                await websocket.close(1011, f"Missing header: {expected_header}")
+                return
+
+        session_id = websocket.cookies[SESSION_ID_HEADER]
+        page: Page | None = self._pages.get(session_id)
+
         if page:
             await websocket.accept()
             self._page = page
@@ -119,25 +127,23 @@ class EventsEndpoint(WebSocketEndpoint):
             await websocket.close()
             return
         else:
-            logger.error(f"No page found for token: {token}")
             await websocket.close()
             return
 
     async def on_receive(self, ws: WebSocket, data: str) -> None:
         logger.warning(f"Events received message: {data}")
-        message = HtmxMessage.model_validate_json(data)
+        message = ClientMessage.model_validate_json(data)
         logger.debug(f"Events received message: {message}")
         if self._page:
-            reactive = self._page.reactives.get(message.headers.trigger_element_id)
+            reactive = self._page.reactives.get(message.target)
             if reactive:
                 logger.debug(f"Events found reactive: {reactive}")
-                _callback = reactive.get(message.headers.trigger_type)
+                _callback = reactive.get(message.trigger)
                 if _callback:
                     logger.debug(f"Events found callback: {_callback}")
 
-                    if message.headers.trigger_name is not None:
-                        _value = getattr(message, message.headers.trigger_name)
-                        _cb = partial(_callback, _value)
+                    if message.value:
+                        _cb = partial(_callback, message.value)
                     else:
                         _cb = _callback
 

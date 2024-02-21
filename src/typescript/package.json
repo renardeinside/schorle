@@ -1,0 +1,19 @@
+{
+  "name": "schorle",
+  "version": "0.0.1",
+  "main": "main.ts",
+  "repository": "https://github.com/renardeinside/schorle",
+  "license": "MIT",
+  "scripts": {
+    "build": "esbuild main.ts --bundle --minify --outfile=../python/schorle/assets/bundle.js",
+    "watch": "esbuild main.ts --bundle --minify --outfile=../python/schorle/assets/bundle.js --watch"
+  },
+  "dependencies": {
+    "idiomorph": "^0.3.0",
+    "lucide": "^0.335.0",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.1"
+  }
+}
