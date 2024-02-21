@@ -62,10 +62,16 @@ uvicorn examples.simple:app --reload
 ## Roadmap
 
 - [ ] Add more elements
+- [x] Add hot reload
+- [ ] Add support for onload events
+- [ ] Use msgpack for message SerDe ([Why msgpack?](https://medium.com/@hugovs/the-need-for-speed-experimenting-with-message-serialization-93d7562b16e4))
 - [x] Introduce `suspense` for loading states
+- [ ] Simplify indexing logic
+- [ ] Add convenient attributes API
 - [ ] Add more examples
 - [ ] Add tests
 - [ ] Add CI/CD
 - [ ] Add documentation
 - [ ] Add support for Plotly-based charts
+- [ ] Add support for Vega-based charts
 - [ ] Refactor the imports
