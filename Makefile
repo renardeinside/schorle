@@ -38,3 +38,8 @@ serve-docs:
 	@echo "Serving docs..."
 	docker build -t schorle-docs -f docs/Dockerfile.docs .
 	docker run -p 4444:4444 -it schorle-docs
+
+build-bundle:
+	@echo "Building bundle..."
+	cd src/typescript && yarn build
+	@echo "Done."

@@ -1,5 +1,5 @@
 import asyncio
-import pkgutil
+import mimetypes
 from asyncio import Task, iscoroutinefunction
 from collections.abc import Callable
 from functools import partial
@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from loguru import logger
 from lxml import etree
 from starlette.endpoints import WebSocketEndpoint
-from starlette.responses import FileResponse, HTMLResponse, PlainTextResponse
+from starlette.responses import FileResponse, HTMLResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
@@ -22,19 +22,18 @@ from schorle.page import Page
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode, render_in_context
 
+ASSETS_PATH = Path(str(files("schorle"))) / Path("assets")
+
 
 def favicon() -> FileResponse:
-    package_path = files("schorle")
-    favicon_path = Path(str(package_path)) / "assets" / "favicon.svg"
+    favicon_path = ASSETS_PATH / "favicon.svg"
     return FileResponse(favicon_path, media_type="image/svg+xml")
 
 
-def assets(file_name: str) -> PlainTextResponse:
-    _bundle = pkgutil.get_data("schorle", f"assets/{file_name}")
-    if _bundle:
-        return PlainTextResponse(_bundle.decode("utf-8"), status_code=200)
-    else:
-        return PlainTextResponse(f"File not found: {file_name}", status_code=404)
+def assets(file_name: str) -> FileResponse:
+    file_path = ASSETS_PATH / file_name
+    mime_type, _ = mimetypes.guess_type(file_path)
+    return FileResponse(file_path, media_type=mime_type)
 
 
 PATH_HEADER = "X-Schorle-Session-Path"
@@ -45,7 +44,7 @@ class Schorle:
     def __init__(self, theme: Theme = Theme.DARK, lang: str = "en", extra_assets: list | None = None) -> None:
         self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
-        self.backend.get("/_schorle/assets/{file_name:path}")(assets)
+        self.backend.get("/_schorle/assets/{file_name:path}", response_class=FileResponse)(assets)
         self.backend.add_websocket_route("/_schorle/events", partial(EventsEndpoint, pages=self._pages))
         self.backend.get("/favicon.svg", response_class=FileResponse)(favicon)
         self.theme: Theme = theme
