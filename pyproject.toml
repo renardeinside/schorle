@@ -32,7 +32,8 @@ dependencies = [
     "uvicorn[standard]",
     "loguru",
     "defusedxml",
-    "requests"
+    "requests",
+    "msgpack"
 ]
 
 [project.urls]
