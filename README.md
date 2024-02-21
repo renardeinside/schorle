@@ -65,7 +65,7 @@ uvicorn examples.simple:app --reload
 - [x] Add hot reload
 - [x] Add support for icons
 - [x] Add support for onload events
-- [ ] Use msgpack for message SerDe ([Why msgpack?](https://medium.com/@hugovs/the-need-for-speed-experimenting-with-message-serialization-93d7562b16e4))
+- [x] Use msgpack for message SerDe ([Why msgpack?](https://medium.com/@hugovs/the-need-for-speed-experimenting-with-message-serialization-93d7562b16e4))
 - [x] Introduce `suspense` for loading states
 - [ ] Simplify indexing logic
 - [ ] Add convenient attributes API
