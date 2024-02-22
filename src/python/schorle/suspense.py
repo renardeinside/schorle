@@ -3,13 +3,13 @@ from typing import Any
 
 from loguru import logger
 
-from schorle.render_controller import RenderControllerMixin
+from schorle.render_controller import RenderableMixin
 from schorle.state import ReactiveModel
 from schorle.types import LXMLElement
 from schorle.utils import render_in_context
 
 
-class Suspense(RenderControllerMixin):
+class Suspense(RenderableMixin):
     def __init__(self, on: ReactiveModel, fallback: Any):
         self.on = on
         self._parent: LXMLElement | None = None

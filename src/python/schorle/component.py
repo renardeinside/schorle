@@ -7,13 +7,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from schorle.classes import Classes
 from schorle.element import Element
 from schorle.on import On
-from schorle.render_controller import RenderControllerMixin
+from schorle.render_controller import RenderableMixin
 from schorle.state import ReactiveModel
 from schorle.suspense import Suspense
 from schorle.tags import HTMLTag
 
 
-class Component(ABC, BaseModel, RenderControllerMixin):
+class Component(ABC, BaseModel, RenderableMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     tag: HTMLTag = HTMLTag.DIV

@@ -4,12 +4,12 @@ from lxml import etree
 
 from schorle.classes import Classes
 from schorle.on import On
-from schorle.render_controller import RenderControllerMixin
+from schorle.render_controller import RenderableMixin
 from schorle.suspense import Suspense
 from schorle.tags import HTMLTag
 
 
-class Element(RenderControllerMixin):
+class Element(RenderableMixin):
     def __init__(
         self,
         tag: HTMLTag,

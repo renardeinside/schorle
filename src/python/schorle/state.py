@@ -1,6 +1,9 @@
+import asyncio
+from typing import Callable, Generic, TypeVar
+
 from pydantic import BaseModel, Field
 
-from schorle.effector import effector_listing, inject_effectors
+from schorle.effector import EffectorProtocol, effector_listing, inject_effectors
 
 
 class EffectorMixin:
@@ -21,3 +24,22 @@ class ReactiveModel(BaseModel, EffectorMixin, extra="allow"):
 class ReactiveState(EffectorMixin):
     def __init__(self):
         inject_effectors(self)
+
+
+def effector(func: Callable) -> EffectorProtocol:
+    if not asyncio.iscoroutinefunction(func):
+        msg = f"Effector must be a coroutine function. {func.__name__} is not a coroutine function"
+        raise ValueError(msg)
+    func.is_emitter = True  # type: ignore[attr-defined]
+    return func  # type: ignore[return-value]
+
+
+T = TypeVar("T")
+
+
+class Reactive(ReactiveModel, Generic[T]):
+    value: T | None = None
+
+    @effector
+    async def set(self, value: T | None):
+        self.value = value

@@ -18,7 +18,7 @@ class RenderController:
         return self._root
 
 
-class RenderControllerMixin:
+class RenderableMixin:
     @property
     def controller(self) -> RenderController:
         return RENDER_CONTROLLER.get()

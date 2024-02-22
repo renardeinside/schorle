@@ -2,10 +2,9 @@ from pydantic import Field
 
 from schorle.classes import Classes
 from schorle.component import Component
-from schorle.effector import effector
 from schorle.element import button, div, span
 from schorle.page import Page
-from schorle.state import ReactiveModel
+from schorle.state import ReactiveModel, effector
 from schorle.text import text
 from schorle.types import LXMLElement
 from schorle.utils import render_in_context
