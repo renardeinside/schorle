@@ -1,11 +1,11 @@
 import asyncio
 
-import msgpack
 from loguru import logger
 from lxml import etree
 from starlette.websockets import WebSocket
 
 from schorle.component import Component
+from schorle.models import Action, ServerMessage
 from schorle.page import Page
 from schorle.types import LXMLElement
 from schorle.utils import render_in_context
@@ -33,11 +33,8 @@ class PageEmitter:
                     msg = f"Unknown renderable: {renderable}"
                     raise ValueError(msg)
 
-                _msg = {
-                    "target": target,
-                    "html": _html,
-                }
-                await ws.send_bytes(msgpack.packb(_msg))
+                _msg = ServerMessage(target=target, payload=_html, action=Action.morph)
+                await ws.send_bytes(_msg.encode())
             except Exception as e:
                 logger.error(f"Error while emitting: {e}")
                 break
