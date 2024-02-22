@@ -8,7 +8,6 @@ from importlib.resources import files
 from pathlib import Path
 from uuid import uuid4
 
-import msgpack
 from fastapi import FastAPI
 from loguru import logger
 from lxml import etree
@@ -124,11 +123,10 @@ class EventsEndpoint(WebSocketEndpoint):
             await websocket.close(1001, "Page not found.")
             return
 
-    async def on_receive(self, ws: WebSocket, data: str) -> None:
+    async def on_receive(self, ws: WebSocket, data: bytes) -> None:
         logger.warning("Events received message, decoding it")
         try:
-            _parsed = msgpack.unpackb(data, raw=False)
-            message = ClientMessage.model_validate(_parsed)
+            message = ClientMessage.decode(data)
             logger.debug(f"Events parsed message: {message}")
 
         except ValueError as e:
@@ -167,9 +165,9 @@ class EventsEndpoint(WebSocketEndpoint):
                     asyncio.ensure_future(_cb())  # noqa: RUF006
 
                 else:
-                    logger.error(f"Events no callback found for type: {message.headers.trigger_type}")
+                    logger.error(f"Events no callback found for type: {message.trigger}")
             else:
-                logger.error(f"Events no reactive found for id: {message.headers.trigger_element_id}")
+                logger.error(f"Events no reactive found for id: {message.target}")
 
         else:
             logger.error("No page found, closing websocket...")

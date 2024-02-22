@@ -2,6 +2,7 @@
 import {Idiomorph} from 'idiomorph/dist/idiomorph.esm';
 import {createIcons, icons} from 'lucide';
 import {decode, encode} from "@msgpack/msgpack";
+import {Action, ClientMessage, ServerMessage} from "./models";
 
 interface Cookie {
     name: string;
@@ -43,12 +44,23 @@ const triggerable = () => {
     return Array.from(page.querySelectorAll('[sle-trigger]'));
 }
 
-const sendWhenReady = async (io: WebSocket, message: object) => {
+const sendWhenReady = async (io: WebSocket, message: ClientMessage) => {
     if (io.readyState === WebSocket.OPEN) {
         io.send(encode(message));
     } else {
         setTimeout(() => sendWhenReady(io, message), 100);
     }
+}
+
+const defaultListener = (e: Event, io: WebSocket, trigger: Element) => {
+    sendWhenReady(
+        io,
+        {
+            trigger: e.type,
+            target: trigger.id,
+            value: e.target instanceof HTMLInputElement ? e.target.value : null
+        }
+    ).catch(e => console.error(`Error sending message: ${e} on event ${trigger.id}`));
 }
 
 const applyTriggers = async (io: WebSocket) => {
@@ -61,18 +73,7 @@ const applyTriggers = async (io: WebSocket) => {
             throw new Error('Attribute sle-trigger not found');
         }
 
-        let listener = (e: Event) => {
-            sendWhenReady(
-                io,
-                {
-                    trigger: event,
-                    target: trigger.id,
-                    value: e.target instanceof HTMLInputElement ? e.target.value : null
-                }
-            ).catch(e => console.error(`Error sending message: ${e} on event ${trigger.id}`))
-        };
-
-        trigger.addEventListener(event, listener);
+        trigger.addEventListener(event, e => defaultListener(e, io, trigger));
 
         // mark the element as processed
         trigger.setAttribute('sle-processed', 'true');
@@ -166,20 +167,29 @@ const schorleSetup = () => {
     }
 
     io.onmessage = (e) => {
-        let payload= decode(e.data) as { target: string, html: string };
-        let target = document.getElementById(payload.target);
+        let message = decode(e.data) as ServerMessage;
+        let target = document.getElementById(message.target);
         if (target === null) {
-            throw new Error(`Element with id ${payload.target} not found`);
+            throw new Error(`Element with id ${message.target} not found`);
         }
-        Idiomorph.morph(target, payload.html, {
-            callbacks: {
-                beforeAttributeUpdated: (attributeName: string) => {
-                    if (attributeName === 'sle-processed') {
-                        return false;
+        console.log(`[schorle] received message: ${message}`);
+
+        switch (message.action) {
+            case Action.morph:
+                Idiomorph.morph(target, message.payload, {
+                    callbacks: {
+                        beforeAttributeUpdated: (attributeName: string) => {
+                            if (attributeName === 'sle-processed') {
+                                return false;
+                            }
+                        }
                     }
-                }
-            }
-        });
+                });
+                break;
+            default:
+                throw new Error(`Unknown action: ${message.action}`);
+        }
+
         applyTriggers(io).catch(e => console.error(e));
     }
 
