@@ -16,10 +16,10 @@ class TextInput(Component):
 
     def model_post_init(self, __context: Any):
         self.classes.append(self.base_classes)
-        self.attributes["placeholder"] = self.placeholder
-        self.attributes["value"] = self.value
-        self.attributes["hx-include"] = "this"
-        self.attributes["name"] = self.name
+        self.attrs["placeholder"] = self.placeholder
+        self.attrs["value"] = self.value
+        self.attrs["hx-include"] = "this"
+        self.attrs["name"] = self.name
         super().model_post_init(__context)
 
     def render(self):

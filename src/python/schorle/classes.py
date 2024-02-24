@@ -49,4 +49,10 @@ class Classes(BaseModel):
         return self
 
     def render(self) -> str:
-        return "" if not self._value else " ".join(set(self._value)).strip()
+        return "" if not self._value else " ".join(sorted(set(self._value))).strip()
+
+    def __str__(self) -> str:
+        return self.render()
+
+    def __repr__(self) -> str:
+        return f"Classes({self.render()})"

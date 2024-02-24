@@ -19,7 +19,7 @@ app = Schorle()
 
 
 class State(ReactiveModel):
-    current: Reactive[str] = Reactive.factory(value="")
+    current: Reactive[str] = Reactive.factory()
     todos: list[str] = Field(default_factory=lambda: ["Buy milk", "Do laundry"])
 
     @effector
@@ -39,7 +39,7 @@ class InputSection(Component):
 
     def render(self):
         TextInput(
-            value=self.state.current.value,
+            value=self.state.current.value or "",
             placeholder="Add a todo",
             classes=Classes("input-bordered"),
             on=On("keyup", self.state.current.set),

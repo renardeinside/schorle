@@ -28,10 +28,6 @@ class LinkWithIcon(Component):
     tag: HTMLTag = HTMLTag.A
     classes: Classes = Classes("btn btn-primary font-normal w-42")
 
-    def model_post_init(self, __context):
-        self.attributes["href"] = self.href
-        super().model_post_init(__context)
-
     def render(self):
         text(self.text)
         Icon(name=self.icon_name)

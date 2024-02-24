@@ -40,6 +40,11 @@ T = TypeVar("T")
 class Reactive(ReactiveModel, Generic[T]):
     value: T | None = None
 
+    def __init__(self, **data):
+        if "value" not in data:
+            data["value"] = None
+        super().__init__(**data)
+
     @effector
     async def set(self, value: T | None):
         self.value = value

@@ -4,11 +4,9 @@ from loguru import logger
 from lxml import etree
 from starlette.websockets import WebSocket
 
-from schorle.component import Component
+from schorle.controller import RenderController
 from schorle.models import Action, ServerMessage
 from schorle.page import Page
-from schorle.types import LXMLElement
-from schorle.utils import render_in_context
 
 
 class PageEmitter:
@@ -19,19 +17,13 @@ class PageEmitter:
         while True:
             try:
                 await asyncio.sleep(0.0001)
-                renderable = await self._page._render_queue.get()
-                target = None
-                if isinstance(renderable, LXMLElement):
-                    _html = etree.tostring(renderable, pretty_print=True).decode()
-                    target = renderable.get("id")
-                elif isinstance(renderable, Component):
+                renderable = await self._page.render_queue.get()
+
+                with RenderController() as rc:
                     with self._page:
-                        rendered = render_in_context(renderable, self._page)
+                        rendered = rc.render(renderable)
                         _html = etree.tostring(rendered, pretty_print=True).decode()
                         target = rendered.get("id")
-                else:
-                    msg = f"Unknown renderable: {renderable}"
-                    raise ValueError(msg)
 
                 _msg = ServerMessage(target=target, payload=_html, action=Action.morph)
                 await ws.send_bytes(_msg.encode())

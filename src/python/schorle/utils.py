@@ -1,9 +1,8 @@
+from __future__ import annotations
+
+import hashlib
 import sys
 from enum import Enum
-from typing import Any
-
-from schorle.render_controller import RENDER_CONTROLLER, RenderController
-from schorle.types import LXMLElement
 
 
 class RunningMode(str, Enum):
@@ -20,10 +19,5 @@ def get_running_mode() -> RunningMode:
         return RunningMode.PRODUCTION
 
 
-def render_in_context(component: Any, page: Any | None = None) -> LXMLElement:
-    token = RENDER_CONTROLLER.set(RenderController(page=page))
-    try:
-        component()
-        return RENDER_CONTROLLER.get().get_root().getchildren()[0]  # type: ignore[attr-defined]
-    finally:
-        RENDER_CONTROLLER.reset(token)
+def get_sha256_hash(string: str) -> str:
+    return hashlib.sha256(string.encode()).hexdigest()[:8]

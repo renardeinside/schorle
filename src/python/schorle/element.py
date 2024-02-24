@@ -1,88 +1,66 @@
-import hashlib
+from __future__ import annotations
+
+from typing import Any
 
 from lxml import etree
+from pydantic import PrivateAttr
 
 from schorle.classes import Classes
+from schorle.controller import WithController
 from schorle.on import On
-from schorle.render_controller import RenderableMixin
 from schorle.suspense import Suspense
 from schorle.tags import HTMLTag
+from schorle.types import LXMLElement
+from schorle.utils import get_sha256_hash
+from schorle.with_attributes import WithAttributes
 
 
-class Element(RenderableMixin):
-    def __init__(
-        self,
-        tag: HTMLTag,
-        element_id: str | None = None,
-        classes: Classes | None = None,
-        style: dict[str, str] | None = None,
-        on: list[On] | On | None = None,
-        suspense: Suspense | None = None,
-        **attributes,
-    ):
-        self.tag = tag.value
-        self._element_id = element_id
-        self._element = self.get_element()
+class Element(WithAttributes, WithController):
+    _pre_previous: LXMLElement | None = PrivateAttr()
+    _element: LXMLElement | None = PrivateAttr()
 
-        if attributes:
-            for k, v in attributes.items():
-                self._element.set(k, v)
+    def model_post_init(self, __context: Any) -> None:
+        super().model_post_init(__context)
+        if self.controller:
+            if self.controller.inside_page and not self.element_id:
+                _parent_id = self.controller.current.attrib.get("id")
+                position_in_parent = len(self.controller.current.getchildren())
+                _hash = get_sha256_hash(f"{_parent_id}-{position_in_parent}")
+                self.element_id = f"{self.tag.value}-{_hash}"
 
-        if style:
-            self._element.set("style", ";".join([f"{k}: {v}" for k, v in style.items()]))
-        if classes:
-            _rendered = classes.render()
-            if _rendered:
-                self._element.set("class", _rendered)
+            if self.on:
+                self.on = [self.on] if isinstance(self.on, On) else self.on
+                self.controller.reactives[self.element_id] = {o.trigger: o.callback for o in self.on}
 
-        if self._element_id:
-            self._element.set("id", self._element_id)
+            self.render()
 
-        if self.controller.page:
-            if on:
-                on = [on] if isinstance(on, On) else on
-                _triggers = " ".join([_on.trigger for _on in on])
-                self._element.set("sle-trigger", _triggers)
-                self.controller.page.reactives[self._element_id] = {_on.trigger: _on.callback for _on in on}
-            if suspense:
-                suspense._parent = self._element
+    def get_lxml_element_attrs(self) -> dict[str, str]:
+        _attributes = self.attrs or {}
+        if self.element_id:
+            _attributes["id"] = self.element_id
 
-    @staticmethod
-    def _generate_hash(string: str) -> str:
-        return hashlib.sha256(string.encode("utf-8")).hexdigest()
+        if self.classes:
+            _attributes["class"] = self.classes.render()
 
-    def get_element(self):
-        elem = etree.SubElement(self.controller.current, self.tag)
-        if not self._element_id and self.controller.page:
-            _parent = self.controller.current
-            _parent_id = _parent.get("id")
-            index_in_parent = len(_parent.getchildren()) + 1
-            self._element_id = f'sle-{self.tag}-{self._generate_hash(f"{_parent_id}{index_in_parent}")[:8]}'
+        if self.style:
+            _attributes["style"] = ";".join([f"{k}:{v}" for k, v in self.style.items()])
+        if self.on:
+            _attributes["sle-trigger"] = ",".join([o.trigger for o in self.on])
 
-        if self.tag in [HTMLTag.SCRIPT, HTMLTag.LINK]:
-            elem.text = ""  # Prevents self-closing tags
-        return elem
+        return _attributes
+
+    def render(self):
+        self._element = etree.SubElement(self.controller.current, self.tag, **self.get_lxml_element_attrs())
 
     def __enter__(self):
         self._pre_previous = self.controller.previous
         self.controller.previous = self.controller.current
-        self.controller.current = self._element
+        if self._element is not None:
+            self.controller.current = self._element
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.controller.current = self.controller.previous
         self.controller.previous = self._pre_previous
-        pass
-
-    def add(self):
-        with self:
-            pass
-
-    def __repr__(self):
-        _id_str = f"id={self._element_id}" if self._element_id else ""
-        return f"<{self.tag} {_id_str}/>"
-
-    def __str__(self):
-        return self.__repr__()
 
 
 def element_function_factory(tag: HTMLTag):
@@ -92,9 +70,19 @@ def element_function_factory(tag: HTMLTag):
         style: dict[str, str] | None = None,
         on: list[On] | On | None = None,
         suspense: Suspense | None = None,
+        attrs: dict[str, str] | None = None,
         **attributes,
     ):
-        return Element(tag, element_id, classes, style, on, suspense, **attributes)
+        combined_attrs = {**attributes, **(attrs or {})}
+        return Element(
+            tag=tag,
+            element_id=element_id,
+            classes=classes,
+            style=style,
+            on=on,
+            suspense=suspense,
+            attrs=combined_attrs,
+        )
 
     return func
 
