@@ -165,7 +165,6 @@ parallel = true
 
 [tool.coverage.paths]
 schorle = ["src/python/schorle"]
-tests = ["tests"]
 
 [tool.coverage.report]
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
