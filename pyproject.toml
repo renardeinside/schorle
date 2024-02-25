@@ -33,7 +33,8 @@ dependencies = [
     "loguru",
     "defusedxml",
     "requests",
-    "msgpack"
+    "msgpack",
+    "python-multipart"
 ]
 
 [project.urls]

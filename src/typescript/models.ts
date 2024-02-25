@@ -7,6 +7,7 @@ interface ClientMessage {
 
 enum Action {
     morph = 'morph',
+    clear = 'clear',
 }
 
 interface ServerMessage {

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from schorle.attrs import Classes, On, Suspense
 from schorle.renderable import Renderable
+from schorle.state import Ref
 from schorle.tags import HTMLTag
 
 
@@ -18,6 +19,12 @@ class WithAttributes(BaseModel, Renderable, ABC):
     on: list[On] | On | None = None
     suspense: Suspense | None = None
     attrs: dict[str, str] | None = Field(default_factory=dict)
+    ref: Ref | None = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if self.ref:
+            self.ref.set(self)
 
     def _prepare_element_kwargs(self):
         return {
