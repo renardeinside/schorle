@@ -161,6 +161,11 @@ lucide@^0.335.0:
   resolved "https://registry.yarnpkg.com/lucide/-/lucide-0.335.0.tgz#e37cb73a4c92bd7925dec5c838331561b8a8d2ee"
   integrity sha512-Y+Zp+u6r2JCqkMO2A8tCMgGspzMA5BCjAsPBqgMDzP4KdQtFVEzQuLsG8ttRmvrSV4bFQ6TJoJtG8o2JQ64GCA==
 
+prettier@3.2.5:
+  version "3.2.5"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.2.5.tgz#e52bc3090586e824964a8813b09aba6233b28368"
+  integrity sha512-3/GWa9aOC0YeD7LUfvOG2NiDyhOWRvt1k+rcKhOuYnMY24iiCphgneUfJDyFXd6rZCAnuLBv6UeAULtrhT/F4A==
+
 typescript@^5.3.3:
   version "5.3.3"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.3.3.tgz#b3ce6ba258e72e6305ba66f5c9b452aaee3ffe37"
