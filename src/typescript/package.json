@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "build": "esbuild main.ts --bundle --minify --outfile=../python/schorle/assets/bundle.js",
-    "watch": "esbuild main.ts --bundle --minify --outfile=../python/schorle/assets/bundle.js --watch"
+    "watch": "esbuild main.ts --bundle --minify --outfile=../python/schorle/assets/bundle.js --watch",
+    "format": "prettier . --write"
   },
   "dependencies": {
     "@msgpack/msgpack": "^3.0.0-beta2",
@@ -15,6 +16,7 @@
     "typescript": "^5.3.3"
   },
   "devDependencies": {
-    "esbuild": "^0.20.1"
+    "esbuild": "^0.20.1",
+    "prettier": "3.2.5"
   }
 }
