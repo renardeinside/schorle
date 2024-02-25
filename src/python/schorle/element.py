@@ -25,12 +25,13 @@ class Element(WithAttributes, WithController):
                 _hash = get_sha256_hash(f"{_parent_id}-{position_in_parent}")
                 self.element_id = f"sle-{self.tag.value}-{_hash}"
 
-            if self.suspense:
-                self.suspense.parent = self
-
             if self.on:
                 self.on = [self.on] if isinstance(self.on, On) else self.on
                 self.controller.reactives[self.element_id] = {o.trigger: o.callback for o in self.on}
+
+            if self.suspense:
+                self.suspense.parent = self
+                self.controller.suspenses.append(self.suspense)
 
             self.render()
 
@@ -46,9 +47,6 @@ class Element(WithAttributes, WithController):
             _attributes["style"] = ";".join([f"{k}:{v}" for k, v in self.style.items()])
         if self.on:
             _attributes["sle-trigger"] = ",".join([o.trigger for o in self.on])
-
-        if self.suspense:
-            self.suspense.parent = self
         return _attributes
 
     def __call__(self):
@@ -75,8 +73,8 @@ def element_function_factory(tag: HTMLTag):
         classes: Classes | None = None,
         style: dict[str, str] | None = None,
         on: list[On] | On | None = None,
-        suspense: Suspense | None = None,
         attrs: dict[str, str] | None = None,
+        suspense: Suspense | None = None,
         **attributes,
     ):
         combined_attrs = {**attributes, **(attrs or {})}

@@ -17,8 +17,8 @@ class WithAttributes(BaseModel, Renderable, ABC):
     classes: Classes | None = None
     style: dict[str, str] | None = None
     on: list[On] | On | None = None
-    suspense: Suspense | None = None
     attrs: dict[str, str] | None = Field(default_factory=dict)
+    suspense: Suspense | None = None
     ref: Ref | None = None
 
     def __init__(self, **data):

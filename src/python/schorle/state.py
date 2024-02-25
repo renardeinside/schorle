@@ -1,5 +1,6 @@
 import asyncio
 from typing import Callable, Generic, TypeVar
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
@@ -12,6 +13,8 @@ class EffectorMixin:
 
 
 class ReactiveModel(BaseModel, EffectorMixin, extra="allow"):
+    reactive_id: UUID = Field(default_factory=lambda: uuid4())
+
     def __init__(self, **data):
         super().__init__(**data)
         inject_effectors(self)
@@ -20,10 +23,8 @@ class ReactiveModel(BaseModel, EffectorMixin, extra="allow"):
     def factory(cls, **data):
         return Field(default_factory=lambda: cls(**data))
 
-
-class ReactiveState(EffectorMixin):
-    def __init__(self):
-        inject_effectors(self)
+    def __hash__(self):
+        return hash(self.reactive_id)
 
 
 def effector(func: Callable) -> EffectorProtocol:

@@ -8,7 +8,6 @@ from starlette.websockets import WebSocket
 from schorle.controller import RenderController
 from schorle.models import Action, ServerMessage
 from schorle.page import Page
-from schorle.render_queue import RENDER_QUEUE
 
 
 class PageEmitter:
@@ -19,14 +18,13 @@ class PageEmitter:
         while True:
             try:
                 await asyncio.sleep(0.0001)
-                renderable = await RENDER_QUEUE.get().get()
+                renderable = await self._page.render_queue.get()
 
                 with RenderController() as rc:
                     with self._page:
                         rendered = rc.render(renderable)
                         _html = etree.tostring(rendered, pretty_print=True).decode()
                         target = rendered.get("id")
-
                 _msg = ServerMessage(target=target, payload=_html, action=Action.morph)
                 await ws.send_bytes(_msg.encode())
             except Exception as e:

@@ -5,6 +5,7 @@ from typing import Any, Callable
 
 from lxml import etree
 
+from schorle.attrs import Suspense
 from schorle.types import LXMLElement, Reactives
 
 
@@ -25,12 +26,14 @@ class RenderController:
         self.inside_page: bool = False
         self._token: Any | None = None
         self.reactives: Reactives = {}
+        self.suspenses: list[Suspense] = []
 
     def get_root(self) -> LXMLElement:
         return self._root
 
     def __enter__(self):
         self._token = RENDER_CONTROLLER.set(self)
+        self.suspenses = []
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

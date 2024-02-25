@@ -20,4 +20,4 @@ def Button(  # noqa: N802
     if classes:
         _classes.append(classes)
 
-    return button(element_id=element_id, classes=_classes, style=style, on=on, suspense=suspense, **attributes)
+    return button(element_id=element_id, classes=_classes, style=style, suspense=suspense, on=on, **attributes)
