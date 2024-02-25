@@ -1,5 +1,6 @@
 from functools import partial
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field
 from starlette.responses import FileResponse, JSONResponse
@@ -27,6 +28,10 @@ class LinkWithIcon(Component):
     text: str
     tag: HTMLTag = HTMLTag.A
     classes: Classes = Classes("btn btn-primary font-normal w-42")
+
+    def model_post_init(self, __context: Any) -> None:
+        self.attrs["href"] = self.href
+        super().model_post_init(__context)
 
     def render(self):
         text(self.text)
