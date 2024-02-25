@@ -4,9 +4,8 @@ from abc import ABC
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from schorle.attrs import Classes, On
+from schorle.attrs import Classes, On, Suspense
 from schorle.renderable import Renderable
-from schorle.suspense import Suspense
 from schorle.tags import HTMLTag
 
 

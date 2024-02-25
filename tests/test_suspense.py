@@ -1,11 +1,11 @@
 from loguru import logger
 from lxml import etree
 
+from schorle.attrs import Suspense
 from schorle.controller import RenderController
 from schorle.element import div
 from schorle.loading import Loading
 from schorle.state import Reactive
-from schorle.suspense import Suspense
 
 
 def test_loading():

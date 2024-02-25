@@ -3,14 +3,13 @@ from __future__ import annotations
 import asyncio
 
 from schorle.app import Schorle
-from schorle.attrs import Classes, On
+from schorle.attrs import Classes, On, Suspense
 from schorle.button import Button
 from schorle.component import Component
 from schorle.element import div
 from schorle.loading import Loading
 from schorle.page import Page
 from schorle.state import ReactiveModel, effector
-from schorle.suspense import Suspense
 from schorle.text import text
 
 app = Schorle()

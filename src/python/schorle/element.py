@@ -5,9 +5,8 @@ from typing import Any
 from lxml import etree
 from pydantic import PrivateAttr
 
-from schorle.attrs import Classes, On
+from schorle.attrs import Classes, On, Suspense
 from schorle.controller import WithController
-from schorle.suspense import Suspense
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
 from schorle.utils import get_sha256_hash
