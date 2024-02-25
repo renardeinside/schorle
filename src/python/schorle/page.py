@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import Field, PrivateAttr
 from starlette.websockets import WebSocket
 
+from schorle.attrs import Suspense
 from schorle.controller import WithController
 from schorle.element import div
 from schorle.state import ReactiveModel
@@ -23,6 +24,7 @@ class Page(WithAttributes, WithController, ABC):
     reactives: Reactives = Field(default_factory=dict)
     render_queue: Queue = Field(default_factory=Queue)
     io: WebSocket | None = None
+    _suspend_generators: dict[ReactiveModel, Suspense] = PrivateAttr(default_factory=dict)
 
     def model_post_init(self, __context: Any) -> None:
         self.initialize()
@@ -36,7 +38,15 @@ class Page(WithAttributes, WithController, ABC):
         PAGE.reset(self._token)
         self.controller.inside_page = False
         self.reactives.update(self.controller.reactives)
-        pass
+        self._suspend_generators.update({s.on: s for s in self.controller.suspenses})
+
+        for on, suspense in self._suspend_generators.items():
+
+            async def emit_suspense(_suspense=suspense):  # we need to capture the suspense in a closure
+                await self.render_queue.put(_suspense.render)
+
+            for effector in on.get_effectors():
+                effector.method.prepend(emit_suspense)
 
     def __call__(self):
         with div(**self._prepare_element_kwargs()):

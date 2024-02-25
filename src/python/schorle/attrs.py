@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Union
+from typing import Any, Callable, Union
 
 from pydantic import BaseModel, PrivateAttr
 from pydantic.dataclasses import dataclass
+
+from schorle.state import ReactiveModel
 
 RawClassesPayload = Union[str, list[str], tuple[str, ...], "Classes", None]
 
@@ -64,3 +66,20 @@ class On:
     trigger: str
     callback: Callable
     ws_based: bool = True
+
+
+@dataclass
+class Suspense:
+    on: ReactiveModel
+    fallback: Callable
+    parent: Any | None = None
+
+    def render(self):
+        with self.parent():
+            self.fallback()
+
+    def __repr__(self):
+        return f"<Suspense on {self.parent.element_id} with {self.on}>"
+
+    def __str__(self):
+        return self.__repr__()

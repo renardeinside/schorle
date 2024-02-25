@@ -5,7 +5,7 @@ from typing import Any
 from lxml import etree
 from pydantic import PrivateAttr
 
-from schorle.attrs import Classes, On
+from schorle.attrs import Classes, On, Suspense
 from schorle.controller import WithController
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
@@ -29,6 +29,10 @@ class Element(WithAttributes, WithController):
                 self.on = [self.on] if isinstance(self.on, On) else self.on
                 self.controller.reactives[self.element_id] = {o.trigger: o.callback for o in self.on}
 
+            if self.suspense:
+                self.suspense.parent = self
+                self.controller.suspenses.append(self.suspense)
+
             self.render()
 
     def get_lxml_element_attrs(self) -> dict[str, str]:
@@ -43,7 +47,6 @@ class Element(WithAttributes, WithController):
             _attributes["style"] = ";".join([f"{k}:{v}" for k, v in self.style.items()])
         if self.on:
             _attributes["sle-trigger"] = ",".join([o.trigger for o in self.on])
-
         return _attributes
 
     def __call__(self):
@@ -71,6 +74,7 @@ def element_function_factory(tag: HTMLTag):
         style: dict[str, str] | None = None,
         on: list[On] | On | None = None,
         attrs: dict[str, str] | None = None,
+        suspense: Suspense | None = None,
         **attributes,
     ):
         combined_attrs = {**attributes, **(attrs or {})}
@@ -80,6 +84,7 @@ def element_function_factory(tag: HTMLTag):
             classes=classes,
             style=style,
             on=on,
+            suspense=suspense,
             attrs=combined_attrs,
         )
 
