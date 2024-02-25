@@ -5,7 +5,7 @@ from pydantic import Field
 from starlette.responses import FileResponse, JSONResponse
 
 from schorle.app import Schorle
-from schorle.classes import Classes
+from schorle.attrs import Classes
 from schorle.component import Component
 from schorle.element import div, link, p
 from schorle.icon import Icon
@@ -27,10 +27,6 @@ class LinkWithIcon(Component):
     text: str
     tag: HTMLTag = HTMLTag.A
     classes: Classes = Classes("btn btn-primary font-normal w-42")
-
-    def model_post_init(self, __context):
-        self.attributes["href"] = self.href
-        super().model_post_init(__context)
 
     def render(self):
         text(self.text)

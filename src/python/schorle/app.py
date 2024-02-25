@@ -16,12 +16,13 @@ from starlette.responses import FileResponse, HTMLResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+from schorle.controller import RenderController
 from schorle.document import Document
 from schorle.emitter import PageEmitter
 from schorle.models import ClientMessage
 from schorle.page import Page
 from schorle.theme import Theme
-from schorle.utils import RunningMode, get_running_mode, render_in_context
+from schorle.utils import RunningMode, get_running_mode
 
 ASSETS_PATH = Path(str(files("schorle"))) / Path("assets")
 
@@ -82,7 +83,9 @@ class Schorle:
         )
         logger.debug(f"Rendering page: {page} with theme: {self.theme}...")
 
-        lxml_element = render_in_context(doc)
+        with RenderController() as rc:
+            lxml_element = rc.render(doc)
+
         rendered = etree.tostring(lxml_element, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
         response = HTMLResponse(rendered, status_code=200)
         _session_id = str(uuid4())

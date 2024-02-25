@@ -1,7 +1,5 @@
-from schorle.classes import Classes
+from schorle.attrs import Classes, On, Suspense
 from schorle.element import button
-from schorle.on import On
-from schorle.suspense import Suspense
 
 
 def Button(  # noqa: N802

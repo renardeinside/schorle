@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from schorle.app import Schorle
+from schorle.attrs import Classes, On
 from schorle.button import Button
-from schorle.classes import Classes
-from schorle.effector import effector
 from schorle.element import div, p
-from schorle.on import On
 from schorle.page import Page
-from schorle.state import ReactiveModel
+from schorle.state import ReactiveModel, effector
 from schorle.text import text
 
 app = Schorle()

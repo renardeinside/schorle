@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import Field
 
-from schorle.classes import Classes
+from schorle.attrs import Classes
 from schorle.component import Component
 from schorle.tags import HTMLTag
 
@@ -16,10 +16,8 @@ class TextInput(Component):
 
     def model_post_init(self, __context: Any):
         self.classes.append(self.base_classes)
-        self.attributes["placeholder"] = self.placeholder
-        self.attributes["value"] = self.value
-        self.attributes["hx-include"] = "this"
-        self.attributes["name"] = self.name
+        self.attrs["placeholder"] = self.placeholder
+        self.attrs["value"] = self.value
         super().model_post_init(__context)
 
     def render(self):

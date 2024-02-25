@@ -35,4 +35,9 @@ jobs:
       - name: Lint
         run: hatch run lint:style .
       - name: Test
-        run: hatch run test
+        run: hatch run test-cov
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: renardeinside/schorle

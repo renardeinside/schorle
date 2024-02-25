@@ -3,37 +3,26 @@ from functools import partial
 from pydantic import Field
 
 from schorle.app import Schorle
+from schorle.attrs import Classes, On, Suspense
 from schorle.button import Button
-from schorle.classes import Classes
 from schorle.component import Component
-from schorle.effector import effector
 from schorle.element import div, p
 from schorle.inputs import TextInput
 from schorle.loading import Loading
-from schorle.on import On
 from schorle.page import Page
-from schorle.state import ReactiveModel
-from schorle.suspense import Suspense
+from schorle.state import Reactive, ReactiveModel, effector
 from schorle.text import text
 
 app = Schorle()
 
 
-class Current(ReactiveModel):
-    value: str = ""
-
-    @effector
-    async def set(self, value):
-        self.value = value
-
-
 class State(ReactiveModel):
-    current: Current = Current.factory()
+    current: Reactive[str] = Reactive.factory()
     todos: list[str] = Field(default_factory=lambda: ["Buy milk", "Do laundry"])
 
     @effector
     async def add_todo(self):
-        if self.current:
+        if self.current.value:
             self.todos.append(self.current.value)
         await self.current.set("")
 
@@ -48,7 +37,7 @@ class InputSection(Component):
 
     def render(self):
         TextInput(
-            value=self.state.current.value,
+            value=self.state.current.value or "",
             placeholder="Add a todo",
             classes=Classes("input-bordered"),
             on=On("keyup", self.state.current.set),
@@ -88,7 +77,7 @@ class TodoView(Component):
 
 class TodoListPage(Page):
     state: State = State.factory()
-    classes: Classes = Classes("m-4 flex flex-col items-center h-screen")
+    classes: Classes = Classes("m-4 flex flex-col items-center")
 
     def render(self):
         InputSection(state=self.state)

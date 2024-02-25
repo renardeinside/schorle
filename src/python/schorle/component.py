@@ -1,78 +1,34 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from schorle.classes import Classes
+from schorle.bindable import Bindable
+from schorle.controller import WithController
 from schorle.element import Element
-from schorle.on import On
-from schorle.render_controller import RenderControllerMixin
-from schorle.state import ReactiveModel
-from schorle.suspense import Suspense
+from schorle.page import PAGE, Page
 from schorle.tags import HTMLTag
+from schorle.with_attributes import WithAttributes
 
 
-class Component(ABC, BaseModel, RenderControllerMixin):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
+class Component(WithAttributes, WithController, Bindable, ABC):
     tag: HTMLTag = HTMLTag.DIV
-    classes: Classes = Field(default_factory=Classes)
-    style: dict[str, str] = Field(default_factory=dict)
-    element_id: str | None = None
-    attributes: dict[str, str] = Field(default_factory=dict)
-    on: list[On] | On = Field(default_factory=list)
-    _page_ref: Any | None = None
-    suspense: Suspense | None = None
-    lazy_append: bool = False
-
-    def add(self):
-        pre_previous = self.controller.previous
-        pre_current = self.controller.current
-        self._page_ref = self.controller.page
-
-        with Element(
-            self.tag,
-            self.element_id,
-            classes=self.classes,
-            style=self.style,
-            on=self.on,
-            suspense=self.suspense,
-            **self.attributes,
-        ):
-            self.render()
-
-        self.controller.previous = pre_previous
-        self.controller.current = pre_current
+    page_ref: Page | None = None
+    instant_render: bool = True
 
     def model_post_init(self, __context: Any) -> None:
-        if not self.element_id and self.tag not in [HTMLTag.HTML, HTMLTag.BODY]:
+        self.page_ref = PAGE.get()
+
+        if not self.element_id and self.page_ref:
             self.element_id = f"sle-{self.tag}-{str(uuid4())[:8]}"
 
         self.initialize()
+        if self.controller and self.instant_render:
+            self()
 
-        if self.controller.page and not self.lazy_append:
-            self.add()
+    def __call__(self):
+
+        with Element(tag=self.tag, **self._prepare_element_kwargs()):
+            self.render()
 
     def initialize(self):
         pass
-
-    @abstractmethod
-    def render(self):
-        pass
-
-    def __call__(self):
-        self.add()
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}/>"
-
-    def __str__(self):
-        return self.__repr__()
-
-    def bind(self, reactive: ReactiveModel):
-        def _appender():
-            self._page_ref.append_to_queue(self)
-
-        for effector in reactive.get_effectors():
-            effector.method.subscribe(_appender)
