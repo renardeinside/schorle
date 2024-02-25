@@ -48,3 +48,13 @@ class Reactive(ReactiveModel, Generic[T]):
     @effector
     async def set(self, value: T | None):
         self.value = value
+
+
+R = TypeVar("R")
+
+
+class Ref(Generic[R]):
+    current: R
+
+    def set(self, value: R):
+        self.current = value

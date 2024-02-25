@@ -5,6 +5,7 @@ from abc import ABC
 from typing import Any
 
 from pydantic import Field, PrivateAttr
+from starlette.websockets import WebSocket
 
 from schorle.bindable import Bindable
 from schorle.controller import WithController
@@ -19,6 +20,7 @@ class Page(WithAttributes, WithController, Bindable, ABC):
     element_id: str = "schorle-page"
     _token: contextvars.Token | None = PrivateAttr()
     reactives: Reactives = Field(default_factory=dict)
+    io: WebSocket | None = None
 
     def model_post_init(self, __context: Any) -> None:
         self.initialize()

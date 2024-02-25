@@ -19,11 +19,12 @@ class ClientMessage(BaseModel):
 
 class Action(str, Enum):
     morph = "morph"
+    clear = "clear"
 
 
 class ServerMessage(BaseModel):
     target: str
-    payload: str
+    payload: str | None = None
     action: Action
 
     def encode(self) -> bytes:
