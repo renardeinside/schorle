@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import Field
 
-from schorle.classes import Classes
+from schorle.attrs import Classes
 from schorle.component import Component
 from schorle.tags import HTMLTag
 

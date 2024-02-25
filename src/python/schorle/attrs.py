@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Union
+from typing import Callable, Union
 
 from pydantic import BaseModel, PrivateAttr
+from pydantic.dataclasses import dataclass
 
 RawClassesPayload = Union[str, list[str], tuple[str, ...], "Classes", None]
 
@@ -56,3 +57,10 @@ class Classes(BaseModel):
 
     def __repr__(self) -> str:
         return f"Classes({self.render()})"
+
+
+@dataclass
+class On:
+    trigger: str
+    callback: Callable
+    ws_based: bool = True

@@ -5,7 +5,7 @@ from pydantic import Field
 from starlette.responses import FileResponse, JSONResponse
 
 from schorle.app import Schorle
-from schorle.classes import Classes
+from schorle.attrs import Classes
 from schorle.component import Component
 from schorle.element import div, link, p
 from schorle.icon import Icon

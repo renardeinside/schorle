@@ -5,9 +5,8 @@ from typing import Any
 from lxml import etree
 from pydantic import PrivateAttr
 
-from schorle.classes import Classes
+from schorle.attrs import Classes, On
 from schorle.controller import WithController
-from schorle.on import On
 from schorle.suspense import Suspense
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
@@ -16,17 +15,19 @@ from schorle.with_attributes import WithAttributes
 
 
 class Element(WithAttributes, WithController):
-    _pre_previous: LXMLElement | None = PrivateAttr()
-    _element: LXMLElement | None = PrivateAttr()
+    _pre_previous: LXMLElement | None = PrivateAttr(default=None)
+    _element: LXMLElement | None = PrivateAttr(default=None)
 
     def model_post_init(self, __context: Any) -> None:
-        super().model_post_init(__context)
         if self.controller:
             if self.controller.inside_page and not self.element_id:
                 _parent_id = self.controller.current.attrib.get("id")
                 position_in_parent = len(self.controller.current.getchildren())
                 _hash = get_sha256_hash(f"{_parent_id}-{position_in_parent}")
-                self.element_id = f"{self.tag.value}-{_hash}"
+                self.element_id = f"sle-{self.tag.value}-{_hash}"
+
+            if self.suspense:
+                self.suspense.parent = self
 
             if self.on:
                 self.on = [self.on] if isinstance(self.on, On) else self.on
@@ -47,7 +48,13 @@ class Element(WithAttributes, WithController):
         if self.on:
             _attributes["sle-trigger"] = ",".join([o.trigger for o in self.on])
 
+        if self.suspense:
+            self.suspense.parent = self
         return _attributes
+
+    def __call__(self):
+        self.render()
+        return self
 
     def render(self):
         self._element = etree.SubElement(self.controller.current, self.tag, **self.get_lxml_element_attrs())

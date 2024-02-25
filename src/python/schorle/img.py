@@ -1,9 +1,8 @@
 import base64
 from pathlib import Path
 
-from schorle.classes import Classes
+from schorle.attrs import Classes, On
 from schorle.element import img
-from schorle.on import On
 
 
 def Image(  # noqa: N802

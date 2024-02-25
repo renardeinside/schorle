@@ -1,4 +1,4 @@
-from schorle.classes import Classes
+from schorle.attrs import Classes
 from schorle.element import span
 from schorle.text import text
 

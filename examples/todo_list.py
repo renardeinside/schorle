@@ -3,13 +3,12 @@ from functools import partial
 from pydantic import Field
 
 from schorle.app import Schorle
+from schorle.attrs import Classes, On
 from schorle.button import Button
-from schorle.classes import Classes
 from schorle.component import Component
 from schorle.element import div, p
 from schorle.inputs import TextInput
 from schorle.loading import Loading
-from schorle.on import On
 from schorle.page import Page
 from schorle.state import Reactive, ReactiveModel, effector
 from schorle.suspense import Suspense

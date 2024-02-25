@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 from loguru import logger
 from lxml import etree
@@ -7,6 +8,7 @@ from starlette.websockets import WebSocket
 from schorle.controller import RenderController
 from schorle.models import Action, ServerMessage
 from schorle.page import Page
+from schorle.render_queue import RENDER_QUEUE
 
 
 class PageEmitter:
@@ -17,7 +19,7 @@ class PageEmitter:
         while True:
             try:
                 await asyncio.sleep(0.0001)
-                renderable = await self._page.render_queue.get()
+                renderable = await RENDER_QUEUE.get().get()
 
                 with RenderController() as rc:
                     with self._page:
@@ -29,4 +31,5 @@ class PageEmitter:
                 await ws.send_bytes(_msg.encode())
             except Exception as e:
                 logger.error(f"Error while emitting: {e}")
+                logger.error(traceback.format_exc())
                 break

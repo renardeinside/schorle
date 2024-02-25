@@ -1,11 +1,11 @@
-from schorle.classes import Classes
+from schorle.attrs import Classes
 from schorle.component import Component
 from schorle.element import span
 from schorle.text import text
 
 
 class Loading(Component):
-    lazy_append: bool = True
+    instant_render: bool = False
     classes: Classes = Classes("flex justify-center items-center w-full h-full")
 
     def render(self):
