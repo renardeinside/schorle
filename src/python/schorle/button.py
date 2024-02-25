@@ -1,4 +1,4 @@
-from schorle.attrs import Classes, On, Suspense
+from schorle.attrs import Classes, On
 from schorle.element import button
 
 
@@ -9,7 +9,6 @@ def Button(  # noqa: N802
     classes: Classes | None = None,
     style: dict[str, str] | None = None,
     on: list[On] | On | None = None,
-    suspense: Suspense | None = None,
     **attributes,
 ) -> None:
     _classes = Classes("btn")
@@ -20,4 +19,4 @@ def Button(  # noqa: N802
     if classes:
         _classes.append(classes)
 
-    return button(element_id=element_id, classes=_classes, style=style, on=on, suspense=suspense, **attributes)
+    return button(element_id=element_id, classes=_classes, style=style, on=on, **attributes)

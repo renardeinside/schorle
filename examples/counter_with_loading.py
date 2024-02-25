@@ -3,11 +3,10 @@ from __future__ import annotations
 import asyncio
 
 from schorle.app import Schorle
-from schorle.attrs import Classes, On, Suspense
+from schorle.attrs import Classes, On
 from schorle.button import Button
 from schorle.component import Component
 from schorle.element import div
-from schorle.loading import Loading
 from schorle.page import Page
 from schorle.state import ReactiveModel, effector
 from schorle.text import text
@@ -31,7 +30,6 @@ class StatefulButton(Component):
     def render(self):
         with Button(
             on=On("click", self.counter.increment),
-            suspense=Suspense(on=self.counter, fallback=Loading()),
             classes=Classes("w-48"),
             modifier=self.modifier,
         ):

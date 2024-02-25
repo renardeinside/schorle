@@ -5,7 +5,7 @@ from typing import Any
 from lxml import etree
 from pydantic import PrivateAttr
 
-from schorle.attrs import Classes, On, Suspense
+from schorle.attrs import Classes, On
 from schorle.controller import WithController
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
@@ -24,9 +24,6 @@ class Element(WithAttributes, WithController):
                 position_in_parent = len(self.controller.current.getchildren())
                 _hash = get_sha256_hash(f"{_parent_id}-{position_in_parent}")
                 self.element_id = f"sle-{self.tag.value}-{_hash}"
-
-            if self.suspense:
-                self.suspense.parent = self
 
             if self.on:
                 self.on = [self.on] if isinstance(self.on, On) else self.on
@@ -47,8 +44,6 @@ class Element(WithAttributes, WithController):
         if self.on:
             _attributes["sle-trigger"] = ",".join([o.trigger for o in self.on])
 
-        if self.suspense:
-            self.suspense.parent = self
         return _attributes
 
     def __call__(self):
@@ -75,7 +70,6 @@ def element_function_factory(tag: HTMLTag):
         classes: Classes | None = None,
         style: dict[str, str] | None = None,
         on: list[On] | On | None = None,
-        suspense: Suspense | None = None,
         attrs: dict[str, str] | None = None,
         **attributes,
     ):
@@ -86,7 +80,6 @@ def element_function_factory(tag: HTMLTag):
             classes=classes,
             style=style,
             on=on,
-            suspense=suspense,
             attrs=combined_attrs,
         )
 

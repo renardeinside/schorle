@@ -8,7 +8,6 @@ from starlette.websockets import WebSocket
 from schorle.controller import RenderController
 from schorle.models import Action, ServerMessage
 from schorle.page import Page
-from schorle.render_queue import RENDER_QUEUE
 
 
 class PageEmitter:
@@ -19,7 +18,7 @@ class PageEmitter:
         while True:
             try:
                 await asyncio.sleep(0.0001)
-                renderable = await RENDER_QUEUE.get().get()
+                renderable = await self._page.render_queue.get()
 
                 with RenderController() as rc:
                     with self._page:
