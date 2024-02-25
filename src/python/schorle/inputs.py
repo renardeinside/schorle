@@ -18,8 +18,6 @@ class TextInput(Component):
         self.classes.append(self.base_classes)
         self.attrs["placeholder"] = self.placeholder
         self.attrs["value"] = self.value
-        self.attrs["hx-include"] = "this"
-        self.attrs["name"] = self.name
         super().model_post_init(__context)
 
     def render(self):

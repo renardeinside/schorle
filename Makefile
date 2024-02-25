@@ -5,6 +5,8 @@ fmt:
 test:
 	hatch run test
 
+test-cov:
+	hatch run test-cov
 
 lint:
 	hatch run lint:style .
