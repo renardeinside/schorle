@@ -46,6 +46,7 @@ class Page(WithAttributes, WithController, ABC):
                 await self.render_queue.put(_suspense.render)
 
             for effector in on.get_effectors():
+                effector.method.clear_pre_actions()
                 effector.method.prepend(emit_suspense)
 
     def __call__(self):

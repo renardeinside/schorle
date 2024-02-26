@@ -72,6 +72,7 @@ class Element(WithAttributes, WithController):
     def __str__(self):
         return self.__repr__()
 
+
 def element_function_factory(tag: HTMLTag):
     def func(
         element_id: str | None = None,

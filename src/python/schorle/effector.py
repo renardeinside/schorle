@@ -38,6 +38,9 @@ class Effector:
     def prepend(self, _pre_action):
         self.pre_actions.append(_pre_action)
 
+    def clear_pre_actions(self):
+        self.pre_actions = []
+
 
 class EffectorProtocol(Protocol):
     def subscribe(self, callback, *, trigger: bool = True): ...
@@ -45,6 +48,8 @@ class EffectorProtocol(Protocol):
     async def __call__(self, *args, **kwargs): ...
 
     def prepend(self, _pre_action): ...
+
+    def clear_pre_actions(self): ...
 
 
 def create_emitter(func: MethodType) -> EffectorProtocol:
@@ -56,6 +61,7 @@ def create_emitter(func: MethodType) -> EffectorProtocol:
     wrapper: EffectorProtocol = wraps(func)(_wrapper)  # type: ignore[assignment]
     wrapper.subscribe = _emitter_instance.subscribe  # type: ignore[method-assign, assignment]
     wrapper.prepend = _emitter_instance.prepend  # type: ignore[method-assign, assignment]
+    wrapper.clear_pre_actions = _emitter_instance.clear_pre_actions  # type: ignore[assignment]
     return wrapper
 
 

@@ -3,10 +3,7 @@
     /* Basic Options */
     "target": "esnext",
     "module": "commonjs",
-    "lib": [
-      "ES2021",
-      "DOM"
-    ],
+    "lib": ["ES2021", "DOM"],
     "declarationDir": "./types",
     "allowJs": true,
     "removeComments": true,
