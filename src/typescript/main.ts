@@ -1,8 +1,10 @@
 // @ts-ignore
 import { Idiomorph } from 'idiomorph/dist/idiomorph.esm';
 import { createIcons, icons } from 'lucide';
-import { decode, encode } from '@msgpack/msgpack';
-import { Action, ClientMessage, ServerMessage } from './models';
+import { decode } from '@msgpack/msgpack';
+import { Action, ServerMessage } from './models';
+import { devReload } from './devMode';
+import { sendWhenReady } from './io';
 
 interface Cookie {
   name: string;
@@ -45,24 +47,15 @@ const triggerable = () => {
   return Array.from(page.querySelectorAll('[sle-trigger]'));
 };
 
-const sendWhenReady = async (io: WebSocket, message: ClientMessage) => {
-  if (io.readyState === WebSocket.OPEN) {
-    io.send(encode(message));
-  } else {
-    setTimeout(() => sendWhenReady(io, message), 100);
-  }
-};
-
-const defaultListener = (
-  e: Event,
+const defaultListener = async (
   io: WebSocket,
   event: string,
   trigger: Element
 ) => {
-  sendWhenReady(io, {
+  await sendWhenReady(io, {
     trigger: event!,
     target: trigger.id,
-    value: e.target instanceof HTMLInputElement ? e.target.value : null
+    value: trigger instanceof HTMLInputElement ? trigger.value : null
   }).catch((e) =>
     console.error(`Error sending message: ${e} on event ${trigger.id}`)
   );
@@ -101,11 +94,12 @@ const applyTriggers = async (io: WebSocket) => {
         trigger instanceof HTMLInputElement &&
         trigger.type === 'file'
       ) {
+        trigger.removeEventListener(event, fileUploadListener);
         trigger.addEventListener(event, fileUploadListener);
       } else {
-        trigger.addEventListener(event, (e) =>
-          defaultListener(e, io, event!, trigger)
-        );
+        trigger.addEventListener(event, () => {
+          defaultListener(io, event!, trigger);
+        });
       }
 
       // mark the element as processed
@@ -149,49 +143,6 @@ const devToggleLoading = (b: boolean) => {
   }
 };
 
-const devReload = () => {
-  console.log('[schorle][dev mode] reloading page');
-  devToggleLoading(true);
-  fetch(window.location.href, { cache: 'reload' })
-    .then((response) => {
-      if (response.ok) {
-        return response.text();
-      } else {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-    })
-    .then((html) => {
-      let newDocument = new DOMParser().parseFromString(html, 'text/html');
-      // check if data-theme is presented on html tag and set it
-      let theme = newDocument.documentElement.getAttribute('data-theme');
-      if (theme !== null) {
-        document.documentElement.setAttribute('data-theme', theme);
-      }
-
-      // morph the head and body
-      Idiomorph.morph(document.head, newDocument.head);
-      Idiomorph.morph(document.body, newDocument.body, {
-        callbacks: {
-          beforeNodeMorphed: (node: Node) => {
-            // skip an element with id loadingIndicatorId
-            if (node instanceof HTMLElement && node.id === loadingIndicatorId) {
-              return false;
-            } else if (node instanceof HTMLInputElement) {
-              // clear the value of input elements
-              node.value = '';
-            }
-          }
-        }
-      });
-      schorleSetup();
-    })
-    .catch((_) => {
-      console.warn('Server is not ready yet, retrying in 1 second');
-      setTimeout(devReload, 1000);
-    });
-  console.log('[schorle][dev mode] finished reloading page');
-};
-
 const schorleSetup = () => {
   console.log(`[schorle] setup started`);
   devToggleLoading(true);
@@ -208,7 +159,7 @@ const schorleSetup = () => {
   };
   io.onclose = (e) => {
     if (e.code === 1012 && runningInDevMode()) {
-      devReload();
+      devReload(schorleSetup);
     }
   };
 
@@ -218,7 +169,7 @@ const schorleSetup = () => {
     if (target === null) {
       throw new Error(`Element with id ${message.target} not found`);
     }
-    console.log(`[schorle] received message: ${message}`);
+    console.log(`[schorle] received message: ${JSON.stringify(message)}`);
 
     switch (message.action) {
       case Action.morph:

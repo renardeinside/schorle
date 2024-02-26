@@ -77,9 +77,3 @@ class Suspense:
     def render(self):
         with self.parent():
             self.fallback()
-
-    def __repr__(self):
-        return f"<Suspense on {self.parent.element_id} with {self.on}>"
-
-    def __str__(self):
-        return self.__repr__()

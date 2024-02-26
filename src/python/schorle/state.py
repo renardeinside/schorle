@@ -2,7 +2,7 @@ import asyncio
 from typing import Callable, Generic, TypeVar
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from schorle.effector import EffectorProtocol, effector_listing, inject_effectors
 
@@ -14,6 +14,7 @@ class EffectorMixin:
 
 class ReactiveModel(BaseModel, EffectorMixin, extra="allow"):
     reactive_id: UUID = Field(default_factory=lambda: uuid4())
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __init__(self, **data):
         super().__init__(**data)

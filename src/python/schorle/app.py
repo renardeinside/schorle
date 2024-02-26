@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 import mimetypes
 from asyncio import Task, iscoroutinefunction
 from collections.abc import Callable
@@ -35,7 +34,8 @@ def favicon() -> FileResponse:
 def assets(file_name: str) -> FileResponse:
     file_path = ASSETS_PATH / file_name
     mime_type, _ = mimetypes.guess_type(file_path)
-    return FileResponse(file_path, media_type=mime_type)
+    headers = {"Cache-Control": "no-cache, no-store"} if get_running_mode() == RunningMode.DEV else {}
+    return FileResponse(file_path, media_type=mime_type, headers=headers)
 
 
 PATH_HEADER = "X-Schorle-Session-Path"
@@ -108,6 +108,7 @@ class Schorle:
             lxml_element = rc.render(doc)
 
         rendered = etree.tostring(lxml_element, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
+        logger.debug(rendered)
         response = HTMLResponse(rendered, status_code=200)
         _session_id = str(uuid4())
         response.set_cookie(SESSION_ID_HEADER, _session_id)
@@ -163,29 +164,10 @@ class EventsEndpoint(WebSocketEndpoint):
         if self._page:
             reactive = self._page.reactives.get(message.target)
             if reactive:
-                logger.debug(f"Events found reactive: {reactive}")
                 _callback = reactive.get(message.trigger)
                 if _callback:
-                    logger.debug(f"Events found callback: {_callback}")
-                    is_partial = isinstance(_callback, partial)
-                    if is_partial:
-                        _cb = _callback
-                    else:
-                        sign = (
-                            inspect.signature(_callback)
-                            if inspect.isfunction(_callback)
-                            else inspect.signature(_callback.__func__)
-                        )
-                        if len(sign.parameters) == 0:
-                            _cb = _callback
-                        elif len(sign.parameters) == 1:
-                            _cb = partial(_callback, message.value)
-                        else:
-                            msg = f"Events callback {_callback} with signature {sign} has too many parameters."
-                            logger.error(f"Events callback has too many parameters: {sign.parameters}")
-                            await ws.close(code=1011, reason="Server error.")
-                            raise ValueError(msg)
-
+                    logger.debug("Events found callback, processing it")
+                    _cb = partial(_callback, message.value)
                     # TODO: catch exceptions in _cb
                     asyncio.ensure_future(_cb())  # noqa: RUF006
 

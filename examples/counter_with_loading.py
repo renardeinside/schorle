@@ -19,7 +19,7 @@ class Counter(ReactiveModel):
     count: int = 0
 
     @effector
-    async def increment(self):
+    async def increment(self, _):
         await asyncio.sleep(1)
         self.count += 1
 

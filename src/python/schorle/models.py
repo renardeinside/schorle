@@ -20,12 +20,14 @@ class ClientMessage(BaseModel):
 class Action(str, Enum):
     morph = "morph"
     clear = "clear"
+    render = "render"
 
 
 class ServerMessage(BaseModel):
     target: str
     payload: str | None = None
     action: Action
+    meta: str | None = None
 
     def encode(self) -> bytes:
         return msgpack.packb(self.model_dump())

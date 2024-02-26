@@ -6,13 +6,15 @@ interface ClientMessage {
 
 enum Action {
   morph = 'morph',
-  clear = 'clear'
+  clear = 'clear',
+  render = 'render'
 }
 
 interface ServerMessage {
   target: string;
   payload: string;
   action: Action;
+  meta?: string;
 }
 
 export { ClientMessage, ServerMessage, Action };

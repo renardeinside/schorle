@@ -7,6 +7,7 @@ from inspect import ismethod
 from types import MethodType
 from typing import Callable
 
+from loguru import logger
 from pydantic import BaseModel
 
 
@@ -21,12 +22,15 @@ class Effector:
         await asyncio.gather(*_tasks)
 
         if asyncio.iscoroutinefunction(self.bounded_method):
-            await self.bounded_method(*args[1:], **kwargs)
+            logger.debug(f"Calling {self.bounded_method.__name__} as a coroutine")
+            _cut_args = args[1:]
+            logger.debug(f"Args: {_cut_args}, kwargs: {kwargs}")
+            await self.bounded_method(*_cut_args)
         else:
             self.bounded_method(*args[1:], **kwargs)
 
         for subscriber in self.subscribers:
-            subscriber()
+            await subscriber()
 
     def subscribe(self, callback):
         self.subscribers.append(callback)

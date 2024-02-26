@@ -34,7 +34,8 @@ dependencies = [
     "defusedxml",
     "requests",
     "msgpack",
-    "python-multipart"
+    "python-multipart",
+    "altair"
 ]
 
 [project.urls]

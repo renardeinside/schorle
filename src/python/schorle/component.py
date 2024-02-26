@@ -2,6 +2,8 @@ from abc import ABC
 from typing import Any
 from uuid import uuid4
 
+from loguru import logger
+
 from schorle.controller import WithController
 from schorle.element import Element
 from schorle.page import PAGE, Page
@@ -26,7 +28,6 @@ class Component(WithAttributes, WithController, ABC):
             self()
 
     def __call__(self):
-
         with Element(tag=self.tag, **self._prepare_element_kwargs()):
             self.render()
 
@@ -34,8 +35,16 @@ class Component(WithAttributes, WithController, ABC):
         pass
 
     def bind(self, reactive_model: ReactiveModel):
-        def _emitter():
-            self.page_ref.render_queue.put_nowait(self)
+        async def _emitter():
+            logger.debug(f"Sending {self} to render queue from {reactive_model}")
+            await self.page_ref.render_queue.put(self)
 
         for effector_info in reactive_model.get_effectors():
+            logger.debug(f"Binding {effector_info.method} to {self}")
             effector_info.method.subscribe(_emitter)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}({self.element_id})/>"
+
+    def __str__(self):
+        return self.__repr__()

@@ -66,6 +66,11 @@ class Element(WithAttributes, WithController):
         self.controller.current = self.controller.previous
         self.controller.previous = self._pre_previous
 
+    def __repr__(self):
+        return f"<Element {self.tag.value} id={self.element_id}>"
+
+    def __str__(self):
+        return self.__repr__()
 
 def element_function_factory(tag: HTMLTag):
     def func(

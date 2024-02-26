@@ -10,10 +10,9 @@ from schorle.types import LXMLElement, Reactives
 
 
 def fix_self_closing_tags(element: LXMLElement) -> None:
-    for _tag in element.iter():
-        if _tag.tag in ["script", "link"]:
-            if _tag.text is None:
-                _tag.text = ""
+    for elem in element.iter():
+        if len(elem) == 0 and elem.text is None:
+            elem.text = ""
 
 
 class RenderController:
