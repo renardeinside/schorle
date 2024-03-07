@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import wraps
 from inspect import ismethod
 from types import MethodType
-from typing import Callable
+from typing import Any, Callable
 
 from loguru import logger
 from pydantic import BaseModel
@@ -15,7 +15,7 @@ class Effector:
     def __init__(self, bounded_method: MethodType):
         self.pre_actions: list[Callable] = []
         self.bounded_method = bounded_method
-        self.subscribers: list[Callable] = []
+        self.emitters: list[Any] = []
 
     async def __call__(self, *args, **kwargs):
         _tasks = [asyncio.create_task(_pre_action()) for _pre_action in self.pre_actions]
@@ -29,11 +29,14 @@ class Effector:
         else:
             self.bounded_method(*args[1:], **kwargs)
 
-        for subscriber in self.subscribers:
-            await subscriber()
+        for emitter in self.emitters:
+            if asyncio.iscoroutinefunction(emitter):
+                await emitter()
+            else:
+                await emitter.emit()
 
-    def subscribe(self, callback):
-        self.subscribers.append(callback)
+    def subscribe(self, emitter):
+        self.emitters.append(emitter)
 
     def prepend(self, _pre_action):
         self.pre_actions.append(_pre_action)
@@ -43,7 +46,7 @@ class Effector:
 
 
 class EffectorProtocol(Protocol):
-    def subscribe(self, callback, *, trigger: bool = True): ...
+    def subscribe(self, callback): ...
 
     async def __call__(self, *args, **kwargs): ...
 

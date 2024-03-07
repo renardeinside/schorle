@@ -21,15 +21,15 @@ def test_empty_doc():
             f"""\
             <html lang="en" theme="dark" data-theme="dark">
               <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+                <meta charset="utf-8"></meta>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0"></meta>
                 <link href="/favicon.svg" rel="icon" type="image/svg+xml"></link>
                 <script src="https://cdn.tailwindcss.com"></script>
                 <link href="{lnk}" rel="stylesheet" type="text/css"></link>
                 <script src="/_schorle/assets/bundle.js" crossorigin="anonymous" defer=""></script>
                 <title>Test Document</title>
               </head>
-              <body/>
+              <body></body>
             </html>
         """
         )

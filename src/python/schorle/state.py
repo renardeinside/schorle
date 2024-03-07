@@ -56,7 +56,15 @@ R = TypeVar("R")
 
 
 class Ref(Generic[R]):
-    current: R
+
+    def __init__(self, current: R | None = None):
+        self.current = current
 
     def set(self, value: R):
         self.current = value
+
+    def __repr__(self):
+        return f"<Ref({self.current})/>"
+
+    def __str__(self):
+        return self.__repr__()

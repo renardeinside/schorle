@@ -5,6 +5,8 @@ import { decode } from '@msgpack/msgpack';
 import { Action, ServerMessage } from './models';
 import { devReload } from './devMode';
 import { sendWhenReady } from './io';
+import embed, { VisualizationSpec } from 'vega-embed';
+import { debounce } from 'throttle-debounce';
 
 interface Cookie {
   name: string;
@@ -89,30 +91,32 @@ const applyTriggers = async (io: WebSocket) => {
         throw new Error('Attribute sle-trigger not found');
       }
 
-      if (
-        event === 'change' &&
-        trigger instanceof HTMLInputElement &&
-        trigger.type === 'file'
-      ) {
-        trigger.removeEventListener(event, fileUploadListener);
-        trigger.addEventListener(event, fileUploadListener);
-      } else {
-        trigger.addEventListener(event, () => {
-          defaultListener(io, event!, trigger);
-        });
-      }
+      let eventList = event.split(',');
+
+      eventList.forEach((event) => {
+        if (event === 'change' && trigger instanceof HTMLInputElement && trigger.type === 'file') {
+          trigger.removeEventListener(event, fileUploadListener);
+          trigger.addEventListener(event, fileUploadListener);
+        } else {
+          trigger.addEventListener(event, () => {
+            defaultListener(io, event!, trigger);
+          });
+        }
+
+        // if the event is load, send a message to the server immediately
+        if (event === 'load') {
+          console.log(`[schorle] sending load event for ${trigger.id}`);
+          sendWhenReady(io, {
+            trigger: event,
+            target: trigger.id,
+            value: null
+          });
+        }
+      });
 
       // mark the element as processed
       trigger.setAttribute('sle-processed', 'true');
 
-      // if the event is load, send a message to the server immediately
-      if (event === 'load') {
-        sendWhenReady(io, {
-          trigger: event,
-          target: trigger.id,
-          value: null
-        });
-      }
     });
 };
 
@@ -143,6 +147,13 @@ const devToggleLoading = (b: boolean) => {
   }
 };
 
+
+// @ts-ignore
+interface WithParams extends VisualizationSpec {
+  params?: Array<{ name: string }>;
+}
+
+
 const schorleSetup = () => {
   console.log(`[schorle] setup started`);
   devToggleLoading(true);
@@ -169,7 +180,7 @@ const schorleSetup = () => {
     if (target === null) {
       throw new Error(`Element with id ${message.target} not found`);
     }
-    console.log(`[schorle] received message: ${JSON.stringify(message)}`);
+    console.log(`[schorle] received message ${message.action} on target ${message.target}`);
 
     switch (message.action) {
       case Action.morph:
@@ -181,6 +192,26 @@ const schorleSetup = () => {
               }
             }
           }
+        });
+        break;
+      case Action.render:
+        embed(target, JSON.parse(message.payload), {
+          actions: message.meta && JSON.parse(message.meta).actions || false
+        }).then(result => {
+          let specWithParams = result.spec as WithParams;
+
+          let handler = (_: any, value: any) => {
+            sendWhenReady(io, {
+              trigger: 'selection',
+              target: target!.id,
+              value: JSON.stringify(value)
+            }).catch(e => console.error(e));
+          };
+          let debouncedHandler = debounce(100, handler);
+          specWithParams.params && specWithParams.params.forEach(param => {
+            console.log(`[schorle] adding listener for param ${param.name}`);
+            result.view.addSignalListener(param.name, debouncedHandler);
+          });
         });
         break;
       case Action.clear:

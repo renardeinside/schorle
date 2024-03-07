@@ -56,12 +56,13 @@ class Page(WithAttributes, WithController, ABC):
     def initialize(self):
         pass
 
+    def emit(self):
+        self.render_queue.put_nowait(self)
+
     def bind(self, reactive_model: ReactiveModel):
-        def _emitter():
-            self.render_queue.put_nowait(self)
 
         for effector_info in reactive_model.get_effectors():
-            effector_info.method.subscribe(_emitter)
+            effector_info.method.subscribe(self)
 
 
 PAGE: contextvars.ContextVar[Page | None] = contextvars.ContextVar("page", default=None)

@@ -3,9 +3,11 @@ from typing import Any
 from uuid import uuid4
 
 from loguru import logger
+from lxml import etree
 
-from schorle.controller import WithController
+from schorle.controller import RenderController, WithController
 from schorle.element import Element
+from schorle.models import Action, ServerMessage
 from schorle.page import PAGE, Page
 from schorle.state import ReactiveModel
 from schorle.tags import HTMLTag
@@ -35,13 +37,20 @@ class Component(WithAttributes, WithController, ABC):
         pass
 
     def bind(self, reactive_model: ReactiveModel):
-        async def _emitter():
-            logger.debug(f"Sending {self} to render queue from {reactive_model}")
-            await self.page_ref.render_queue.put(self)
 
         for effector_info in reactive_model.get_effectors():
             logger.debug(f"Binding {effector_info.method} to {self}")
-            effector_info.method.subscribe(_emitter)
+            effector_info.method.subscribe(self)
+
+    async def emit(self):
+        with RenderController() as rc:
+            with self.page_ref:
+                rendered = rc.render(self)
+                _html = etree.tostring(rendered, pretty_print=True).decode()
+                target = rendered.get("id")
+            _msg = ServerMessage(target=target, payload=_html, action=Action.morph)
+            # logger.debug(f"Sending message: {_msg}")
+            await self.page_ref.io.send_bytes(_msg.encode())
 
     def __repr__(self):
         return f"<{self.__class__.__name__}({self.element_id})/>"

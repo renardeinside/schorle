@@ -14,17 +14,17 @@ class Chart(Component):
 
     def render(self):
         if not self.loaded:
-            Loading()
+            Loading(instant_render=True)
 
     def initialize(self):
         if isinstance(self.on, On):
             self.on = [self.on]
 
         _on = self.on or []
-        _on.append(On(trigger="load", callback=self.send_payload))
+        _on.append(On(trigger="load", callback=self.load))
         self.on = _on
 
-    async def send_payload(self, _):
+    async def load(self, _):
         _chart = await self.chart()
         if not _chart:
             return
@@ -34,3 +34,6 @@ class Chart(Component):
         )
         await self.page_ref.io.send_bytes(_msg.encode())
         self.loaded = True
+
+    async def update(self):
+        await self.load(None)

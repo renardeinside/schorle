@@ -15,7 +15,7 @@ def test_component_empty():
 
     with RenderController() as rc:
         _lxml = rc.render(C())
-        assert etree.tostring(_lxml) == b"<div/>"
+        assert etree.tostring(_lxml) == b"<div></div>"
 
 
 def test_component_with_text():

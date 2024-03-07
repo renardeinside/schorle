@@ -26,7 +26,7 @@ class PageEmitter:
                         _html = etree.tostring(rendered, pretty_print=True).decode()
                         target = rendered.get("id")
                 _msg = ServerMessage(target=target, payload=_html, action=Action.morph)
-                logger.debug(f"Sending message: {_msg}")
+                # logger.debug(f"Sending message: {_msg}")
                 await ws.send_bytes(_msg.encode())
             except Exception as e:
                 logger.error(f"Error while emitting: {e}")

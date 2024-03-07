@@ -17,9 +17,9 @@ from starlette.websockets import WebSocket
 
 from schorle.controller import RenderController
 from schorle.document import Document
-from schorle.emitter import PageEmitter
 from schorle.models import ClientMessage
 from schorle.page import Page
+from schorle.page_emitter import PageEmitter
 from schorle.theme import Theme
 from schorle.utils import RunningMode, get_running_mode
 
@@ -108,7 +108,6 @@ class Schorle:
             lxml_element = rc.render(doc)
 
         rendered = etree.tostring(lxml_element, pretty_print=True, doctype="<!DOCTYPE html>").decode("utf-8")
-        logger.debug(rendered)
         response = HTMLResponse(rendered, status_code=200)
         _session_id = str(uuid4())
         response.set_cookie(SESSION_ID_HEADER, _session_id)

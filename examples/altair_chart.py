@@ -13,7 +13,7 @@ from schorle.chart import Chart
 from schorle.component import Component
 from schorle.element import div, link, p
 from schorle.page import Page
-from schorle.state import ReactiveModel, effector
+from schorle.state import ReactiveModel, Ref, effector
 from schorle.text import text
 
 app = Schorle(
@@ -67,12 +67,13 @@ class State(ReactiveModel):
             return add_default_props(chart)
 
 
-class TableView(Component):
+class BarChartView(Component):
     state: State
+    chart_ref: Ref[Chart] = Field(default_factory=Ref)
 
     def _body_view(self):
         if self.state.selected is not None:
-            Chart(chart=self.state.get_grouped_bar, classes=Classes("h-full w-full"))
+            Chart(chart=self.state.get_grouped_bar, classes=Classes("h-full w-full"), ref=self.chart_ref)
 
     def render(self):
         _title = (
@@ -80,12 +81,17 @@ class TableView(Component):
         )
         Card(title=_title, body=self._body_view, classes=Classes("h-full"))
 
+    async def update_chart(self):
+        if self.chart_ref.current and self.state.selected is not None:
+            await self.chart_ref.current.update()
+
     def initialize(self):
         self.bind(self.state)
+        self.state.set_selection.subscribe(self.update_chart)
 
 
 class PageWithChart(Page):
-    classes: Classes = Classes("p-4")
+    classes: Classes = Classes("p-4 h-dvh")
     state: State = State.factory()
     style: dict[str, str] = Field(default={"font-family": "Roboto"})
 
@@ -95,12 +101,12 @@ class PageWithChart(Page):
         )
 
     def render(self):
-        with p(classes=Classes("text-2xl font-bold m-4")):
+        with p(classes=Classes("text-4xl font-bold m-4")):
             text("Cars data visualization example")
 
-        with div(classes=Classes("flex flex-row space-x-4 h-screen")):
-            Card(title="Sample scatter plot", body=self._scatter, classes=Classes("h-4/6 w-4/6"))
-            TableView(state=self.state, classes=Classes("w-2/6 h-4/6"))
+        with div(classes=Classes("flex flex-row space-x-4 min-h-48 max-h-96 h-3/4")):
+            Card(title="Sample scatter plot", body=self._scatter, classes=Classes("h-full w-4/6"))
+            BarChartView(state=self.state, classes=Classes("w-2/6 h-full"))
 
 
 @app.get("/")
