@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import sys
 from enum import Enum
 
@@ -17,7 +16,3 @@ def get_running_mode() -> RunningMode:
         return RunningMode.DEV
     else:
         return RunningMode.PRODUCTION
-
-
-def get_sha256_hash(string: str) -> str:
-    return hashlib.sha256(string.encode()).hexdigest()[:8]

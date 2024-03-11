@@ -5,8 +5,7 @@ from typing import Any, Callable
 
 from lxml import etree
 
-from schorle.attrs import Suspense
-from schorle.types import LXMLElement, Reactives
+from schorle.types import LXMLElement
 
 
 def fix_self_closing_tags(element: LXMLElement) -> None:
@@ -25,8 +24,6 @@ class RenderController:
         self.component_root: LXMLElement | None = None
         self.inside_page: bool = False
         self._token: Any | None = None
-        self.reactives: Reactives = {}
-        self.suspenses: list[Suspense] = []
 
     def get_root(self) -> LXMLElement:
         return self._root

@@ -1,6 +1,5 @@
 import textwrap
 
-from loguru import logger
 from lxml import etree
 
 from schorle.controller import RenderController
@@ -44,14 +43,26 @@ def test_with_page():
 
     _title = "with page"
     page = SamplePage()
-    doc = Document(title="with page", page=page)
+    doc = Document(title="with page", page=page, with_daisyui=False, with_tailwind=False)
     with RenderController() as rc:
         _lxml = rc.render(doc)
-        logger.debug(etree.tostring(_lxml, pretty_print=True).decode())
-        # # find element with div and id schorle-page
-        page = _lxml.xpath("//div[@id='schorle-page']")[0]
-        # # check that page has a child div with text "Hello, World!"
-        assert page.xpath(".//div[text()='Hello, World!']")
-        # # check that all page children have id
-        for child in page.getchildren():
-            assert "id" in child.attrib
+        _rendered = etree.tostring(_lxml, pretty_print=True).decode()
+        expected = textwrap.dedent(
+            f"""\
+            <html lang="en" theme="dark" data-theme="dark">
+              <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+                <link href="/favicon.svg" rel="icon" type="image/svg+xml"></link>
+                <script src="/_schorle/assets/bundle.js" crossorigin="anonymous" defer=""></script>
+                <title>{_title}</title>
+              </head>
+              <body>
+                <div id="schorle-page">
+                  <div>Hello, World!</div>
+                </div>
+              </body>
+            </html>
+        """
+        )
+        assert _rendered == expected

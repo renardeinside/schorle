@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Union
+from typing import Union
 
-from pydantic import BaseModel, PrivateAttr
-from pydantic.dataclasses import dataclass
-
-from schorle.state import ReactiveModel
+from pydantic import BaseModel, Field
 
 RawClassesPayload = Union[str, list[str], tuple[str, ...], "Classes", None]
 
@@ -18,7 +15,7 @@ def parse_args(*args: RawClassesPayload) -> list[str]:
         elif isinstance(arg, (list, tuple)):
             container.extend(arg)
         elif isinstance(arg, Classes):
-            container.extend(arg._value)
+            container.extend(arg.value)
         elif arg is None:
             pass
         else:
@@ -28,58 +25,34 @@ def parse_args(*args: RawClassesPayload) -> list[str]:
 
 
 class Classes(BaseModel):
-    _value: list[str] = PrivateAttr(default_factory=list)
+    value: list[str] = Field(default_factory=list)
 
     def __init__(self, *args: RawClassesPayload):
         super().__init__()
-        self._value = parse_args(*args)
+        self.value = parse_args(*args)
 
     def append(self, *args: RawClassesPayload):
-        new_value = self._value + parse_args(*args)
-        self._value = new_value
+        new_value = self.value + parse_args(*args)
+        self.value = new_value
         return self
 
     def remove(self, *args: RawClassesPayload):
-        new_value = [x for x in self._value if x not in parse_args(*args)]
-        self._value = new_value
+        new_value = [x for x in self.value if x not in parse_args(*args)]
+        self.value = new_value
         return self
 
     def toggle(self, class_name: str):
-        if class_name in self._value:
+        if class_name in self.value:
             self.remove(class_name)
         else:
             self.append(class_name)
         return self
 
     def render(self) -> str:
-        return "" if not self._value else " ".join(sorted(set(self._value))).strip()
+        return "" if not self.value else " ".join(sorted(set(self.value))).strip()
 
     def __str__(self) -> str:
         return self.render()
 
     def __repr__(self) -> str:
         return f"Classes({self.render()})"
-
-
-@dataclass
-class On:
-    trigger: str
-    callback: Callable
-    ws_based: bool = True
-
-
-@dataclass
-class Suspense:
-    on: ReactiveModel
-    fallback: Callable
-    parent: Any | None = None
-
-    def render(self):
-        with self.parent():
-            self.fallback()
-
-    def __repr__(self):
-        return f"<Suspense on {self.parent.element_id} with {self.on}>"
-
-    def __str__(self):
-        return self.__repr__()

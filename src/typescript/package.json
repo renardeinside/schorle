@@ -10,10 +10,7 @@
     "format": "prettier . --write"
   },
   "dependencies": {
-    "@msgpack/msgpack": "^3.0.0-beta2",
-    "idiomorph": "^0.3.0",
-    "lucide": "^0.335.0",
-    "typescript": "^5.3.3"
+    "lucide": "^0.335.0"
   },
   "devDependencies": {
     "esbuild": "^0.20.1",
