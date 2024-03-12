@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 
-from schorle._dev import dev_loading_spinner
-from schorle.element import body, footer, head, html, link, meta, script, title
+from schorle.element import body, head, html, link, meta, script, title
 from schorle.page import Page
 from schorle.renderable import Renderable
 from schorle.text import text
@@ -35,7 +34,6 @@ class Document(Renderable, BaseModel):
                         rel="stylesheet",
                         type="text/css",
                     )
-
                 script(src="/_schorle/assets/bundle.js", crossorigin="anonymous", **{"defer": ""})
                 if self.extra_assets:
                     for asset in self.extra_assets:
@@ -47,6 +45,3 @@ class Document(Renderable, BaseModel):
                 if self.page:
                     with self.page:
                         self.page()
-                if self.with_dev_meta:
-                    with footer(element_id="schorle-footer"):
-                        dev_loading_spinner()

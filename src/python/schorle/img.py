@@ -1,7 +1,7 @@
 import base64
 from pathlib import Path
 
-from schorle.attrs import Classes, On
+from schorle.attrs import Classes
 from schorle.element import img
 
 
@@ -12,7 +12,6 @@ def Image(  # noqa: N802
     element_id: str | None = None,
     classes: Classes | None = None,
     style: dict[str, str] | None = None,
-    on: list[On] | On | None = None,
     **attributes,
 ) -> None:
     if isinstance(src, Path):
@@ -26,4 +25,4 @@ def Image(  # noqa: N802
     attributes["src"] = _src
     attributes["alt"] = alt
 
-    return img(element_id=element_id, classes=classes, style=style, on=on, **attributes)
+    return img(element_id=element_id, classes=classes, style=style, **attributes)

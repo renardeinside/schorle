@@ -55,7 +55,6 @@ uvicorn examples.simple:app --reload
 
 - [FastAPI](https://fastapi.tiangolo.com/) - web framework
 - [Tailwind CSS](https://tailwindcss.com/) - CSS framework
-- [Idiomorph](https://github.com/bigskysoftware/idiomorph) - For client-side element morphing
 - [DaisyUI](https://daisyui.com/) - Component library for Tailwind CSS
 - [Pydantic](https://docs.pydantic.dev/latest/) - classes and utilities for elements
 

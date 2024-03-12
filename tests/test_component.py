@@ -4,7 +4,6 @@ from schorle.attrs import Classes
 from schorle.component import Component
 from schorle.controller import RenderController
 from schorle.element import div
-from schorle.page import Page
 from schorle.text import text
 
 
@@ -55,29 +54,6 @@ def test_nested_components():
     with RenderController() as rc:
         _lxml = rc.render(C())
         assert etree.tostring(_lxml) == b'<div id="parent"><div id="child">Hello, World!</div></div>'
-
-
-def test_in_page_indexing():
-    class C(Component):
-        def render(self):
-            with div():
-                text("Hello, World!")
-            with div():
-                text("Hello, World!")
-            with div():
-                with div():
-                    text("Hello, World!")
-
-    class P(Page):
-        def render(self):
-            C()
-
-    p = P()
-    with RenderController() as rc:
-        with p:
-            _lxml = rc.render(p)
-            for el in _lxml.iter():
-                assert el.attrib.get("id") is not None
 
 
 def test_component_with_classes():

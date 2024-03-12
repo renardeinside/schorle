@@ -156,7 +156,8 @@ ban-relative-imports = "all"
 [tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
 "tests/**/*" = ["PLR2004", "S101", "TID252"]
-"examples/**/*" = ["S311"]
+"examples/**/*" = ["S311", "N802"]
+"docs/**/*" = ["N802"]
 
 [tool.coverage.run]
 source_pkgs = ["schorle"]

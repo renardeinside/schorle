@@ -1,18 +1,15 @@
 from functools import partial
 from pathlib import Path
-from typing import Any
 
 from pydantic import Field
 from starlette.responses import FileResponse, JSONResponse
 
 from schorle.app import Schorle
 from schorle.attrs import Classes
-from schorle.component import Component
-from schorle.element import div, link, p
+from schorle.element import a, div, link, p
 from schorle.icon import Icon
 from schorle.img import Image
 from schorle.page import Page
-from schorle.tags import HTMLTag
 from schorle.text import text
 
 app = Schorle(
@@ -22,29 +19,19 @@ app = Schorle(
 )
 
 
-class LinkWithIcon(Component):
-    href: str
-    icon_name: str
-    text: str
-    tag: HTMLTag = HTMLTag.A
-    classes: Classes = Classes("btn btn-primary font-normal w-42")
-
-    def model_post_init(self, __context: Any) -> None:
-        self.attrs["href"] = self.href
-        super().model_post_init(__context)
-
-    def render(self):
-        text(self.text)
-        Icon(name=self.icon_name)
+def LinkWithIcon(href: str, icon_name: str, additional_text: str) -> None:
+    with a(href=href, classes=Classes("btn btn-primary font-normal w-42")):
+        text(additional_text)
+        Icon(name=icon_name)
 
 
-LINKS = [
-    LinkWithIcon(href="https://github.com/renardeinside/schorle", icon_name="github", text="GitHub"),
-    LinkWithIcon(href="https://github.com/renardeinside/schorle/tree/main/examples", icon_name="code", text="Examples"),
-    LinkWithIcon(
-        href="https://medium.com/@polarpersonal/schorle-testing-the-waters-with-a-python-server-driven-ui-kit-053f85ee6574",
-        icon_name="book-marked",
-        text="Concepts",
+LINKS_INFO = [
+    ("https://github.com/renardeinside/schorle", "github", "GitHub"),
+    ("https://github.com/renardeinside/schorle/tree/main/examples", "code", "Examples"),
+    (
+        "https://medium.com/@polarpersonal/schorle-testing-the-waters-with-a-python-server-driven-ui-kit-053f85ee6574",
+        "book-marked",
+        "Concepts",
     ),
 ]
 
@@ -70,8 +57,8 @@ class LandingPage(Page):
                 text("Pythonic Server-Driven UI Kit for building modern apps.")
 
             with div(classes=Classes("flex flex-col space-y-4 space-x-0 md:flex-row md:space-x-4 md:space-y-0")):
-                for _link in LINKS:
-                    _link()
+                for info in LINKS_INFO:
+                    LinkWithIcon(*info)
 
 
 @app.get("/")
