@@ -2,49 +2,32 @@ from __future__ import annotations
 
 from typing import Any
 
-from lxml import etree
 from pydantic import PrivateAttr
 
-from schorle.attrs import Classes
+from schorle.attrs import Classes, Reactive
 from schorle.controller import WithController
+from schorle.prototypes import ElementPrototype
 from schorle.tags import HTMLTag
-from schorle.types import LXMLElement
-from schorle.with_attributes import WithAttributes
 
 
-class Element(WithAttributes, WithController):
-    _pre_previous: LXMLElement | None = PrivateAttr(default=None)
-    _element: LXMLElement | None = PrivateAttr(default=None)
+class Element(ElementPrototype, WithController):
+    _pre_previous: ElementPrototype | None = PrivateAttr(default=None)
 
     def model_post_init(self, __context: Any) -> None:
         if self.controller:
             self.render()
-
-    def get_lxml_element_attrs(self) -> dict[str, str]:
-        _attributes = self.attrs or {}
-        if self.element_id:
-            _attributes["id"] = self.element_id
-
-        if self.classes:
-            _attributes["class"] = self.classes.render()
-
-        if self.style:
-            _attributes["style"] = ";".join([f"{k}:{v}" for k, v in self.style.items()])
-
-        return _attributes
 
     def __call__(self):
         self.render()
         return self
 
     def render(self):
-        self._element = etree.SubElement(self.controller.current, self.tag, **self.get_lxml_element_attrs())
+        self.controller.current.append(self)
 
     def __enter__(self):
         self._pre_previous = self.controller.previous
         self.controller.previous = self.controller.current
-        if self._element is not None:
-            self.controller.current = self._element
+        self.controller.current = self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.controller.current = self.controller.previous
@@ -53,18 +36,23 @@ class Element(WithAttributes, WithController):
 
 def element_function_factory(tag: HTMLTag):
     def func(
-        element_id: str | None = None,
         classes: Classes | None = None,
+        element_id: str | None = None,
         style: dict[str, str] | None = None,
         attrs: dict[str, str] | None = None,
+        reactive: Reactive | None = None,
+        hsx: str | None = None,
         **attributes,
     ):
         combined_attrs = {**attributes, **(attrs or {})}
+        if hsx:
+            combined_attrs["_"] = hsx
         return Element(
             tag=tag,
             element_id=element_id,
             classes=classes,
             style=style,
+            reactive=reactive,
             attrs=combined_attrs,
         )
 

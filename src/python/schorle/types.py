@@ -1,3 +1,3 @@
-from lxml.etree import _Element as Element
+from lxml.etree import _Element
 
-LXMLElement = Element
+LXMLElement = _Element

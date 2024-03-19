@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 from enum import Enum
 
+from starlette.responses import HTMLResponse
+
 
 class RunningMode(str, Enum):
     DEV = "dev"
@@ -16,3 +18,7 @@ def get_running_mode() -> RunningMode:
         return RunningMode.DEV
     else:
         return RunningMode.PRODUCTION
+
+
+def empty():
+    return HTMLResponse(content="", status_code=200)

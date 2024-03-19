@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Union
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Union
 
 from pydantic import BaseModel, Field
 
@@ -56,3 +58,75 @@ class Classes(BaseModel):
 
     def __repr__(self) -> str:
         return f"Classes({self.render()})"
+
+
+@dataclass
+class On:
+    trigger: str
+    callback: Any
+
+
+class HTTPMethod(str, Enum):
+    POST = "POST"
+    GET = "GET"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    PATCH = "PATCH"
+
+
+@dataclass
+class Action:
+    method: HTTPMethod
+    url: str
+
+
+def post(url: str):
+    return Action(method=HTTPMethod.POST, url=url)
+
+
+def get(url: str):
+    return Action(method=HTTPMethod.GET, url=url)
+
+
+def put(url: str):
+    return Action(method=HTTPMethod.PUT, url=url)
+
+
+def delete(url: str):
+    return Action(method=HTTPMethod.DELETE, url=url)
+
+
+def patch(url: str):
+    return Action(method=HTTPMethod.PATCH, url=url)
+
+
+class Swap(str, Enum):
+    morph = "morph"
+    after_end = "afterend"
+    before_begin = "beforebegin"
+    before_end = "beforeend"
+    outer_html = "outerHtml"
+    inner_html = "innerHtml"
+
+
+@dataclass
+class Reactive:
+    action: Action
+    target: str
+    swap: str | Swap = Swap.morph
+    trigger: str | None = None
+
+    def render(self) -> dict[str, str]:
+        _rendered = {}
+
+        if self.trigger:
+            _rendered["hx-trigger"] = self.trigger
+
+        _rendered.update(
+            {
+                "hx-swap": self.swap,
+                "hx-target": self.target,
+                "hx-" + self.action.method.lower(): self.action.url,
+            }
+        )
+        return _rendered

@@ -1,13 +1,15 @@
-from pydantic import BaseModel
+from functools import partial
+from typing import Any, Callable
 
+from pydantic import BaseModel, Field
+
+from schorle.controller import render
 from schorle.element import body, head, html, link, meta, script, title
-from schorle.page import Page
-from schorle.renderable import Renderable
 from schorle.text import text
 from schorle.theme import Theme
 
 
-class Document(Renderable, BaseModel):
+class Document(BaseModel):
     title: str = "Schorle"
     theme: Theme = Theme.DARK
     with_dev_meta: bool = False
@@ -16,9 +18,9 @@ class Document(Renderable, BaseModel):
     with_tailwind: bool = True
     with_daisyui: bool = True
     daisyui_version: str = "4.7.2"
-    page: Page | None = None
+    body_attributes: dict[str, str] | None = Field(default_factory=lambda: {"hx-ext": "morph, lucide"})
 
-    def render(self):
+    def _render(self, payload: Callable[..., Any] | None = None):
         with html(lang=self.lang, theme=self.theme, **{"data-theme": self.theme}):
             with head():
                 meta(charset="utf-8")
@@ -34,6 +36,10 @@ class Document(Renderable, BaseModel):
                         rel="stylesheet",
                         type="text/css",
                     )
+                script(src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js")
+                script(src="https://unpkg.com/idiomorph@0.3.0")
+                script(src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js")
+                script(src="https://unpkg.com/hyperscript.org@0.9.12")
                 script(src="/_schorle/assets/bundle.js", crossorigin="anonymous", **{"defer": ""})
                 if self.extra_assets:
                     for asset in self.extra_assets:
@@ -41,7 +47,9 @@ class Document(Renderable, BaseModel):
 
                 with title():
                     text(self.title)
-            with body():
-                if self.page:
-                    with self.page:
-                        self.page()
+            with body(attrs=self.body_attributes):
+                if payload:
+                    payload()
+
+    def render(self, payload: Callable[..., Any] | None = None, *args, **kwargs):
+        return render(partial(self._render, partial(payload, *args, **kwargs)))
