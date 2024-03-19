@@ -1,5 +1,13 @@
 import { createIcons, icons } from 'lucide';
+import htmx from 'htmx.org';
 
-document.addEventListener('DOMContentLoaded', () => {
-  createIcons({ icons });
+htmx.defineExtension('lucide', {
+  onEvent: (name) => {
+    if (name === 'htmx:load') {
+      createIcons({ icons });
+      htmx.on('htmx:afterSwap', () => {
+        createIcons({ icons });
+      });
+    }
+  }
 });

@@ -2,6 +2,9 @@ from enum import Enum
 
 
 class HTMLTag(str, Enum):
+    ROOT = "schorle-root"
+    PAGE = "schorle-page"
+    COMPONENT = "schorle-component"
     PRE = "pre"
     CODE = "code"
     SVG = "svg"

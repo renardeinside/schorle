@@ -1,11 +1,5 @@
-from schorle.component import Component
-from schorle.element import icon
-from schorle.text import text
+from schorle.element import icon as html_icon
 
 
-class Icon(Component):
-    name: str
-
-    def render(self):
-        with icon(**{"data-lucide": self.name}):
-            text("")
+def icon(name: str):
+    html_icon(attrs={"data-lucide": name})

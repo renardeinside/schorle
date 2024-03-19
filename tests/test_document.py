@@ -25,7 +25,9 @@ def test_empty_doc():
                 <link href="/favicon.svg" rel="icon" type="image/svg+xml"></link>
                 <script src="https://cdn.tailwindcss.com"></script>
                 <link href="{lnk}" rel="stylesheet" type="text/css"></link>
-                <script src="/_schorle/assets/bundle.js" crossorigin="anonymous" defer=""></script>
+                <script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js"></script>
+                <script src="https://unpkg.com/idiomorph@0.3.0"></script>
+                <script src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js"></script>
                 <title>Test Document</title>
               </head>
               <body/>
@@ -54,13 +56,15 @@ def test_with_page():
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
                 <link href="/favicon.svg" rel="icon" type="image/svg+xml"></link>
-                <script src="/_schorle/assets/bundle.js" crossorigin="anonymous" defer=""></script>
+                <script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js"></script>
+                <script src="https://unpkg.com/idiomorph@0.3.0"></script>
+                <script src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js"></script>
                 <title>{_title}</title>
               </head>
               <body>
-                <div id="schorle-page">
+                <schorle-page>
                   <div>Hello, World!</div>
-                </div>
+                </schorle-page>
               </body>
             </html>
         """

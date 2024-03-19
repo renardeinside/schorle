@@ -15,4 +15,4 @@ def test_with_page():
 
     with RenderController() as rc:
         _lxml = rc.render(SamplePage())
-        assert etree.tostring(_lxml) == b'<div id="schorle-page"><div>Hello, World!</div></div>'
+        assert etree.tostring(_lxml) == b"<schorle-page><div>Hello, World!</div></schorle-page>"

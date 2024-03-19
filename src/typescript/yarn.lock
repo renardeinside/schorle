@@ -146,6 +146,11 @@ esbuild@^0.20.1:
     "@esbuild/win32-ia32" "0.20.1"
     "@esbuild/win32-x64" "0.20.1"
 
+htmx.org@^1.9.11:
+  version "1.9.11"
+  resolved "https://registry.yarnpkg.com/htmx.org/-/htmx.org-1.9.11.tgz#00192041ee682d6ca7146d0fbd901169ffe72d87"
+  integrity sha512-WlVuICn8dfNOOgYmdYzYG8zSnP3++AdHkMHooQAzGZObWpVXYathpz/I37ycF4zikR6YduzfCvEcxk20JkIUsw==
+
 lucide@^0.335.0:
   version "0.335.0"
   resolved "https://registry.yarnpkg.com/lucide/-/lucide-0.335.0.tgz#e37cb73a4c92bd7925dec5c838331561b8a8d2ee"

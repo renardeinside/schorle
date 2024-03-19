@@ -1,28 +1,36 @@
 from __future__ import annotations
 
+from enum import Enum
+
 from schorle.app import Schorle
 from schorle.attrs import Classes
-from schorle.button import Button
-from schorle.element import div
-from schorle.page import Page
+from schorle.controller import render
+from schorle.element import button, div
 from schorle.text import text
 from schorle.theme import Theme
 
-app = Schorle(theme=Theme.AUTUMN)
+app = Schorle(theme=Theme.DARK)
 
 
-def SampleButton():
-    with Button(modifier="primary"):
-        text("Click me")
+class Targets(str, Enum):
+    counter = "counter"
 
 
-class PageWithButton(Page):
+def counter(count: int):
+    with div(classes=Classes("flex flex-col justify-center items-center h-screen"), element_id=Targets.counter):
+        with button(
+            classes=Classes("btn btn-primary"), **{"hx-post": "/increment", "hx-target": f"#{Targets.counter}"}
+        ):
+            text(f"Count: {count}")
 
-    def render(self):
-        with div(classes=Classes("flex flex-col justify-center items-center h-screen")):
-            SampleButton()
+
+@app.backend.post("/increment")
+def increment():
+    app.backend.state.count += 1
+    return render(counter, app.backend.state.count)
 
 
-@app.get("/")
-def get_page():
-    return PageWithButton()
+@app.backend.get("/")
+def home():
+    app.backend.state.count = 0
+    return app.doc.render(counter, app.backend.state.count)
