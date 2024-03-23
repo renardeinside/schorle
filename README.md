@@ -12,6 +12,10 @@ async support.**
         <img src="https://img.shields.io/pypi/v/schorle?color=green&amp;style=for-the-badge" alt="Latest Python Release"/>
     </a>
     <img src="https://img.shields.io/badge/code%20style-black-000000.svg?style=for-the-badge" alt="We use black for formatting"/>
+    <a href="https://codecov.io/gh/renardeinside/schorle">
+        <img src="https://img.shields.io/codecov/c/gh/renardeinside/schorle?style=for-the-badge"
+             alt="codecov"/>
+    </a>
 </p>
 
 ---
