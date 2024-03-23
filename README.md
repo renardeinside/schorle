@@ -48,7 +48,7 @@ Schorle application is a thin wrapper around [FastAPI](https://fastapi.tiangolo.
 use `uvicorn`:
 
 ```bash
-uvicorn examples.simple:app --reload
+uvicorn examples.todo:app --reload
 ```
 
 ## Tech stack
@@ -57,16 +57,16 @@ uvicorn examples.simple:app --reload
 - [Tailwind CSS](https://tailwindcss.com/) - CSS framework
 - [DaisyUI](https://daisyui.com/) - Component library for Tailwind CSS
 - [Pydantic](https://docs.pydantic.dev/latest/) - classes and utilities for elements
+- [HTMX](https://htmx.org/) - server interop
+- [Hyperscript](https://hyperscript.org/) - client-side scripting
+-
 
 ## Roadmap
 
 - [ ] Add more elements
-- [x] Add hot reload
+- [ ] Add hot reload
 - [x] Add support for icons
 - [x] Add support for onload events
-- [x] Use msgpack for message SerDe ([Why msgpack?](https://medium.com/@hugovs/the-need-for-speed-experimenting-with-message-serialization-93d7562b16e4))
-- [x] Introduce `suspense` for loading states
-- [ ] Simplify indexing logic
 - [ ] Add convenient attributes API
 - [ ] Add more examples
 - [ ] Add tests
