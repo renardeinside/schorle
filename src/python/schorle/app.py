@@ -7,7 +7,6 @@ from starlette.responses import FileResponse
 from starlette.types import Receive, Scope, Send
 
 from schorle.document import Document
-from schorle.page import Page
 from schorle.theme import Theme
 
 ASSETS_PATH = Path(str(files("schorle"))) / Path("assets")
@@ -26,7 +25,6 @@ def assets(file_name: str) -> FileResponse:
 
 class Schorle:
     def __init__(self, theme: Theme = Theme.DARK, lang: str = "en", extra_assets: list | None = None) -> None:
-        self._pages: dict[str, Page] = {}
         self.backend = FastAPI()
         self.backend.get("/_schorle/assets/{file_name:path}", response_class=FileResponse)(assets)
         self.backend.get("/favicon.svg", response_class=FileResponse)(favicon)
