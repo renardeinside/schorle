@@ -54,7 +54,7 @@ def input_component():
     ) as this:
         this >> text_input()
         this >> button(
-            Classes("btn btn-primary btn-square btn-disabled"),
+            Classes("btn btn-primary btn-square btn-disabled btn-outline"),
             element_id="add-button",
         ).append(icon("plus"))
 

@@ -48,9 +48,6 @@ source = "vcs"
 [tool.hatch.build.targets.wheel]
 packages = ["src/python/schorle"]
 
-[tool.hatch.build.targets.wheel.force-include]
-"src/python/schorle/assets/bundle.js" = "schorle/assets/bundle.js"
-
 [tool.hatch.build.hooks.vcs]
 version-file = "src/python/schorle/_version.py"
 

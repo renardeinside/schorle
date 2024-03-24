@@ -12,7 +12,7 @@ def test_empty_doc():
     result = etree.tostring(doc._base()._compose(doc._base()), pretty_print=True).decode()
     expected = textwrap.dedent(
         f"""\
-        <html lang="en" theme="dark" data-theme="dark">
+        <html lang="en" data-theme="dark">
           <head>
             <meta charset="utf-8"/>
             <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -24,6 +24,7 @@ def test_empty_doc():
             <script src="https://unpkg.com/idiomorph@0.3.0"></script>
             <script src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js"></script>
             <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
+            <script src="https://unpkg.com/lucide@latest"></script>
             <script src="/_schorle/assets/bundle.js" crossorigin="anonymous" defer=""></script>
           </head>
         </html>
