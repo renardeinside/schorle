@@ -204,6 +204,16 @@ app = Schorle()
 app.backend.add_middleware(...)  # add FastAPI middleware
 ```
 
+## Dev reload
+
+`Schorle` supports dev reload out of the box. To enable it, use the `--reload` flag:
+
+```bash
+uvicorn examples.todo:app --reload
+```
+
+On any change in the code, the server will restart automatically, and the client will re-fetch the page.
+
 ## Tech stack
 
 - [FastAPI](https://fastapi.tiangolo.com/) - web framework
@@ -217,7 +227,7 @@ app.backend.add_middleware(...)  # add FastAPI middleware
 ## Roadmap
 
 - [ ] Add more elements
-- [ ] Add hot reload
+- [x] Add dev reload
 - [x] Add support for icons
 - [x] Add support for onload events
 - [ ] Python-to-Hyperscript transpiler
