@@ -16,10 +16,10 @@ def test_empty_doc():
           <head>
             <meta charset="utf-8"/>
             <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-            <title>Test Document</title>
+            <title>{_title}</title>
             <link href="/favicon.svg" rel="icon" type="image/svg+xml"></link>
             <script src="https://cdn.tailwindcss.com"></script>
-            <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css"></link>
+            <link href="{lnk}" rel="stylesheet" type="text/css"></link>
             <script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js"></script>
             <script src="https://unpkg.com/idiomorph@0.3.0"></script>
             <script src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js"></script>
@@ -30,5 +30,4 @@ def test_empty_doc():
         </html>
     """
     )
-    print(result)
     assert result == expected
