@@ -11,3 +11,10 @@ htmx.defineExtension('lucide', {
     }
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const schorleDev = document.querySelector('meta[name="schorle-dev"]');
+  if (schorleDev) {
+    console.log('Schorle is running in development mode');
+  }
+});
