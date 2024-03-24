@@ -31,9 +31,6 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "loguru",
-    "defusedxml",
-    "requests",
-    "msgpack",
     "python-multipart"
 ]
 
