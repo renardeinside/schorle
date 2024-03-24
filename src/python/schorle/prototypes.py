@@ -3,7 +3,7 @@ from __future__ import annotations
 from lxml import etree
 from pydantic import BaseModel, PrivateAttr
 
-from schorle.attrs import Classes, Reactive
+from schorle.attrs import Classes, Handler
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
 
@@ -14,7 +14,7 @@ class ElementPrototype(BaseModel):
     classes: Classes | None = None
     style: dict[str, str] | None = None
     attrs: dict[str, str] | None = None
-    reactive: Reactive | None = None
+    handler: Handler | None = None
     _children: list[ElementPrototype] = PrivateAttr(default_factory=list)
     _text: str | None = PrivateAttr(default=None)
 
@@ -46,8 +46,8 @@ class ElementPrototype(BaseModel):
         if self.style:
             _attributes["style"] = ";".join([f"{k}:{v}" for k, v in self.style.items()])
 
-        if self.reactive:
-            _attributes.update(self.reactive.render())
+        if self.handler:
+            _attributes.update(self.handler.render())
 
         return _attributes
 

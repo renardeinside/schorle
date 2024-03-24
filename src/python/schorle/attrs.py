@@ -110,7 +110,7 @@ class Swap(str, Enum):
 
 
 @dataclass
-class Reactive:
+class Handler:
     action: Action
     target: str
     swap: str | Swap = Swap.morph

@@ -7,7 +7,7 @@ from typing import Any, Callable
 from lxml import etree
 from starlette.responses import HTMLResponse
 
-from schorle.attrs import Classes, Reactive
+from schorle.attrs import Classes, Handler
 from schorle.prototypes import ElementPrototype
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
@@ -63,7 +63,7 @@ def element_function_factory(tag: HTMLTag):
         element_id: str | None = None,
         style: dict[str, str] | None = None,
         attrs: dict[str, str] | None = None,
-        reactive: Reactive | None = None,
+        handler: Handler | None = None,
         hsx: str | None = None,
         post_callback: Callable[[Element], Any] | None = None,
         **attributes,
@@ -76,7 +76,7 @@ def element_function_factory(tag: HTMLTag):
             element_id=element_id,
             classes=classes,
             style=style,
-            reactive=reactive,
+            handler=handler,
             attrs=combined_attrs,
             post_callback=post_callback,
         )

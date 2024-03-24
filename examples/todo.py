@@ -6,7 +6,7 @@ from fastapi import Form
 from loguru import logger
 
 from schorle.app import Schorle
-from schorle.attrs import Classes, Reactive, Swap, delete, post
+from schorle.attrs import Classes, Handler, Swap, delete, post
 from schorle.element import button, div, form, input_, span
 from schorle.icon import icon
 from schorle.theme import Theme
@@ -18,7 +18,7 @@ def task_view(task: str):
     with div(Classes("flex flex-row justify-between items-center w-full")) as this:
         this >> span(Classes("text-lg")).text(task)
         this >> button(
-            Classes("btn btn-error btn-square"), reactive=Reactive(delete(f"/delete?task={task}"), "closest div")
+            Classes("btn btn-error btn-square"), handler=Handler(delete(f"/delete?task={task}"), "closest div")
         ).append(icon("trash"))
 
     return this
@@ -45,7 +45,7 @@ def text_input():
 def input_component():
     with form(
         Classes("flex flex-row justify-center items-center w-96 space-x-2"),
-        reactive=Reactive(post("/add"), "#tasks", Swap.before_end),
+        handler=Handler(post("/add"), "#tasks", Swap.before_end),
         hsx="""
         on htmx:afterRequest
             my.reset()
