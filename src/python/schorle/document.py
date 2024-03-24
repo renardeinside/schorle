@@ -18,7 +18,7 @@ class Document(BaseModel):
     body_attributes: dict[str, str] | None = Field(default_factory=lambda: {"hx-ext": "morph, lucide"})
 
     def _base(self):
-        with html(lang=self.lang, theme=self.theme, **{"data-theme": self.theme}) as _html:
+        with html(lang=self.lang, **{"data-theme": self.theme}) as _html:
             with _html.head() as _head:
                 _head.meta(charset="utf-8")
                 _head.meta(name="viewport", content="width=device-width, initial-scale=1.0")
@@ -43,7 +43,7 @@ class Document(BaseModel):
                 _head.script(src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js")
                 _head.script(src="https://unpkg.com/hyperscript.org@0.9.12")
                 _head.script(src="https://unpkg.com/lucide@latest")
-                _head.script(src="/_schorle/assets/bundle.js", crossorigin="anonymous")
+                _head.script(src="/_schorle/assets/bundle.js", crossorigin="anonymous", defer="")
                 if self.extra_assets:
                     for asset in self.extra_assets:
                         _head.append(asset)
