@@ -43,8 +43,10 @@ class RenderingContext:
 
     def covert_proto_to_lxml(self, proto: ElementPrototype) -> LXMLElement:
         lxml_element = etree.Element(proto.tag.value if isinstance(proto.tag, HTMLTag) else proto.tag)
+
         if proto.element_id:
             lxml_element.set("id", proto.element_id)
+
         if proto._text:
             lxml_element.text = proto._text
 
@@ -53,11 +55,12 @@ class RenderingContext:
                 _key = "class" if key == "classes" else key
                 lxml_element.set(_key, value)
 
-        if hasattr(proto, "classes") and proto.classes:
+        if proto.classes:
             if isinstance(proto.classes, str):
                 proto.classes = [proto.classes]
             lxml_element.set("class", " ".join(proto.classes))
-        if hasattr(proto, "style") and proto.style:
+
+        if proto.style:
             lxml_element.set("style", ";".join([f"{key}: {value}" for key, value in proto.style.items()]))
 
         for child in proto.get_children():
