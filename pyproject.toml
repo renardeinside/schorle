@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "schorle"
-description = ''
+description = 'Server-driven UI kit for Python with async support'
 dynamic = ["version"]
 readme = "README.md"
 requires-python = ">=3.7"
