@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from uuid import uuid4
 
+from lxml import etree
+
 from schorle.prototypes import ElementPrototype
 from schorle.rendering_context import RENDERING_CONTEXT, rendering_context
 from schorle.tags import HTMLTag
@@ -48,3 +50,8 @@ class Component(ElementPrototype):
 
     def __str__(self):
         return self.__repr__()
+
+    def to_string(self) -> str:
+        with rendering_context(root=self) as rc:
+            self.render()
+        return etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8")

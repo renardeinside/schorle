@@ -75,8 +75,3 @@ class Document(Component):
             etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8"),
             200,
         )
-
-    def to_string(self) -> str:
-        with rendering_context(root=self) as rc:
-            self.render()
-        return etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8")
