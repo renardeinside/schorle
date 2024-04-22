@@ -46,40 +46,43 @@ In contrast to using templating engines, Schorle uses Python functions to create
 This approach allows for better type checking and code completion.
 
 ```python
+import schorle.text
 from schorle.element import div, button
 
 
 def my_element():
     return div().append(
-        button().text("Click me!")
+        schorle.text.text("Click me!")
     )
 ```
 
 For more complex cases, you can use with-blocks:
 
 ```python
+import schorle.text
 from schorle.element import div, button
 
 
 def my_element():
     with div() as container:
-        container >> button().text("Click me!")
+        container >> schorle.text.text("Click me!")
     return container
 ```
 
 For multi-nesting cases, you can call tag-methods directly on the parent:
 
 ```python
+import schorle.text
 from schorle.element import div, button
 
 
 def my_element():
     with div() as complex_container:
         with complex_container.div() as container:
-            container.button().text("Click me!")
+            schorle.text.text("Click me!")
 
         with complex_container.div() as another_container:
-            another_container >> button().text("No, click me!")
+            another_container >> schorle.text.text("No, click me!")
 
     return complex_container
 
@@ -90,6 +93,7 @@ def my_element():
 Handler is just a dataclass with information on how to handle a specific trigger, for instance:
 
 ```python
+import schorle.text
 from schorle.attrs import Handler, Swap, Classes, post
 from schorle.element import button, form, Element, div
 from schorle.icon import icon
@@ -119,7 +123,7 @@ def input_component():
 
 
 def task_view(task: str) -> Element:
-    return div().text(f"Task: {task}")
+    return schorle.text.text(f"Task: {task}")
 
 
 @app.backend.post("/add")
@@ -132,21 +136,13 @@ def add_task(task: Annotated[str, Form()]):
 For client-side scripting,`Hyperscript` is used:
 
 ```python
+import schorle.text
 from schorle.element import button
 from schorle.attrs import Classes
 
 
 def counter():
-    return button(
-        Classes("btn btn-primary"),
-        hsx="""
-            init
-                set my.count to 0
-            on click
-                set my.count to my.count + 1
-                put `Clicked ${my.count} times!` into me
-            """,
-    ).text("Click me!")
+    return schorle.text.text("Click me!")
 ```
 
 We plan to introduce a Python-to-Hyperscript transpiler in the future.
@@ -155,7 +151,7 @@ We plan to introduce a Python-to-Hyperscript transpiler in the future.
 To render a specific element as HTML Response, use the `to_response` function:
 
 ```python
-
+import schorle.text
 from schorle.element import div
 from schorle.app import Schorle
 
@@ -164,12 +160,13 @@ app = Schorle()
 
 @app.backend.get("/task/{task_id:int}")
 def get_task(task_id: int):
-    return div().text(f"Task {task_id}").to_response()
+    return schorle.text.text(f"Task {task_id}").to_response()
 ```
 
 To render the whole document, do it like this:
 
 ```python
+import schorle.text
 from schorle.element import div
 from schorle.app import Schorle
 
@@ -179,7 +176,7 @@ app = Schorle()
 @app.backend.get("/")
 def get_home():
     return app.doc.include(
-        div().text("Hello, world!")
+        schorle.text.text("Hello, world!")
     ).to_response()
 
 ```

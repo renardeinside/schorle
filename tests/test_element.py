@@ -1,27 +1,24 @@
-from schorle.attrs import Classes
-from schorle.element import div
+from lxml import etree
+
+from schorle.element import div, span
+from schorle.rendering_context import rendering_context
 
 
-def test_el():
-    with div() as d:
-        d.div().text("hey")
+def test_one():
+    with rendering_context() as rc:
+        div()
 
-    assert d.render(pretty_print=False) == "<div><div>hey</div></div>"
-
-    with div() as d:
-        d.div().text("hey")
-        d.div().text("ho")
-
-    assert d.render(pretty_print=False) == "<div><div>hey</div><div>ho</div></div>"
+    assert len(rc.root._children) == 1
 
 
-def test_with_attrs():
-    with div(element_id="level1") as d:
-        d.div(element_id="level2").text("hey")
+def test_multi_exit():
+    with rendering_context() as rc:
+        with div():
+            with div():
+                div()
+            with span():
+                div()
+        div()
 
-    assert d.render(pretty_print=False) == '<div id="level1"><div id="level2">hey</div></div>'
-
-    with div(element_id="level1", classes=Classes("bg-red-500")) as d:
-        d.div(element_id="level2").text("hey")
-
-    assert d.render(pretty_print=False) == '<div id="level1" class="bg-red-500"><div id="level2">hey</div></div>'
+    rendered = etree.tostring(rc.to_lxml(), pretty_print=False).decode("utf-8")
+    assert rendered == "<root><div><div><div></div></div><span><div></div></span></div><div></div></root>"

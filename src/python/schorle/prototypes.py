@@ -1,56 +1,33 @@
 from __future__ import annotations
 
-from lxml import etree
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
 
-from schorle.attrs import Classes, Handler
 from schorle.tags import HTMLTag
-from schorle.types import LXMLElement
 
 
 class ElementPrototype(BaseModel):
-    tag: HTMLTag
+    tag: HTMLTag | str
     element_id: str | None = None
-    classes: Classes | None = None
-    style: dict[str, str] | None = None
-    attrs: dict[str, str] | None = None
-    handler: Handler | None = None
     _children: list[ElementPrototype] = PrivateAttr(default_factory=list)
     _text: str | None = PrivateAttr(default=None)
+    attrs: dict[str, str] = Field(default_factory=dict)
+    classes: str | list[str] | None = None
+    style: dict[str, str] | None = None
 
-    def append(self, *children: ElementPrototype):
-        for child in children:
-            self._children.append(child)
-        return self
+    def append(self, element: ElementPrototype):
+        self._children.append(element)
 
-    def get_children(self) -> list[ElementPrototype]:
+    def set_text(self, text: str):
+        self._text = text
+
+    def get_children(self):
         return self._children
 
-    def to_lxml(self) -> LXMLElement:
-        _element = etree.Element(self.tag.value)
-        for k, v in self.get_lxml_element_attrs().items():
-            _element.set(k, v)
+    def walk(self):
+        for child in self._children:
+            yield child
+            yield from child.walk()
 
-        if self._text:
-            _element.text = self._text
-        return _element
-
-    def get_lxml_element_attrs(self) -> dict[str, str]:
-        _attributes = self.attrs or {}
-        if self.element_id:
-            _attributes["id"] = self.element_id
-
-        if self.classes:
-            _attributes["class"] = self.classes.render()
-
-        if self.style:
-            _attributes["style"] = ";".join([f"{k}:{v}" for k, v in self.style.items()])
-
-        if self.handler:
-            _attributes.update(self.handler.render())
-
-        return _attributes
-
-    def text(self, text: str):
-        self._text = text
-        return self
+    def _cleanup(self):
+        self._children = []
+        self._text = None
