@@ -1,84 +1,38 @@
 from __future__ import annotations
 
-from functools import partial
-from http import HTTPStatus
-from typing import Any, Callable
-
-from lxml import etree
-from starlette.responses import HTMLResponse
-
-from schorle.attrs import Classes, Handler
 from schorle.prototypes import ElementPrototype
+from schorle.rendering_context import RENDERING_CONTEXT
 from schorle.tags import HTMLTag
-from schorle.types import LXMLElement
-from schorle.utils import fix_self_closing_tags
 
 
 class Element(ElementPrototype):
-    post_callback: Callable[[Element], Any] | None = None
 
     def __init__(self, **data):
         super().__init__(**data)
-        if self.post_callback:
-            self.post_callback(self)
-
-    def render(self, *, pretty_print: bool = True) -> str:
-        _composed = self._compose(self)
-        return etree.tostring(_composed, pretty_print=pretty_print, encoding="utf-8").decode("utf-8")
-
-    def to_response(self, status_code: HTTPStatus = HTTPStatus.OK, *args, **kwargs) -> HTMLResponse:
-        return HTMLResponse(self.render(), status_code.value, *args, **kwargs)
-
-    def _compose(self, element: ElementPrototype) -> LXMLElement:
-        _element = element.to_lxml()
-        for child in element.get_children():
-            _element.append(self._compose(child))
-        fix_self_closing_tags(_element)
-        return _element
+        if not RENDERING_CONTEXT.get():
+            raise RuntimeError("Element must be created inside a rendering context")
+        else:
+            RENDERING_CONTEXT.get().append(self)
 
     def __enter__(self):
-        return self
+        RENDERING_CONTEXT.get().become_parent(self)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        RENDERING_CONTEXT.get().reset_parent()
 
-    def __getattr__(self, name):
-        if name.upper() in HTMLTag.__members__:
+    def __repr__(self):
+        return f"<{self.tag}>"
 
-            def post_callback(element: Element):
-                self.append(element)
-
-            _factory = element_function_factory(HTMLTag[name.upper()])
-            return partial(_factory, post_callback=post_callback)
-        return super().__getattr__(name)
-
-    def __rshift__(self, other):
-        self.append(other)
-        return self
+    def __str__(self):
+        return self.__repr__()
 
 
 def element_function_factory(tag: HTMLTag):
-    def func(
-        classes: Classes | None = None,
-        element_id: str | None = None,
-        style: dict[str, str] | None = None,
-        attrs: dict[str, str] | None = None,
-        handler: Handler | None = None,
-        hsx: str | None = None,
-        post_callback: Callable[[Element], Any] | None = None,
-        **attributes,
-    ):
-        combined_attrs = {**attributes, **(attrs or {})}
-        if hsx:
-            combined_attrs["data-script"] = str(hsx)
+    def func(style: dict[str, str] | None = None, **kwargs):
         return Element(
             tag=tag,
-            element_id=element_id,
-            classes=classes,
             style=style,
-            handler=handler,
-            attrs=combined_attrs,
-            post_callback=post_callback,
+            attrs=kwargs,
         )
 
     return func
@@ -114,3 +68,4 @@ th = element_function_factory(HTMLTag.TH)
 form = element_function_factory(HTMLTag.FORM)
 footer = element_function_factory(HTMLTag.FOOTER)
 icon = element_function_factory(HTMLTag.ICON)
+main = element_function_factory(HTMLTag.MAIN)

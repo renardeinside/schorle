@@ -1,33 +1,37 @@
 import textwrap
 
-from lxml import etree
-
+from schorle.component import Component
 from schorle.document import Document
 
 
 def test_empty_doc():
     _title = "Test Document"
-    doc = Document(title=_title)
+
+    class PlaceholderPage(Component):
+        element_id: str = "schorle-page"
+
+        def render(self):
+            pass
+
+    doc = Document(title=_title, page=PlaceholderPage())
     lnk = f"https://cdn.jsdelivr.net/npm/daisyui@{doc.daisyui_version}/dist/full.min.css"
-    result = etree.tostring(doc._base()._compose(doc._base()), pretty_print=True).decode()
+    rendered = doc.to_string()
     expected = textwrap.dedent(
         f"""\
         <html lang="en" data-theme="dark">
           <head>
-            <meta charset="utf-8"/>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <meta charset="utf-8"></meta>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"></meta>
             <title>{_title}</title>
             <link href="/favicon.svg" rel="icon" type="image/svg+xml"></link>
             <script src="https://cdn.tailwindcss.com"></script>
             <link href="{lnk}" rel="stylesheet" type="text/css"></link>
-            <script src="https://unpkg.com/htmx.org@1.9.10/dist/htmx.min.js"></script>
-            <script src="https://unpkg.com/idiomorph@0.3.0"></script>
-            <script src="https://unpkg.com/idiomorph@0.3.0/dist/idiomorph-ext.min.js"></script>
-            <script src="https://unpkg.com/hyperscript.org@0.9.12"></script>
-            <script src="https://unpkg.com/lucide@latest"></script>
-            <script src="/_schorle/assets/bundle.js" crossorigin="anonymous" defer=""></script>
+            <script src="/_schorle/js/index.js" crossorigin="anonymous" defer="" type="module"></script>
           </head>
+          <body>
+            <schorle-component id="schorle-page"></schorle-component>
+          </body>
         </html>
     """
     )
-    assert result == expected
+    assert rendered == expected

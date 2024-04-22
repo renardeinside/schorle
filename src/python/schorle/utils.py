@@ -1,9 +1,5 @@
-from __future__ import annotations
-
 import sys
 from enum import Enum
-
-from starlette.responses import HTMLResponse
 
 from schorle.types import LXMLElement
 
@@ -22,12 +18,7 @@ def get_running_mode() -> RunningMode:
         return RunningMode.PRODUCTION
 
 
-def empty():
-    return HTMLResponse(content="", status_code=200)
-
-
 def fix_self_closing_tags(element: LXMLElement) -> None:
-    for _tag in element.iter():
-        if _tag.tag in ["script", "link", "i", "span"]:
-            if _tag.text is None:
-                _tag.text = ""
+    for _child in element.iter():
+        if len(_child) == 0 and _child.text is None:
+            _child.text = ""
