@@ -103,3 +103,6 @@ src/python/schorle/_version.py
 **/terraform.tfstate.backup
 **/*.tfvars
 **/.terraform.tfstate.lock.info
+
+# JS assets are generated, no need to keep them in the repo
+src/python/schorle/assets/js
