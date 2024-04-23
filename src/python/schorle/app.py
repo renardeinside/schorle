@@ -1,14 +1,20 @@
+import asyncio
 import mimetypes
 from importlib.resources import files
 from pathlib import Path
 from typing import Callable
+from uuid import uuid4
 
 from fastapi import FastAPI
+from loguru import logger
+from starlette.endpoints import WebSocketEndpoint
 from starlette.responses import FileResponse, HTMLResponse
 from starlette.types import Receive, Scope, Send
+from starlette.websockets import WebSocket
 
 from schorle.component import Component
 from schorle.document import Document
+from schorle.session import Session
 from schorle.theme import Theme
 
 ASSETS_PATH = Path(str(files("schorle"))) / Path("assets")
@@ -28,6 +34,71 @@ def get_file(file_name: str) -> FileResponse:
 SESSION_ID_HEADER = "X-Schorle-Session-Id"
 
 
+class SessionManager:
+    def __init__(self):
+        self.sessions = {}
+
+    def create_session(self):
+        session_id = f"sle-{uuid4()}"
+        new_session = Session(session_id)
+        self.sessions[session_id] = new_session
+        return new_session
+
+    def get_session(self, session_id: str):
+        return self.sessions.get(session_id)
+
+    def remove_session(self, session_id: str):
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+
+
+class EventsEndpoint(WebSocketEndpoint):
+    encoding = "json"
+
+    async def on_connect(self, websocket: WebSocket):
+        session_id = websocket.cookies.get(SESSION_ID_HEADER)
+        if session_id is None:
+            await websocket.close()
+            return
+
+        session = websocket.app.state.session_manager.get_session(session_id)
+        if session is None:
+            await websocket.close()
+            return
+
+        if session.connected:
+            await websocket.close()
+            return
+
+        await websocket.accept()
+        session.connected = True
+        session.io = websocket
+
+    async def on_receive(self, websocket: WebSocket, data: dict):
+        session_id = websocket.cookies.get(SESSION_ID_HEADER)
+        if session_id is None:
+            return
+
+        session: Session = websocket.app.state.session_manager.get_session(session_id)
+        if session is None:
+            return
+
+        logger.info(f"Received {data} from session {session_id}")
+        handler = session.handlers.get(data["handlerId"])
+        if handler is None:
+            return
+
+        session.tasks.append(asyncio.ensure_future(handler()))
+
+    async def on_disconnect(self, websocket: WebSocket, close_code: int):
+        session_id = websocket.cookies.get(SESSION_ID_HEADER)
+        if session_id is None:
+            return
+
+        logger.info(f"Session {session_id} closed with code {close_code}")
+        websocket.app.state.session_manager.remove_session(session_id)
+
+
 class Schorle:
     def __init__(self, theme: Theme = Theme.DARK, lang: str = "en", extra_assets: Callable[..., None] | None = None):
         self.backend = FastAPI()
@@ -36,6 +107,9 @@ class Schorle:
         self.theme = theme
         self.lang = lang
         self.extra_assets = extra_assets
+        self.session_manager = SessionManager()
+        self.backend.state.session_manager = self.session_manager
+        self.backend.add_websocket_route("/_schorle/events", EventsEndpoint)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         """
@@ -48,6 +122,9 @@ class Schorle:
             @self.backend.get(path, response_class=HTMLResponse)
             async def wrapper():
                 doc = Document(page=func(), theme=self.theme, lang=self.lang, extra_assets=self.extra_assets)
-                return doc.to_response()
+                new_session = self.session_manager.create_session()
+                response = doc.to_response(new_session)
+                response.set_cookie(SESSION_ID_HEADER, new_session.uuid)
+                return response
 
         return decorator

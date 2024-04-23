@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
 from contextlib import contextmanager
 from contextvars import ContextVar
 
+from loguru import logger
 from lxml import etree
 
+from schorle.attrs import On
 from schorle.prototypes import ElementPrototype
+from schorle.session import Session
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
 from schorle.utils import fix_self_closing_tags
@@ -41,7 +45,7 @@ class RenderingContext:
     def set_text(self, text_value: str):
         self.current_parent.set_text(text_value)
 
-    def covert_proto_to_lxml(self, proto: ElementPrototype) -> LXMLElement:
+    def covert_proto_to_lxml(self, proto: ElementPrototype, session: Session | None) -> LXMLElement:
         lxml_element = etree.Element(proto.tag.value if isinstance(proto.tag, HTMLTag) else proto.tag)
 
         if proto.element_id:
@@ -60,22 +64,40 @@ class RenderingContext:
                 proto.classes = [proto.classes]
             lxml_element.set("class", " ".join(proto.classes))
 
+        if session:
+            proto.session = session
+
+        if proto.on:
+            if not session:
+                logger.warning(f"No session provided for event handling for element {proto}")
+            else:
+                proto.session = session
+                _ons = [proto.on] if isinstance(proto.on, On) else proto.on
+
+                handlers = []
+
+                for on in _ons:
+                    handler_uuid = session.register_handler(proto.on.handler)
+                    handlers.append({"event": on.event, "handler": handler_uuid})
+
+                lxml_element.set("sle-on", json.dumps(handlers))
+
         if proto.style:
             lxml_element.set("style", ";".join([f"{key}: {value}" for key, value in proto.style.items()]))
 
         for child in proto.get_children():
             if hasattr(child, "_render"):
                 rendered = child._render()
-                lxml_child = self.covert_proto_to_lxml(rendered)
+                lxml_child = self.covert_proto_to_lxml(rendered, session)
             else:
-                lxml_child = self.covert_proto_to_lxml(child)
+                lxml_child = self.covert_proto_to_lxml(child, session)
             lxml_element.append(lxml_child)
 
         fix_self_closing_tags(lxml_element)
         return lxml_element
 
-    def to_lxml(self):
-        return self.covert_proto_to_lxml(self.root)
+    def to_lxml(self, session: Session | None = None):
+        return self.covert_proto_to_lxml(self.root, session)
 
 
 RENDERING_CONTEXT: ContextVar[RenderingContext | None] = ContextVar("rendering_context", default=None)

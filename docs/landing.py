@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import BaseModel
 from starlette.responses import FileResponse, JSONResponse
 
 from schorle.app import Schorle
@@ -17,29 +18,39 @@ def extra_assets():
 app = Schorle(extra_assets=extra_assets)
 
 
-class LinkWithIcon(Component):
-    tag: HTMLTag = HTMLTag.A
+class LinkProps(BaseModel):
     href: str
     icon: str
     text: str
+
+
+class LinkWithIcon(Component):
+    tag: HTMLTag = HTMLTag.A
+    props: LinkProps
     classes: str = "btn btn-primary font-normal w-42"
 
     def initialize(self):
-        self.attrs["href"] = self.href
+        self.attrs["href"] = self.props.href
 
     def render(self):
-        icon(self.icon)
+        icon(self.props.icon)
         with span():
-            text(self.text)
+            text(self.props.text)
 
 
 LINKS = [
-    LinkWithIcon(href="https://github.com/renardeinside/schorle", icon="github", text="GitHub"),
-    LinkWithIcon(href="https://github.com/renardeinside/schorle/tree/main/examples", icon="code", text="Examples"),
+    LinkWithIcon(props=LinkProps(href="https://github.com/renardeinside/schorle", icon="github", text="GitHub")),
     LinkWithIcon(
-        href="https://medium.com/@polarpersonal/schorle-testing-the-waters-with-a-python-server-driven-ui-kit-053f85ee6574",
-        icon="book-marked",
-        text="Concepts",
+        props=LinkProps(
+            href="https://github.com/renardeinside/schorle/tree/main/examples", icon="code", text="Examples"
+        )
+    ),
+    LinkWithIcon(
+        props=LinkProps(
+            href="https://medium.com/@polarpersonal/schorle-testing-the-waters-with-a-python-server-driven-ui-kit-053f85ee6574",
+            icon="book-marked",
+            text="Concepts",
+        )
     ),
 ]
 
