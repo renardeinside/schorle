@@ -44,8 +44,8 @@ class Counter(Component):
                 with button(on=On("click", self.state.increment), classes="btn btn-primary"):
                     text("Increment")
                 with button(
-                        on=On("click", self.state.decrement),
-                        classes="btn btn-secondary" if self.state.value.rx > 0 else "btn btn-secondary btn-disabled",
+                    on=On("click", self.state.decrement),
+                    classes="btn btn-secondary" if self.state.value.rx > 0 else "btn btn-secondary btn-disabled",
                 ):
                     text("Decrement")
             with div(classes="text-lg font-semibold text-center m-2"):
