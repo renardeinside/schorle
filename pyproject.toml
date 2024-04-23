@@ -31,7 +31,8 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "loguru",
-    "python-multipart"
+    "python-multipart",
+    "bidict"
 ]
 
 [project.urls]

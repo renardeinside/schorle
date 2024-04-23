@@ -19,12 +19,12 @@ class CounterState(BaseModel):
 
     async def increment(self):
         async with self.loading.ctx(True):
-            await asyncio.sleep(random() * 2)  # Simulate network request
+            await asyncio.sleep(random() * 3)  # Simulate network request
             await self.value.set(self.value.rx + 1)
 
     async def decrement(self):
         async with self.loading.ctx(True):
-            await asyncio.sleep(random() * 2)  # Simulate network request
+            await asyncio.sleep(random() * 3)  # Simulate network request
             await self.value.set(self.value.rx - 1)
 
 
