@@ -1,0 +1,69 @@
+from functools import partial
+
+from pydantic import BaseModel, Field
+
+from schorle.app import Schorle
+from schorle.attrs import Bind, On
+from schorle.component import Component
+from schorle.element import button, div, input_
+from schorle.reactive import Reactive
+from schorle.text import text
+
+app = Schorle(title="Schorle | Todo App")
+
+
+class TodoState(BaseModel):
+    current: Reactive[str] = Field(default_factory=Reactive.factory(""))
+    todos: Reactive[list[str]] = Field(
+        default_factory=Reactive.factory(
+            [
+                "Buy groceries",
+                "Walk the dog",
+            ]
+        )
+    )
+
+    async def add(self):
+        if self.current.rx:
+            await self.todos.set([*self.todos.rx, self.current.rx])
+            await self.current.set("")  # Clear input field
+
+    async def remove(self, index: int):
+        await self.todos.set([*self.todos.rx[:index], *self.todos.rx[index + 1 :]])
+
+
+class Todos(Component):
+    state: TodoState = Field(default_factory=TodoState)
+
+    def initialize(self):
+        self.state.todos.subscribe(self.rerender)
+
+    def render(self):
+        with div(classes="flex flex-col space-y-2"):
+            with div(classes="flex space-x-4 mb-4"):
+                input_(
+                    classes="input input-primary w-48",
+                    placeholder="Enter todo...",
+                    bind=Bind("value", self.state.current),
+                )
+                with button(on=On("click", self.state.add), classes="btn btn-primary"):
+                    text("Add")
+        with div(classes="flex flex-col space-y-2"):
+            for index, todo in enumerate(self.state.todos.rx):
+                with div(classes="flex space-x-4"):
+                    with div(classes="text-lg align-middle font-semibold w-48"):
+                        text(todo)
+                    with button(on=On("click", partial(self.state.remove, index)), classes="btn btn-secondary"):
+                        text("Remove")
+
+
+class HomePage(Component):
+    classes: str = "flex flex-col items-center justify-center h-screen"
+
+    def render(self):
+        Todos()
+
+
+@app.get("/")
+def home():
+    return HomePage()

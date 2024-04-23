@@ -10,7 +10,7 @@ from schorle.element import button, div
 from schorle.reactive import Reactive
 from schorle.text import text
 
-app = Schorle()
+app = Schorle(title="Schorle | Counter App")
 
 
 class CounterState(BaseModel):
