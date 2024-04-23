@@ -30,7 +30,7 @@ class CounterState(BaseModel):
 
 class Counter(Component):
     state: CounterState = Field(default_factory=CounterState)
-    classes: str = "rounded-lg shadow-md m-4 w-80 h-48 flex flex-col items-center justify-center"
+    classes: str = "rounded-lg shadow-md m-4 w-80 h-32 flex flex-col items-center justify-center"
 
     def initialize(self):
         self.state.value.subscribe(self.rerender)
