@@ -37,7 +37,16 @@ let processElement = (element: Element, worker: Worker) => {
   let handlers: [{ event: string, handler: string }] = JSON.parse(element.getAttribute('sle-on'));
   let handlerFunctions = handlers.map(handler => {
     let handlerFunc = (event: Event) => {
-      worker.postMessage({ type: 'event', handlerId: handler.handler });
+      switch (handler.event) {
+        case 'click':
+          worker.postMessage({ type: 'event', handlerId: handler.handler });
+          break;
+        case 'input':
+          let target = event.target as HTMLInputElement;
+          worker.postMessage({ type: 'event', handlerId: handler.handler, value: target.value });
+          break;
+      }
+
     };
     return { event: handler.event, handler: handlerFunc };
   }) as [{ event: string, handler: (event: Event) => void }];

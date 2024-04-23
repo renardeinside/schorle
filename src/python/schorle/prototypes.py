@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
-from schorle.attrs import On
+from schorle.attrs import Bind, On
 from schorle.session import Session
 from schorle.tags import HTMLTag
 
@@ -18,6 +18,7 @@ class ElementPrototype(BaseModel):
     classes: str | list[str] | None = None
     style: dict[str, str] | None = None
     on: On | list[On] | None = None
+    bind: Bind | None = None
     session: Session | None = None
 
     def append(self, element: ElementPrototype):

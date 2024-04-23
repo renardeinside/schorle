@@ -27,3 +27,6 @@ class Session:
             await self.io.send_json({"event": "morph", "target": target, "html": html})
         else:
             raise ValueError("Session is not connected")
+
+    def register_binding(self, bind):
+        pass
