@@ -18,7 +18,13 @@
     "watch": "rollup -c -w"
   },
   "dependencies": {
+    "@alpinejs/morph": "^3.13.9",
+    "@types/jquery": "^3.5.29",
+    "alpinejs": "^3.13.9",
     "idiomorph": "^0.3.0",
-    "lucide": "^0.363.0"
+    "jquery": "^3.7.1",
+    "lucide": "^0.363.0",
+    "morphdom": "^2.7.2",
+    "uhtml": "^4.5.8"
   }
 }

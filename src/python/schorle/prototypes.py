@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
+from schorle.attrs import On
+from schorle.session import Session
 from schorle.tags import HTMLTag
 
 
 class ElementPrototype(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     tag: HTMLTag | str
     element_id: str | None = None
     _children: list[ElementPrototype] = PrivateAttr(default_factory=list)
@@ -13,6 +17,8 @@ class ElementPrototype(BaseModel):
     attrs: dict[str, str] = Field(default_factory=dict)
     classes: str | list[str] | None = None
     style: dict[str, str] | None = None
+    on: On | list[On] | None = None
+    session: Session | None = None
 
     def append(self, element: ElementPrototype):
         self._children.append(element)

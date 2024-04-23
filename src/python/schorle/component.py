@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from uuid import uuid4
 
+from loguru import logger
 from lxml import etree
 
 from schorle.prototypes import ElementPrototype
@@ -52,6 +53,14 @@ class Component(ElementPrototype):
         return self.__repr__()
 
     def to_string(self) -> str:
+        self._cleanup()
         with rendering_context(root=self) as rc:
             self.render()
-        return etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8")
+        return etree.tostring(rc.to_lxml(session=self.session), pretty_print=True).decode("utf-8")
+
+    async def rerender(self):
+        if not self.session:
+            logger.warning("No session provided for component")
+        else:
+            html = self.to_string()
+            await self.session.morph(self.element_id, html)

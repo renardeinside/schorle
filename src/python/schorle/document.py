@@ -7,6 +7,7 @@ from pydantic import Field
 from schorle.component import Component
 from schorle.element import body, div, head, link, meta, script, span, title
 from schorle.rendering_context import rendering_context
+from schorle.session import Session
 from schorle.tags import HTMLTag
 from schorle.text import text
 from schorle.theme import Theme
@@ -68,10 +69,10 @@ class Document(Component):
             if self.with_dev_tools:
                 DevLoader()
 
-    def to_response(self) -> HTMLResponse:
+    def to_response(self, session: Session) -> HTMLResponse:
         with rendering_context(root=self) as rc:
             self.render()
         return HTMLResponse(
-            etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8"),
+            etree.tostring(rc.to_lxml(session), pretty_print=True).decode("utf-8"),
             200,
         )
