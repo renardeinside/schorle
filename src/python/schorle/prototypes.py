@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from abc import abstractmethod
+
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 from schorle.attrs import Bind, On
@@ -47,3 +49,10 @@ class ElementPrototype(BaseModel):
 
     def get_parent(self) -> ElementPrototype | None:
         return self._parent
+
+
+class WithRender:
+
+    @abstractmethod
+    def render_in_context(self) -> ElementPrototype:
+        pass

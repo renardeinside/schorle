@@ -6,12 +6,12 @@ from uuid import uuid4
 from loguru import logger
 from lxml import etree
 
-from schorle.prototypes import ElementPrototype
+from schorle.prototypes import ElementPrototype, WithRender
 from schorle.rendering_context import RENDERING_CONTEXT, rendering_context
 from schorle.tags import HTMLTag
 
 
-class Component(ElementPrototype):
+class Component(ElementPrototype, WithRender):
     tag: HTMLTag | str = HTMLTag.DIV
 
     def initialize(self):
@@ -37,7 +37,7 @@ class Component(ElementPrototype):
     def render(self):
         pass
 
-    def _render(self):
+    def render_in_context(self) -> ElementPrototype:
         self._cleanup()
         with rendering_context(root=self) as rc:
             self.render()
