@@ -41,6 +41,7 @@ class Todos(Component):
     state: TodoState = Field(default_factory=TodoState)
 
     def initialize(self):
+        self.state.current.subscribe(self.rerender)
         self.state.todos.subscribe(self.rerender)
         self.state.loading.subscribe(self.rerender)
 
@@ -52,7 +53,10 @@ class Todos(Component):
                     placeholder="Enter todo...",
                     bind=Bind("value", self.state.current),
                 )
-                with button(on=On("click", self.state.add), classes="btn btn-primary"):
+                with button(
+                    on=On("click", self.state.add),
+                    classes="btn btn-primary" if self.state.current.rx else "btn btn-primary btn-disabled",
+                ):
                     icon(name="list-plus")
 
         with div(classes="flex flex-col space-y-2"):

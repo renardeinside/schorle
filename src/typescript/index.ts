@@ -86,7 +86,7 @@ let processEvent = (event: MessageEvent, worker: Worker) => {
     return;
   }
 
-  Idiomorph.morph(target, event.data.html);
+  Idiomorph.morph(target, event.data.html, event.data.config);
   processPage(worker);
 };
 
