@@ -28,8 +28,11 @@ class TodoState(BaseModel):
 
     async def add(self):
         if self.current.rx:
-            await self.todos.set([*self.todos.rx, self.current.rx])
+            _current = self.current.rx
             await self.current.set("")  # Clear input field
+            async with self.loading.ctx(True):
+                await asyncio.sleep(1)  # Simulate network request
+                await self.todos.set([*self.todos.rx, _current])
 
     async def remove(self, index: int):
         async with self.loading.ctx(True):
