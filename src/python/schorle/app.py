@@ -84,7 +84,7 @@ class EventsEndpoint(WebSocketEndpoint):
         if session is None:
             return
 
-        logger.info(f"Received {data} from session {session_id}")
+        # logger.info(f"Received {data} from session {session_id}")
         handler = session.handlers.get(data["handlerId"])
         if handler is None:
             return

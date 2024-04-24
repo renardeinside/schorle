@@ -12,15 +12,22 @@ app = Schorle()
 
 class IOComponent(Component):
     current: Reactive[str] = Field(default_factory=Reactive.factory(""))
+    tag: str = "div"
+    classes: str = "flex flex-col items-center justify-center h-screen"
 
     def initialize(self):
         self.current.subscribe(self.rerender)
 
     def render(self):
         with div():
-            input_(type="text", placeholder="Enter your name", bind=Bind("value", self.current))
-        with span():
-            text(f"Hello, {self.current.rx}!")
+            input_(
+                type="text",
+                placeholder="Enter your name",
+                bind=Bind("value", self.current),
+                classes="input input-primary w-48",
+            )
+        with span(classes="text-lg font-semibold text-center m-2"):
+            text(f"Hello, {self.current.rx}!") if self.current.rx else text("Hello, stranger!")
 
 
 @app.get("/")
