@@ -27,20 +27,16 @@ class RenderingContext:
     def __init__(self, root: ElementPrototype | None = None):
         self.root = ElementPrototype(tag="root") if root is None else root
         self.current_parent = self.root
-        self.previous_parent = None
-        self.pre_previous_parent = None
 
     def append(self, element: ElementPrototype):
         self.current_parent.append(element)
 
     def become_parent(self, element: ElementPrototype):
-        self.pre_previous_parent = self.previous_parent
-        self.previous_parent = self.current_parent
+        element.set_parent(self.current_parent)
         self.current_parent = element
 
     def reset_parent(self):
-        self.current_parent = self.previous_parent
-        self.previous_parent = self.pre_previous_parent
+        self.current_parent = self.current_parent.get_parent()
 
     def set_text(self, text_value: str):
         self.current_parent.set_text(text_value)
@@ -80,6 +76,7 @@ class RenderingContext:
                 async def _handler(new_value: str):
                     await proto.bind.reactive.set(new_value)
 
+                lxml_element.set(proto.bind.property, proto.bind.reactive.rx)
                 _on = On(event="input", handler=_handler)
                 handler_uuid = session.register_handler(_handler)
                 handlers.append({"event": _on.event, "handler": handler_uuid})

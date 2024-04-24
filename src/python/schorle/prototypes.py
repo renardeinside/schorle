@@ -13,6 +13,7 @@ class ElementPrototype(BaseModel):
     tag: HTMLTag | str
     element_id: str | None = None
     _children: list[ElementPrototype] = PrivateAttr(default_factory=list)
+    _parent: ElementPrototype | None = PrivateAttr(default=None)
     _text: str | None = PrivateAttr(default=None)
     attrs: dict[str, str] = Field(default_factory=dict)
     classes: str | list[str] | None = None
@@ -22,6 +23,7 @@ class ElementPrototype(BaseModel):
     session: Session | None = None
 
     def append(self, element: ElementPrototype):
+        element._parent = self
         self._children.append(element)
 
     def set_text(self, text: str):
@@ -37,4 +39,11 @@ class ElementPrototype(BaseModel):
 
     def _cleanup(self):
         self._children = []
+        self._parent = None
         self._text = None
+
+    def set_parent(self, parent: ElementPrototype):
+        self._parent = parent
+
+    def get_parent(self) -> ElementPrototype | None:
+        return self._parent

@@ -12,7 +12,7 @@ from schorle.tags import HTMLTag
 
 
 class Component(ElementPrototype):
-    tag: HTMLTag | str = HTMLTag.SCHORLE_COMPONENT
+    tag: HTMLTag | str = HTMLTag.DIV
 
     def initialize(self):
         pass
