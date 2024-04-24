@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-from functools import partial
 
 from pydantic import Field
 
@@ -44,7 +43,7 @@ class Clearable(Component):
             bind=Bind("value", self.current),
             classes="input input-primary",
         )
-        with button(on=On("click", partial(self.current.set, "")), classes="btn btn-primary"):
+        with button(on=On("click", self.current.lazy("")), classes="btn btn-primary"):
             text("Clear")
 
 

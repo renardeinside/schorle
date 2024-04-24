@@ -22,6 +22,9 @@ class Reactive(BaseModel, Generic[T]):
         for observer in self._observers:
             await observer()
 
+    def lazy(self, value: T):
+        return partial(self.set, value)
+
     @property
     def rx(self) -> T:
         return self._value

@@ -29,7 +29,7 @@ def test_empty_doc():
             <script src="/_schorle/js/index.js" crossorigin="anonymous" defer="" type="module"></script>
           </head>
           <body>
-            <schorle-component id="schorle-page"></schorle-component>
+            <div id="schorle-page"></div>
           </body>
         </html>
     """
