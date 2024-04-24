@@ -67,20 +67,27 @@ class RenderingContext:
         if session:
             proto.session = session
 
-        if proto.on:
-            if not session:
-                logger.warning(f"No session provided for event handling for element {proto}")
-            else:
-                proto.session = session
+            handlers = []
+
+            if proto.on:
                 _ons = [proto.on] if isinstance(proto.on, On) else proto.on
-
-                handlers = []
-
                 for on in _ons:
                     handler_uuid = session.register_handler(proto.on.handler)
                     handlers.append({"event": on.event, "handler": handler_uuid})
 
+            if proto.bind:
+
+                async def _handler(new_value: str):
+                    await proto.bind.reactive.set(new_value)
+
+                _on = On(event="input", handler=_handler)
+                handler_uuid = session.register_handler(_handler)
+                handlers.append({"event": _on.event, "handler": handler_uuid})
+
+            if handlers:
                 lxml_element.set("sle-on", json.dumps(handlers))
+        else:
+            logger.warning(f"No session found for proto: {proto}")
 
         if proto.style:
             lxml_element.set("style", ";".join([f"{key}: {value}" for key, value in proto.style.items()]))

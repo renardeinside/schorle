@@ -33,6 +33,7 @@ def element_function_factory(tag: HTMLTag):
             tag=tag,
             style=style,
             on=kwargs.pop("on", None),
+            bind=kwargs.pop("bind", None),
             attrs=kwargs,
         )
 

@@ -17,8 +17,7 @@ let init = (event: MessageEvent) => {
 };
 
 let sendEvent = (event: MessageEvent) => {
-  console.log('Sending event:', event.data.handlerId);
-  io.send(JSON.stringify({ handlerId: event.data.handlerId }));
+  io.send(JSON.stringify(event.data));
 };
 
 self.addEventListener('message', (event) => {

@@ -1,5 +1,6 @@
 import asyncio
 import mimetypes
+from functools import partial
 from importlib.resources import files
 from pathlib import Path
 from typing import Callable
@@ -88,7 +89,12 @@ class EventsEndpoint(WebSocketEndpoint):
         if handler is None:
             return
 
-        session.tasks.append(asyncio.ensure_future(handler()))
+        if "value" in data:
+            _handler = partial(handler, data["value"])
+        else:
+            _handler = handler
+
+        session.tasks.append(asyncio.ensure_future(_handler()))
 
     async def on_disconnect(self, websocket: WebSocket, close_code: int):
         session_id = websocket.cookies.get(SESSION_ID_HEADER)
@@ -100,13 +106,20 @@ class EventsEndpoint(WebSocketEndpoint):
 
 
 class Schorle:
-    def __init__(self, theme: Theme = Theme.DARK, lang: str = "en", extra_assets: Callable[..., None] | None = None):
+    def __init__(
+        self,
+        theme: Theme = Theme.DARK,
+        lang: str = "en",
+        extra_assets: Callable[..., None] | None = None,
+        title: str = "Schorle",
+    ):
         self.backend = FastAPI()
         self.backend.get("/_schorle/{file_name:path}", response_class=FileResponse)(get_file)
         self.backend.get("/favicon.svg", response_class=FileResponse)(favicon)
         self.theme = theme
         self.lang = lang
         self.extra_assets = extra_assets
+        self.title = title
         self.session_manager = SessionManager()
         self.backend.state.session_manager = self.session_manager
         self.backend.add_websocket_route("/_schorle/events", EventsEndpoint)
@@ -121,7 +134,9 @@ class Schorle:
         def decorator(func: Callable[..., Component]):
             @self.backend.get(path, response_class=HTMLResponse)
             async def wrapper():
-                doc = Document(page=func(), theme=self.theme, lang=self.lang, extra_assets=self.extra_assets)
+                doc = Document(
+                    page=func(), theme=self.theme, lang=self.lang, extra_assets=self.extra_assets, title=self.title
+                )
                 new_session = self.session_manager.create_session()
                 response = doc.to_response(new_session)
                 response.set_cookie(SESSION_ID_HEADER, new_session.uuid)

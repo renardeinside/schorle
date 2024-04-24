@@ -22,8 +22,14 @@ class Session:
         self.handlers[new_uuid] = handler
         return new_uuid
 
-    async def morph(self, target: str, html: str):
+    async def morph(self, target: str, html: str, config: dict[str, str] | None = None):
+        default_config = {"ignoreActiveValue": True, "morphStyle": "outerHTML"}
         if self.io is not None:
-            await self.io.send_json({"event": "morph", "target": target, "html": html})
+            await self.io.send_json(
+                {"event": "morph", "target": target, "html": html, "config": config or default_config}
+            )
         else:
             raise ValueError("Session is not connected")
+
+    def register_binding(self, bind):
+        pass
