@@ -28,9 +28,10 @@ class Element(ElementPrototype):
 
 
 def element_function_factory(tag: HTMLTag):
-    def func(style: dict[str, str] | None = None, **kwargs):
+    def func(style: dict[str, str] | None = None, element_id: str | None = None, **kwargs):
         return Element(
             tag=tag,
+            element_id=element_id,
             style=style,
             on=kwargs.pop("on", None),
             bind=kwargs.pop("bind", None),
