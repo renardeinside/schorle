@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import contextmanager
 from random import random
 
 from pydantic import BaseModel, Field
@@ -30,20 +31,26 @@ class CounterState(BaseModel):
 
 class Counter(Component):
     state: CounterState = Field(default_factory=CounterState)
-    classes: str = "rounded-lg shadow-md m-4 w-80 h-32 flex flex-col items-center justify-center"
+    classes: str = "m-4 w-80 h-32 flex flex-col items-center justify-center bg-base-300 rounded-xl shadow-xl"
 
     def initialize(self):
         self.state.value.subscribe(self.rerender)
         self.state.loading.subscribe(self.rerender)
 
+    @contextmanager
+    def spinner(self, loading: bool):
+        with div(classes="loading loading-spinner loading-lg text-primary" if loading else ""):
+            with div(classes="hidden" if loading else ""):
+                yield
+
     def render(self):
-        with div(classes="loading loading-lg text-primary" if self.state.loading.rx else ""):
-            with div(classes="space-x-4" if not self.state.loading.rx else "hidden"):
+        with self.spinner(self.state.loading.rx):
+            with div(classes="space-x-4"):
                 with button(on=On("click", self.state.increment), classes="btn btn-primary"):
                     text("Increment")
                 with button(
-                    on=On("click", self.state.decrement),
-                    classes="btn btn-secondary" if self.state.value.rx > 0 else "btn btn-secondary btn-disabled",
+                        on=On("click", self.state.decrement),
+                        classes="btn btn-secondary" if self.state.value.rx > 0 else "btn btn-secondary btn-disabled",
                 ):
                     text("Decrement")
             with div(classes="text-lg font-semibold text-center m-2"):
@@ -55,7 +62,6 @@ class HomePage(Component):
 
     def render(self):
         Counter()
-
 
 @app.get("/")
 def home():
