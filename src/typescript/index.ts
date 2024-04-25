@@ -1,7 +1,5 @@
-import { createIcons, icons } from 'lucide';
 import { Idiomorph } from 'idiomorph/dist/idiomorph.esm.js';
 
-let processIcons = () => createIcons({ icons });
 
 let getCookieByName = (name: string): string | undefined => {
   let cookies = document.cookie.split(';');
@@ -78,7 +76,6 @@ let processElement = (element: Element, worker: Worker) => {
 
 
 let processPage = (worker: Worker) => {
-  processIcons();
   let elements = findElementsWithHandlers();
   elements.forEach((element) => processElement(element, worker));
 };
