@@ -29,7 +29,7 @@ class Document(Component):
     with_tailwind: bool = True
     with_daisyui: bool = True
     with_dev_tools: bool = False
-    daisyui_version: str = "4.7.2"
+    daisyui_version: str = "4.10.2"
     body_attrs: dict[str, str] | None = Field(default_factory=dict)
     tag: HTMLTag = HTMLTag.HTML
 
