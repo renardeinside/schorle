@@ -2,23 +2,24 @@ import textwrap
 
 from schorle.component import Component
 from schorle.document import Document
+from schorle.theme import Theme
 
 
 def test_empty_doc():
     _title = "Test Document"
 
     class PlaceholderPage(Component):
-        element_id: str = "schorle-page"
+        element_id: str = "sample-component"
 
         def render(self):
             pass
 
-    doc = Document(title=_title, page=PlaceholderPage())
+    doc = Document(title=_title, page=PlaceholderPage(), theme=Theme.DARK)
     lnk = f"https://cdn.jsdelivr.net/npm/daisyui@{doc.daisyui_version}/dist/full.min.css"
     rendered = doc.to_string()
     expected = textwrap.dedent(
         f"""\
-        <html lang="en" data-theme="dark">
+        <html data-theme="dark" lang="en">
           <head>
             <meta charset="utf-8"></meta>
             <meta name="viewport" content="width=device-width, initial-scale=1.0"></meta>
@@ -29,7 +30,9 @@ def test_empty_doc():
             <script src="/_schorle/js/index.js" crossorigin="anonymous" defer="" type="module"></script>
           </head>
           <body>
-            <div id="schorle-page"></div>
+            <div id="schorle-page">
+              <div id="sample-component"></div>
+            </div>
           </body>
         </html>
     """

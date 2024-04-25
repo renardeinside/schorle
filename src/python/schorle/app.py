@@ -1,22 +1,21 @@
-import asyncio
 import mimetypes
-from functools import partial
 from importlib.resources import files
 from pathlib import Path
 from typing import Callable
 from uuid import uuid4
 
 from fastapi import FastAPI
-from loguru import logger
-from starlette.endpoints import WebSocketEndpoint
 from starlette.responses import FileResponse, HTMLResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 from schorle.component import Component
 from schorle.document import Document
+from schorle.events import EventsEndpoint
+from schorle.headers import DEV_HEADER, SESSION_ID_HEADER
 from schorle.session import Session
 from schorle.theme import Theme
+from schorle.utils import RunningMode, get_running_mode
 
 ASSETS_PATH = Path(str(files("schorle"))) / Path("assets")
 
@@ -26,13 +25,14 @@ def favicon() -> FileResponse:
     return FileResponse(favicon_path, media_type="image/svg+xml")
 
 
-def get_file(file_name: str) -> FileResponse:
-    file_path = ASSETS_PATH / file_name
-    mime_type, _ = mimetypes.guess_type(file_path)
-    return FileResponse(file_path, media_type=mime_type)
+def get_file(file_name: str, sub_path: Path | None = None) -> FileResponse | HTMLResponse:
+    file_path = ASSETS_PATH / file_name if not sub_path else ASSETS_PATH / sub_path / file_name
 
-
-SESSION_ID_HEADER = "X-Schorle-Session-Id"
+    if file_path.exists() and file_path.is_file():
+        mime_type, _ = mimetypes.guess_type(file_path)
+        return FileResponse(file_path, media_type=mime_type)
+    else:
+        return HTMLResponse(status_code=404)
 
 
 class SessionManager:
@@ -53,58 +53,6 @@ class SessionManager:
             del self.sessions[session_id]
 
 
-class EventsEndpoint(WebSocketEndpoint):
-    encoding = "json"
-
-    async def on_connect(self, websocket: WebSocket):
-        session_id = websocket.cookies.get(SESSION_ID_HEADER)
-        if session_id is None:
-            await websocket.close()
-            return
-
-        session = websocket.app.state.session_manager.get_session(session_id)
-        if session is None:
-            await websocket.close()
-            return
-
-        if session.connected:
-            await websocket.close()
-            return
-
-        await websocket.accept()
-        session.connected = True
-        session.io = websocket
-
-    async def on_receive(self, websocket: WebSocket, data: dict):
-        session_id = websocket.cookies.get(SESSION_ID_HEADER)
-        if session_id is None:
-            return
-
-        session: Session = websocket.app.state.session_manager.get_session(session_id)
-        if session is None:
-            return
-
-        # logger.info(f"Received {data} from session {session_id}")
-        handler = session.handlers.get(data["handlerId"])
-        if handler is None:
-            return
-
-        if "value" in data:
-            _handler = partial(handler, data["value"])
-        else:
-            _handler = handler
-
-        session.tasks.append(asyncio.ensure_future(_handler()))
-
-    async def on_disconnect(self, websocket: WebSocket, close_code: int):
-        session_id = websocket.cookies.get(SESSION_ID_HEADER)
-        if session_id is None:
-            return
-
-        logger.info(f"Session {session_id} closed with code {close_code}")
-        websocket.app.state.session_manager.remove_session(session_id)
-
-
 class Schorle:
     def __init__(
         self,
@@ -114,7 +62,7 @@ class Schorle:
         title: str = "Schorle",
     ):
         self.backend = FastAPI()
-        self.backend.get("/_schorle/{file_name:path}", response_class=FileResponse)(get_file)
+        self.backend.get("/_schorle/{file_name:path}", response_model=None)(get_file)
         self.backend.get("/favicon.svg", response_class=FileResponse)(favicon)
         self.theme = theme
         self.lang = lang
@@ -123,6 +71,18 @@ class Schorle:
         self.session_manager = SessionManager()
         self.backend.state.session_manager = self.session_manager
         self.backend.add_websocket_route("/_schorle/events", EventsEndpoint)
+
+        if get_running_mode() == RunningMode.DEV:
+            self.backend.add_websocket_route("/_schorle/dev/events", self.dev_handler)
+
+    @staticmethod
+    async def dev_handler(websocket: WebSocket):
+        await websocket.accept()
+        while True:
+            try:
+                _ = await websocket.receive_json()
+            except Exception:
+                break
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         """
@@ -135,11 +95,18 @@ class Schorle:
             @self.backend.get(path, response_class=HTMLResponse)
             async def wrapper():
                 doc = Document(
-                    page=func(), theme=self.theme, lang=self.lang, extra_assets=self.extra_assets, title=self.title
+                    page=func(),
+                    theme=self.theme,
+                    lang=self.lang,
+                    extra_assets=self.extra_assets,
+                    title=self.title,
+                    with_dev_tools=get_running_mode() == RunningMode.DEV,
                 )
                 new_session = self.session_manager.create_session()
                 response = doc.to_response(new_session)
                 response.set_cookie(SESSION_ID_HEADER, new_session.uuid)
+                if get_running_mode() == RunningMode.DEV:
+                    response.set_cookie(DEV_HEADER, "true")
                 return response
 
         return decorator

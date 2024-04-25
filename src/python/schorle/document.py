@@ -14,40 +14,38 @@ from schorle.theme import Theme
 
 
 class DevLoader(Component):
+    element_id: str = "dev-loader"
+    classes: str = "absolute bottom-4 right-4 hidden"
+
     def render(self):
-        with div(classes="absolute bottom-4 right-4 hidden", element_id="dev_loader"):
-            span(classes="loading loading-md loading-bars text-primary")
+        span(classes="loading loading-md loading-bars text-primary")
 
 
 class Document(Component):
     page: Component
     title: str = "Schorle"
-    theme: Theme = Theme.DARK
-    with_dev_meta: bool = False
+    theme: Theme
     extra_assets: Callable[..., None] | None = None
     lang: str = "en"
     with_tailwind: bool = True
     with_daisyui: bool = True
     with_dev_tools: bool = False
-    daisyui_version: str = "4.7.2"
+    daisyui_version: str = "4.10.2"
     body_attrs: dict[str, str] | None = Field(default_factory=dict)
     tag: HTMLTag = HTMLTag.HTML
 
     def __init__(self, **data):
         super().__init__(**data)
         self.element_id = None
-        self.attrs = dict(lang=self.lang, **{"data-theme": self.theme})
+        self.attrs = {"data-theme": self.theme.value, "lang": self.lang}
 
     def render(self):
         with head():
             meta(charset="utf-8")
             meta(name="viewport", content="width=device-width, initial-scale=1.0")
-            if self.with_dev_tools:
-                meta(name="schorle-dev", content="true")
+
             with title():
                 text(self.title)
-            if self.with_dev_meta:
-                meta(name="schorle-dev", content="true")
 
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
             if self.with_tailwind:
@@ -64,7 +62,8 @@ class Document(Component):
                 self.extra_assets()
 
         with body(**self.body_attrs):
-            self.page()
+            with div(element_id="schorle-page"):
+                self.page()
 
             if self.with_dev_tools:
                 DevLoader()

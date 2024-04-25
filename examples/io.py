@@ -8,8 +8,9 @@ from schorle.component import Component
 from schorle.element import button, div, h2, input_
 from schorle.reactive import Reactive
 from schorle.text import text
+from schorle.theme import Theme
 
-app = Schorle(title="Schorle | IO Examples")
+app = Schorle(title="Schorle | IO Examples", theme=Theme.DARK)
 
 
 class SimpleInput(Component):

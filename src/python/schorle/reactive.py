@@ -17,10 +17,11 @@ class Reactive(BaseModel, Generic[T]):
         super().__init__()
         self._value = value
 
-    async def set(self, value: T):
+    async def set(self, value: T, *, skip_notify: bool = False):
         self._value = value
-        for observer in self._observers:
-            await observer()
+        if not skip_notify:
+            for observer in self._observers:
+                await observer()
 
     def lazy(self, value: T):
         return partial(self.set, value)

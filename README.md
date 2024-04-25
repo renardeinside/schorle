@@ -144,14 +144,12 @@ On any change in the code, the server will restart automatically, and the client
 
 ## Roadmap
 
-- [ ] Add dev reload
-- [ ] Add server-side communication
+- [x] Add dev reload
+- [x] Add server communication channel
 - [ ] Add state (global)
-- [ ] Add state at component level
+- [x] Add state at component level
 - [ ] Add more elements
 - [x] Add support for icons
-- [ ] Add support for onload events
-- [ ] Python-to-Hyperscript transpiler
 - [ ] Add convenient attributes API
 - [ ] Add more examples
 - [ ] Add tests
