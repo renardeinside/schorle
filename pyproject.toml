@@ -60,6 +60,7 @@ dependencies = [
     "hatch-vcs",
     "pytest-cov",
     "brotli",
+    "requests"
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
