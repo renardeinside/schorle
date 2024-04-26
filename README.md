@@ -162,6 +162,7 @@ On the frontend:
 - [x] Add state at component level
 - [ ] Add more elements
 - [x] Add support for icons
+- [ ] CSS pruning
 - [ ] Add convenient attributes API
 - [ ] Add more examples
 - [ ] Add tests
