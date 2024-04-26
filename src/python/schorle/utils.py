@@ -1,5 +1,7 @@
 import sys
 from enum import Enum
+from importlib.resources import files
+from pathlib import Path
 
 from schorle.types import LXMLElement
 
@@ -22,3 +24,6 @@ def fix_self_closing_tags(element: LXMLElement) -> None:
     for _child in element.iter():
         if len(_child) == 0 and _child.text is None:
             _child.text = ""
+
+
+ASSETS_PATH = Path(str(files("schorle"))) / Path("assets")

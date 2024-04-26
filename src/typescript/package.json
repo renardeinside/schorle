@@ -2,15 +2,13 @@
   "name": "schorle",
   "version": "1.0.0",
   "license": "MIT",
-  "workspaces": {
-    "client": "client",
-    "workers": "workers"
-  },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
     "esbuild": "^0.20.2",
     "rollup": "^4.13.0",
     "rollup-plugin-esbuild": "^6.1.1",
+    "rollup-plugin-gzip": "^3.1.2",
+    "rollup-plugin-uglify": "^6.0.4",
     "typescript": "^5.4.3"
   },
   "scripts": {
@@ -19,6 +17,6 @@
   },
   "dependencies": {
     "idiomorph": "^0.3.0",
-    "lucide": "^0.363.0"
+    "lucide": "^0.374.0"
   }
 }

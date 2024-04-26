@@ -27,10 +27,7 @@ class Document(Component):
     theme: Theme
     extra_assets: Callable[..., None] | None = None
     lang: str = "en"
-    with_tailwind: bool = True
-    with_daisyui: bool = True
     with_dev_tools: bool = False
-    daisyui_version: str = "4.10.2"
     body_attrs: dict[str, str] | None = Field(default_factory=dict)
     tag: HTMLTag = HTMLTag.HTML
 
@@ -48,16 +45,10 @@ class Document(Component):
                 text(self.title)
 
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
-            if self.with_tailwind:
-                script(src="https://cdn.tailwindcss.com")
-            if self.with_daisyui:
-                link(
-                    href=f"https://cdn.jsdelivr.net/npm/daisyui@{self.daisyui_version}/dist/full.min.css",
-                    rel="stylesheet",
-                    type="text/css",
-                )
 
-            script(src="/_schorle/js/index.js", crossorigin="anonymous", defer="", **{"type": "module"})
+            script(src="/_schorle/dist/tailwind.min.js.br")
+            link(href="/_schorle/dist/daisyui.min.css.br", rel="stylesheet")
+            script(src="/_schorle/js/index.min.js.br", crossorigin="anonymous", defer="", **{"type": "module"})
             if self.extra_assets:
                 self.extra_assets()
 
