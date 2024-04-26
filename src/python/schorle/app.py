@@ -5,6 +5,7 @@ from typing import Callable
 from uuid import uuid4
 
 from fastapi import FastAPI
+from loguru import logger
 from starlette.responses import FileResponse, HTMLResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
@@ -12,7 +13,7 @@ from starlette.websockets import WebSocket
 from schorle.component import Component
 from schorle.document import Document
 from schorle.events import EventsEndpoint
-from schorle.headers import DEV_HEADER, SESSION_ID_HEADER
+from schorle.headers import SESSION_ID_HEADER
 from schorle.session import Session
 from schorle.theme import Theme
 from schorle.utils import ASSETS_PATH, RunningMode, get_running_mode
@@ -30,8 +31,10 @@ def get_file(file_name: str, sub_path: Path | None = None) -> FileResponse | HTM
         mime_type, _ = mimetypes.guess_type(file_path)
 
         response = FileResponse(file_path, media_type=mime_type)
+        logger.info(f"Sending file: {file_path} with suffixes: {file_path.suffixes}")
         if ".br" in file_path.suffixes:
             response.headers["Content-Encoding"] = "br"
+            logger.info(f"Using brotli compression for file {file_path}")
         return response
     else:
         return HTMLResponse(status_code=404)
@@ -108,8 +111,6 @@ class Schorle:
                 new_session = self.session_manager.create_session()
                 response = doc.to_response(new_session)
                 response.set_cookie(SESSION_ID_HEADER, new_session.uuid)
-                if get_running_mode() == RunningMode.DEV:
-                    response.set_cookie(DEV_HEADER, "true")
                 return response
 
         return decorator

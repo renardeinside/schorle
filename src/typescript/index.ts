@@ -10,7 +10,11 @@ let getCookieByName = (name: string): string | undefined => {
 };
 
 let getSessionId = () => getCookieByName('X-Schorle-Session-Id');
-let getDevMode = () => getCookieByName('X-Schorle-Dev-Mode');
+let getDevMode = () => {
+  // check if meta with name schorle-dev-mode exists and return its content
+  let meta = document.querySelector('meta[name="schorle-dev-mode"]');
+  return meta ? meta.getAttribute('content') : 'false';
+};
 
 let getWsUrl = (subPath: string): string => {
   let protocol = window.location.protocol.replace('http', 'ws');

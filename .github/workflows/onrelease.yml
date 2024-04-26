@@ -32,6 +32,9 @@ jobs:
         run: yarn --cwd src/typescript install
       - name: Build bundle
         run: yarn --cwd src/typescript build
+      - name: Download CSS dependencies
+        run: |
+          python src/python/schorle/scripts/load_css_deps.py
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip 

@@ -1,0 +1,14 @@
+FROM python:3.10.6-slim as runtime
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on
+
+
+COPY ../dist/ /app/dist
+RUN pip install /app/dist/*.whl
+RUN mkdir -p /app/docs
+RUN mkdir -p /app/raw
+WORKDIR /app
+COPY docs/landing.py /app/docs/landing.py
+COPY raw /app/raw
+ENTRYPOINT ["uvicorn", "docs.landing:app", "--host", "0.0.0.0", "--port", "4444"]
