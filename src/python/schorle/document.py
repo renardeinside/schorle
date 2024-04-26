@@ -46,7 +46,9 @@ class Document(Component):
 
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
 
-            script(src="/_schorle/js/index.js", crossorigin="anonymous", defer="", **{"type": "module"})
+            script(src="/_schorle/dist/tailwind.min.js.br")
+            link(href="/_schorle/dist/daisyui.min.css.br", rel="stylesheet")
+            script(src="/_schorle/js/index.min.js.br", crossorigin="anonymous", defer="", **{"type": "module"})
             if self.extra_assets:
                 self.extra_assets()
 

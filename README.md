@@ -137,10 +137,22 @@ On any change in the code, the server will restart automatically, and the client
 
 ## Tech stack
 
+On the backend:
 - [FastAPI](https://fastapi.tiangolo.com/) - web framework
+- [Pydantic](https://docs.pydantic.dev/latest/) - classes and utilities for elements
+
+On the frontend:
 - [Tailwind CSS](https://tailwindcss.com/) - CSS framework
 - [DaisyUI](https://daisyui.com/) - Component library for Tailwind CSS
-- [Pydantic](https://docs.pydantic.dev/latest/) - classes and utilities for elements
+- [Lucide Icons](https://lucide.dev/) - Icon library
+
+
+## Optimizing the site performance
+
+`Schorle` has several features to optimize the site performance:
+
+- Client-server communications are happening over WebSockets and inside a Worker
+- CSS/JS libraries are served as brotli-compressed files
 
 ## Roadmap
 

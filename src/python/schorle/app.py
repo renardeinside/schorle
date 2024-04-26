@@ -1,5 +1,5 @@
 import mimetypes
-from importlib.resources import files
+from functools import partial
 from pathlib import Path
 from typing import Callable
 from uuid import uuid4
@@ -15,9 +15,7 @@ from schorle.events import EventsEndpoint
 from schorle.headers import DEV_HEADER, SESSION_ID_HEADER
 from schorle.session import Session
 from schorle.theme import Theme
-from schorle.utils import RunningMode, get_running_mode
-
-ASSETS_PATH = Path(str(files("schorle"))) / Path("assets")
+from schorle.utils import ASSETS_PATH, RunningMode, get_running_mode
 
 
 def favicon() -> FileResponse:
@@ -30,7 +28,11 @@ def get_file(file_name: str, sub_path: Path | None = None) -> FileResponse | HTM
 
     if file_path.exists() and file_path.is_file():
         mime_type, _ = mimetypes.guess_type(file_path)
-        return FileResponse(file_path, media_type=mime_type)
+
+        response = FileResponse(file_path, media_type=mime_type)
+        if ".br" in file_path.suffixes:
+            response.headers["Content-Encoding"] = "br"
+        return response
     else:
         return HTMLResponse(status_code=404)
 
@@ -63,6 +65,7 @@ class Schorle:
     ):
         self.backend = FastAPI()
         self.backend.get("/_schorle/{file_name:path}", response_model=None)(get_file)
+        self.backend.get("/_schorle/dist/{file_name:path}", response_model=None)(partial(get_file, sub_path="dist"))
         self.backend.get("/favicon.svg", response_class=FileResponse)(favicon)
         self.theme = theme
         self.lang = lang

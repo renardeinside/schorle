@@ -1,5 +1,7 @@
+import { createIcons, icons } from 'lucide';
 import { Idiomorph } from 'idiomorph/dist/idiomorph.esm.js';
 
+let processIcons = () => createIcons({ icons });
 
 let getCookieByName = (name: string): string | undefined => {
   let cookies = document.cookie.split(';');
@@ -76,6 +78,7 @@ let processElement = (element: Element, worker: Worker) => {
 
 
 let processPage = (worker: Worker) => {
+  processIcons();
   let elements = findElementsWithHandlers();
   elements.forEach((element) => processElement(element, worker));
 };
@@ -102,8 +105,8 @@ let hideDevLoader = () => {
 };
 
 
-let refetchPage = () => {
-  fetch(window.location.href, { cache: 'reload' }).then(
+let refetchPage = async () => {
+  return fetch(window.location.href, { cache: 'reload' }).then(
     (response) => response.text().then((html) => {
         let newDoc = new DOMParser().parseFromString(html, 'text/html');
 
@@ -135,20 +138,29 @@ let refetchPage = () => {
         document.dispatchEvent(new Event('DOMContentLoaded'));
         hideDevLoader();
       }
-    ))
-    .catch(() => {
-      // retry after 1 second
-      setTimeout(refetchPage, 1000);
-    });
+    ));
 };
 
 let devReload = () => {
   console.log('[dev] reloading page...');
   showDevLoader();
-  refetchPage();
+
+  // try to refetch the page with exponential backoff
+  let backoff = 0.1;
+  let maxBackoff = 60;
+  let refetch = () => {
+    refetchPage().catch((error) => {
+      console.error('[dev] error while fetching page:', error);
+      setTimeout(() => {
+        backoff = Math.min(backoff * 2, maxBackoff);
+        refetch();
+      }, backoff * 1000);
+    });
+  };
+  refetch();
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   let sessionId = getSessionId();
   if (!sessionId) {
     console.error('No session id found, cannot start worker.');
