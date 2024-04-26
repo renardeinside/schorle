@@ -58,7 +58,8 @@ dependencies = [
     "coverage[toml]>=6.5", "pytest",
     "betterproto[compiler]",
     "hatch-vcs",
-    "pytest-cov"
+    "pytest-cov",
+    "brotli",
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
