@@ -41,10 +41,11 @@ def get_file(file_name: str, sub_path: Path | None = None) -> FileResponse | HTM
 class SessionManager:
     def __init__(self):
         self.sessions = {}
+        self.state_provider = None
 
     def create_session(self):
         session_id = f"sle-{uuid4()}"
-        new_session = Session(session_id)
+        new_session = Session(session_id, state=self.state_provider() if self.state_provider else None)
         self.sessions[session_id] = new_session
         return new_session
 
@@ -55,6 +56,10 @@ class SessionManager:
         if session_id in self.sessions:
             del self.sessions[session_id]
 
+    def set_state_provider(self, func: Callable[..., BaseModel]):
+        self.state_provider = func
+        return func
+
 
 class Schorle:
     def __init__(
@@ -63,7 +68,6 @@ class Schorle:
         lang: str = "en",
         extra_assets: Callable[..., None] | None = None,
         title: str = "Schorle",
-        state: BaseModel | None = None,
     ):
         self.backend = FastAPI()
         self.backend.get("/_schorle/{file_name:path}", response_model=None)(get_file)
@@ -76,7 +80,6 @@ class Schorle:
         self.session_manager = SessionManager()
         self.backend.state.session_manager = self.session_manager
         self.backend.add_websocket_route("/_schorle/events", EventsEndpoint)
-        self.state = state
 
         if get_running_mode() == RunningMode.DEV:
             self.backend.add_websocket_route("/_schorle/dev/events", self.dev_handler)
@@ -100,6 +103,7 @@ class Schorle:
         def decorator(func: Callable[..., Component]):
             @self.backend.get(path, response_class=HTMLResponse)
             async def wrapper():
+                new_session = self.session_manager.create_session()
                 doc = Document(
                     page=func(),
                     theme=self.theme,
@@ -108,9 +112,12 @@ class Schorle:
                     title=self.title,
                     with_dev_tools=get_running_mode() == RunningMode.DEV,
                 )
-                new_session = self.session_manager.create_session()
                 response = doc.to_response(new_session)
                 response.set_cookie(SESSION_ID_HEADER, new_session.uuid)
                 return response
 
         return decorator
+
+    def session_state(self, func: Callable[..., BaseModel]):
+        self.session_manager.set_state_provider(func)
+        return func

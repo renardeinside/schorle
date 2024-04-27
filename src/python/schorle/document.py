@@ -105,9 +105,9 @@ class Document(Component):
                 DevLoader()
 
     def to_response(self, session: Session) -> HTMLResponse:
-        with rendering_context(root=self) as rc:
+        with rendering_context(root=self, session=session) as rc:
             self.render()
         return HTMLResponse(
-            etree.tostring(rc.to_lxml(session), pretty_print=True).decode("utf-8"),
+            etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8"),
             200,
         )

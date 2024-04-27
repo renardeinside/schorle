@@ -5,7 +5,7 @@ from random import random
 from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
-from schorle.attrs import On
+from schorle.attrs import On, when
 from schorle.component import component
 from schorle.element import button, div
 from schorle.reactive import Reactive
@@ -31,8 +31,8 @@ class CounterState(BaseModel):
 
 @contextmanager
 def spinner(loading: Reactive[bool]):
-    with div(classes="loading loading-infinity loading-lg text-primary" if loading.rx else ""):
-        with div(classes="hidden" if loading.rx else ""):
+    with div(classes=when(loading).then("loading loading-infinity loading-lg text-primary")):
+        with div(classes=when(loading).then("hidden")):
             yield
 
 
@@ -47,7 +47,7 @@ def counter_with_loading(state: CounterState):
                 text("Increment")
             with button(
                 on=On("click", state.decrement),
-                classes="btn btn-secondary" if state.value.rx > 0 else "btn btn-secondary btn-disabled",
+                classes=["btn btn-secondary", when(state.value.rx == 0).then("btn-disabled")],
             ):
                 text("Decrement")
         with div(classes="text-lg font-semibold text-center m-2"):

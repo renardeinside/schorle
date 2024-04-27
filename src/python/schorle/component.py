@@ -43,7 +43,7 @@ class Component(ElementPrototype, WithRender):
 
     def render_in_context(self) -> ElementPrototype:
         self._cleanup()
-        with rendering_context(root=self) as rc:
+        with rendering_context(root=self, session=self.session) as rc:
             self.render()
             return rc.root
 
@@ -58,9 +58,9 @@ class Component(ElementPrototype, WithRender):
 
     def to_string(self) -> str:
         self._cleanup()
-        with rendering_context(root=self) as rc:
+        with rendering_context(root=self, session=self.session) as rc:
             self.render()
-        return etree.tostring(rc.to_lxml(session=self.session), pretty_print=True).decode("utf-8")
+        return etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8")
 
     async def rerender(self):
         if not self.session:
@@ -86,12 +86,25 @@ class DynamicComponent(Component):
                 if isinstance(_reactive, Reactive):
                     _reactive.subscribe(self.rerender)
 
+        if "session" in inspect.signature(self.renderable).parameters:
+            rc = RENDERING_CONTEXT.get()
+            if not rc or not rc.session:
+                raise RuntimeError("Session not found in rendering context")
+            for field in rc.session.state.model_fields.keys():
+                _reactive = getattr(rc.session.state, field)
+                if isinstance(_reactive, Reactive):
+                    _reactive.subscribe(self.rerender)
+
     def render(self):
         inspected = inspect.signature(self.renderable)
+        _required_params = {}
         if "state" in inspected.parameters:
-            self.renderable(self.state)
-        else:
-            self.renderable()
+            _required_params["state"] = self.state
+
+        if "session" in inspected.parameters:
+            _required_params["session"] = self.session
+
+        self.renderable(**_required_params)
 
 
 class DynamicComponentFactory:
