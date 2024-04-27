@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import inspect
 from abc import abstractmethod
+from typing import Callable
 from uuid import uuid4
 
 from loguru import logger
 from lxml import etree
+from pydantic import BaseModel
 
 from schorle.prototypes import ElementPrototype, WithRender
+from schorle.reactive import Reactive
 from schorle.rendering_context import RENDERING_CONTEXT, rendering_context
 from schorle.tags import HTMLTag
 
@@ -64,3 +68,44 @@ class Component(ElementPrototype, WithRender):
         else:
             html = self.to_string()
             await self.session.morph(self.element_id, html)
+
+
+class DynamicComponent(Component):
+    renderable: Callable
+    state: BaseModel | Reactive | Callable[..., Reactive] | Callable[..., BaseModel] | None = None
+
+    def initialize(self):
+        if callable(self.state):
+            self.state = self.state()
+
+        if isinstance(self.state, Reactive):
+            self.state.subscribe(self.rerender)
+        elif isinstance(self.state, BaseModel):
+            for field in self.state.model_fields.keys():
+                _reactive = getattr(self.state, field)
+                if isinstance(_reactive, Reactive):
+                    _reactive.subscribe(self.rerender)
+
+    def render(self):
+        inspected = inspect.signature(self.renderable)
+        if "state" in inspected.parameters:
+            self.renderable(self.state)
+        else:
+            self.renderable()
+
+
+class DynamicComponentFactory:
+    def __init__(self, renderable: Callable, **kwargs):
+        self.renderable = renderable
+        self.kwargs = kwargs
+
+    def __call__(self):
+        return DynamicComponent(renderable=self.renderable, **self.kwargs)
+
+
+def component(**kwargs) -> Callable[[Callable], DynamicComponentFactory]:
+    def decorator(func) -> DynamicComponentFactory:
+        c = DynamicComponentFactory(renderable=func, **kwargs)
+        return c
+
+    return decorator

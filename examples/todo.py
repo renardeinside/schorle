@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
 from schorle.attrs import Bind, On
-from schorle.component import Component
+from schorle.component import component
 from schorle.element import button, div, input_
 from schorle.icon import icon
 from schorle.reactive import Reactive
@@ -40,53 +40,43 @@ class TodoState(BaseModel):
             await self.todos.set([*self.todos.rx[:index], *self.todos.rx[index + 1 :]], skip_notify=True)
 
 
-class Todos(Component):
-    state: TodoState = Field(default_factory=TodoState)
+@component(state=lambda: TodoState())
+def todos(state: TodoState):
+    with div(classes="flex flex-col space-y-2"):
+        with div(classes="flex space-x-4 mb-4"):
+            input_(
+                classes="input input-primary grow",
+                placeholder="Enter todo...",
+                bind=Bind("value", state.current),
+            )
+            with button(
+                on=On("click", state.add),
+                classes="btn btn-primary btn-square btn-outline" + (" btn-disabled" if not state.current.rx else ""),
+            ):
+                icon(name="list-plus")
 
-    def initialize(self):
-        self.state.current.subscribe(self.rerender)
-        self.state.todos.subscribe(self.rerender)
-        self.state.loading.subscribe(self.rerender)
+    with div(classes="flex flex-col space-y-2"):
 
-    def render(self):
-        with div(classes="flex flex-col space-y-2"):
-            with div(classes="flex space-x-4 mb-4"):
-                input_(
-                    classes="input input-primary grow",
-                    placeholder="Enter todo...",
-                    bind=Bind("value", self.state.current),
-                )
-                with button(
-                    on=On("click", self.state.add),
-                    classes="btn btn-primary btn-square btn-outline"
-                    + (" btn-disabled" if not self.state.current.rx else ""),
-                ):
-                    icon(name="list-plus")
-
-        with div(classes="flex flex-col space-y-2"):
-
-            if self.state.loading.rx:
-                with div(classes="flex grow items-center justify-center"):
-                    div(classes="loading loading-md text-primary")
-            else:
-                for index, todo in enumerate(self.state.todos.rx):
-                    with div(classes="flex space-x-4 items-center"):
-                        with div(classes="text-lg grow"):
-                            text(todo)
-                        with button(
-                            on=On("click", partial(self.state.remove, index)),
-                            classes="btn btn-square btn-outline btn-success",
-                        ):
-                            icon(name="check")
+        if state.loading.rx:
+            with div(classes="flex grow items-center justify-center"):
+                div(classes="loading loading-md text-primary")
+        else:
+            for index, todo in enumerate(state.todos.rx):
+                with div(classes="flex space-x-4 items-center"):
+                    with div(classes="text-lg grow"):
+                        text(todo)
+                    with button(
+                        on=On("click", partial(state.remove, index)),
+                        classes="btn btn-square btn-outline btn-success",
+                    ):
+                        icon(name="check")
 
 
-class HomePage(Component):
-    classes: str = "flex flex-col items-center justify-center h-screen space-y-4"
-
-    def render(self):
-        Todos()
+@component(classes="flex flex-col items-center justify-center h-screen space-y-4")
+def index_view():
+    todos()
 
 
 @app.get("/")
 def home():
-    return HomePage()
+    return index_view()
