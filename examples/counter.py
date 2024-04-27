@@ -17,12 +17,6 @@ def counter(state: Reactive[int]):
             text(f"Clicked {state.rx} times")
 
 
-@component(classes="flex flex-col items-center justify-center h-screen")
-def index_view():
-    counter()
-    counter()
-
-
 @app.get("/")
 def index():
-    return index_view()
+    return counter()
