@@ -5,7 +5,7 @@ from typing import Callable
 from uuid import uuid4
 
 from fastapi import FastAPI
-from loguru import logger
+from pydantic import BaseModel
 from starlette.responses import FileResponse, HTMLResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
@@ -31,10 +31,8 @@ def get_file(file_name: str, sub_path: Path | None = None) -> FileResponse | HTM
         mime_type, _ = mimetypes.guess_type(file_path)
 
         response = FileResponse(file_path, media_type=mime_type)
-        logger.info(f"Sending file: {file_path} with suffixes: {file_path.suffixes}")
-        if ".br" in file_path.suffixes:
-            response.headers["Content-Encoding"] = "br"
-            logger.info(f"Using brotli compression for file {file_path}")
+        if ".gz" in file_path.suffixes:
+            response.headers["Content-Encoding"] = "gzip"
         return response
     else:
         return HTMLResponse(status_code=404)
@@ -65,6 +63,7 @@ class Schorle:
         lang: str = "en",
         extra_assets: Callable[..., None] | None = None,
         title: str = "Schorle",
+        state: BaseModel | None = None,
     ):
         self.backend = FastAPI()
         self.backend.get("/_schorle/{file_name:path}", response_model=None)(get_file)
@@ -77,6 +76,7 @@ class Schorle:
         self.session_manager = SessionManager()
         self.backend.state.session_manager = self.session_manager
         self.backend.add_websocket_route("/_schorle/events", EventsEndpoint)
+        self.state = state
 
         if get_running_mode() == RunningMode.DEV:
             self.backend.add_websocket_route("/_schorle/dev/events", self.dev_handler)

@@ -1,7 +1,7 @@
+import gzip
 from dataclasses import dataclass
 from http import HTTPStatus
 
-import brotli
 import requests
 
 from schorle.utils import ASSETS_PATH
@@ -61,8 +61,8 @@ def load_deps():
         with open(output_path, "w") as f:
             f.write(_text)
 
-        with open(output_path.with_suffix(f"{output_path.suffix}.br"), "wb") as f:
-            f.write(brotli.compress(_text.encode("utf-8")))
+        with gzip.open(output_path.with_suffix(f"{output_path.suffix}.gz"), "wb") as f_out:
+            f_out.write(_text.encode())
 
         print(f"Saved {cdn.name} to {output_path}")  # noqa T201
 

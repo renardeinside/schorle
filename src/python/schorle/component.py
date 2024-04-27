@@ -14,7 +14,7 @@ from schorle.tags import HTMLTag
 class Component(ElementPrototype, WithRender):
     tag: HTMLTag | str = HTMLTag.DIV
 
-    def initialize(self):
+    def initialize(self, **kwargs):
         pass
 
     def __init__(self, **data):
@@ -34,7 +34,7 @@ class Component(ElementPrototype, WithRender):
             RENDERING_CONTEXT.get().append(self)
 
     @abstractmethod
-    def render(self):
+    def render(self, **kwargs):
         pass
 
     def render_in_context(self) -> ElementPrototype:

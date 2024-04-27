@@ -77,18 +77,18 @@ class Document(Component):
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
 
             script(
-                src="/_schorle/dist/tailwind.min.js.br",
+                src="/_schorle/dist/tailwind.min.js.gz",
                 integrity=get_integrity("dist/tailwind.min.js"),
                 crossorigin="anonymous",
             )
             link(
-                href="/_schorle/dist/daisyui.min.css.br",
+                href="/_schorle/dist/daisyui.min.css.gz",
                 integrity=get_integrity("dist/daisyui.min.css"),
                 crossorigin="anonymous",
                 rel="stylesheet",
             )
             script(
-                src="/_schorle/js/index.min.js.br",
+                src="/_schorle/js/index.min.js.gz",
                 integrity=get_integrity("js/index.min.js"),
                 crossorigin="anonymous",
                 defer="",

@@ -1,7 +1,5 @@
 from contextlib import contextmanager
 
-from pydantic import Field
-
 from schorle.app import Schorle
 from schorle.attrs import Bind, On
 from schorle.component import Component
@@ -14,7 +12,7 @@ app = Schorle(title="Schorle | IO Examples", theme=Theme.DARK)
 
 
 class SimpleInput(Component):
-    current: Reactive[str] = Field(default_factory=Reactive.factory(""))
+    current: Reactive[str] = Reactive.field("")
 
     def initialize(self):
         self.current.subscribe(self.rerender)
@@ -31,7 +29,7 @@ class SimpleInput(Component):
 
 
 class Clearable(Component):
-    current: Reactive[str] = Field(default_factory=Reactive.factory(""))
+    current: Reactive[str] = Reactive.field("")
     classes: str = "flex justify-around"
 
     def initialize(self):
