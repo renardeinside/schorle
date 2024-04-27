@@ -40,6 +40,18 @@ def session_state():
 
 
 @component()
+def add_button(session: Session[TodoState]):
+    with button(
+        on=On("click", session.state.add),
+        classes=[
+            "btn btn-primary btn-square btn-outline",
+            when(session.state.current.rx == "").then("btn-disabled"),
+        ],
+    ):
+        icon(name="list-plus")
+
+
+@component()
 def inputs(session: Session[TodoState]):
     with div(classes="flex space-x-4 mb-4"):
         input_(
@@ -47,14 +59,7 @@ def inputs(session: Session[TodoState]):
             placeholder="Enter todo...",
             bind=Bind("value", session.state.current),
         )
-        with button(
-            on=On("click", session.state.add),
-            classes=[
-                "btn btn-primary btn-square btn-outline",
-                when(session.state.current.rx == "").then("btn-disabled"),
-            ],
-        ):
-            icon(name="list-plus")
+        add_button()
 
 
 @component()

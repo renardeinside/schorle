@@ -111,6 +111,8 @@ class DynamicComponentFactory:
     def __init__(self, renderable: Callable, **kwargs):
         self.renderable = renderable
         self.kwargs = kwargs
+        if "element_id" not in self.kwargs:
+            self.kwargs["element_id"] = f"sle-{str(uuid4())[0:8]}"
 
     def __call__(self):
         return DynamicComponent(renderable=self.renderable, **self.kwargs)
