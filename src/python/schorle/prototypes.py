@@ -4,7 +4,7 @@ from abc import abstractmethod
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
-from schorle.attrs import Bind, On
+from schorle.attrs import Bind, On, _When
 from schorle.session import Session
 from schorle.tags import HTMLTag
 
@@ -18,7 +18,7 @@ class ElementPrototype(BaseModel):
     _parent: ElementPrototype | None = PrivateAttr(default=None)
     _text: str | None = PrivateAttr(default=None)
     attrs: dict[str, str] = Field(default_factory=dict)
-    classes: str | list[str] | None = None
+    classes: _When | str | list[str] | list[str | _When] | None = None
     style: dict[str, str] | None = None
     on: On | list[On] | None = None
     bind: Bind | None = None

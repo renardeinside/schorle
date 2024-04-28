@@ -7,7 +7,7 @@ from contextvars import ContextVar
 from loguru import logger
 from lxml import etree
 
-from schorle.attrs import On
+from schorle.attrs import On, _When
 from schorle.prototypes import ElementPrototype, WithRender
 from schorle.session import Session
 from schorle.tags import HTMLTag
@@ -16,19 +16,21 @@ from schorle.utils import fix_self_closing_tags
 
 
 @contextmanager
-def rendering_context(root: ElementPrototype | None = None):
-    rc = RenderingContext(root=root)
+def rendering_context(root: ElementPrototype | None = None, session: Session | None = None):
+    rc = RenderingContext(root=root, session=session)
     _token = RENDERING_CONTEXT.set(rc)
     yield rc
     RENDERING_CONTEXT.reset(_token)
 
 
 class RenderingContext:
-    def __init__(self, root: ElementPrototype | None = None):
+    def __init__(self, root: ElementPrototype | None = None, session: Session | None = None):
         self.root: ElementPrototype = ElementPrototype(tag="root") if root is None else root
         self.current_parent = self.root
+        self.session = session
 
     def append(self, element: ElementPrototype):
+        element.session = self.session
         self.current_parent.append(element)
 
     def become_parent(self, element: ElementPrototype):
@@ -41,7 +43,7 @@ class RenderingContext:
     def set_text(self, text_value: str):
         self.current_parent.set_text(text_value)
 
-    def covert_proto_to_lxml(self, proto: ElementPrototype, session: Session | None) -> LXMLElement:
+    def covert_proto_to_lxml(self, proto: ElementPrototype) -> LXMLElement:
         lxml_element = etree.Element(proto.tag.value if isinstance(proto.tag, HTMLTag) else proto.tag)
 
         if proto.element_id:
@@ -58,17 +60,19 @@ class RenderingContext:
         if proto.classes:
             if isinstance(proto.classes, str):
                 proto.classes = [proto.classes]
-            lxml_element.set("class", " ".join(proto.classes))
+            elif isinstance(proto.classes, _When):
+                proto.classes = [proto.classes]
+            lxml_element.set("class", " ".join(str(c) for c in proto.classes))
 
-        if session:
-            proto.session = session
+        if self.session:
+            proto.session = self.session
 
             handlers = []
 
             if proto.on:
                 _ons = [proto.on] if isinstance(proto.on, On) else proto.on
                 for on in _ons:
-                    handler_uuid = session.register_handler(proto.on.handler)
+                    handler_uuid = self.session.register_handler(proto.on.handler)
                     handlers.append({"event": on.event, "handler": handler_uuid})
 
             if proto.bind:
@@ -78,7 +82,7 @@ class RenderingContext:
 
                 lxml_element.set(proto.bind.property, proto.bind.reactive.rx)
                 _on = On(event="input", handler=_handler)
-                handler_uuid = session.register_handler(_handler)
+                handler_uuid = self.session.register_handler(_handler)
                 handlers.append({"event": _on.event, "handler": handler_uuid})
 
             if handlers:
@@ -92,16 +96,16 @@ class RenderingContext:
         for child in proto.get_children():
             if isinstance(child, WithRender):
                 rendered = child.render_in_context()
-                lxml_child = self.covert_proto_to_lxml(rendered, session)
+                lxml_child = self.covert_proto_to_lxml(rendered)
             else:
-                lxml_child = self.covert_proto_to_lxml(child, session)
+                lxml_child = self.covert_proto_to_lxml(child)
             lxml_element.append(lxml_child)
 
         fix_self_closing_tags(lxml_element)
         return lxml_element
 
-    def to_lxml(self, session: Session | None = None):
-        return self.covert_proto_to_lxml(self.root, session)
+    def to_lxml(self):
+        return self.covert_proto_to_lxml(self.root)
 
 
 RENDERING_CONTEXT: ContextVar[RenderingContext | None] = ContextVar("rendering_context", default=None)

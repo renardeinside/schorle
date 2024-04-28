@@ -1,10 +1,8 @@
 from contextlib import contextmanager
 
-from pydantic import Field
-
 from schorle.app import Schorle
 from schorle.attrs import Bind, On
-from schorle.component import Component
+from schorle.component import component
 from schorle.element import button, div, h2, input_
 from schorle.reactive import Reactive
 from schorle.text import text
@@ -13,61 +11,47 @@ from schorle.theme import Theme
 app = Schorle(title="Schorle | IO Examples", theme=Theme.DARK)
 
 
-class SimpleInput(Component):
-    current: Reactive[str] = Field(default_factory=Reactive.factory(""))
-
-    def initialize(self):
-        self.current.subscribe(self.rerender)
-
-    def render(self):
-        input_(
-            type="text",
-            placeholder="Enter your name",
-            bind=Bind("value", self.current),
-            classes="input input-primary w-full",
-        )
-        with div(classes="text-center m-2"):
-            text(f"Hello, {self.current.rx}!") if self.current.rx else text("Hello, stranger!")
+@component(state=Reactive.factory(""))
+def simple_input(state: Reactive[str]):
+    input_(
+        type="text",
+        placeholder="Enter your name",
+        bind=Bind("value", state),
+        classes="input input-primary w-full",
+    )
+    with div(classes="text-center m-2"):
+        text(f"Hello, {state.rx}!") if state.rx else text("Hello, stranger!")
 
 
-class Clearable(Component):
-    current: Reactive[str] = Field(default_factory=Reactive.factory(""))
-    classes: str = "flex justify-around"
-
-    def initialize(self):
-        self.current.subscribe(self.rerender)
-
-    def render(self):
-        input_(
-            type="text",
-            placeholder="Enter something here",
-            bind=Bind("value", self.current),
-            classes="input input-primary",
-        )
-        with button(on=On("click", self.current.lazy("")), classes="btn btn-primary"):
-            text("Clear")
+@component(state=Reactive.factory(""), classes="flex justify-around")
+def clearable_input(state: Reactive[str]):
+    input_(
+        type="text",
+        placeholder="Enter something here",
+        bind=Bind("value", state),
+        classes="input input-primary",
+    )
+    with button(on=On("click", state.lazy("")), classes="btn btn-primary"):
+        text("Clear")
 
 
-class Examples(Component):
-    tag: str = "main"
-    classes: str = "flex flex-col items-center justify-center h-screen space-y-4"
+@contextmanager
+def card(title: str):
+    with div(classes="card w-96 bg-base-300 shadow-xl"):
+        with div(classes="card-body"):
+            with h2(classes="card-title"):
+                text(title)
+            yield
 
-    @staticmethod
-    @contextmanager
-    def card(title: str):
-        with div(classes="card w-96 bg-base-300 shadow-xl"):
-            with div(classes="card-body"):
-                with h2(classes="card-title"):
-                    text(title)
-                yield
 
-    def render(self):
-        with self.card("Simple Input"):
-            SimpleInput()
-        with self.card("Clearable Input"):
-            Clearable()
+@component(tag="main", classes="flex flex-col items-center justify-center h-screen space-y-4")
+def examples_view():
+    with card("Simple Input"):
+        simple_input()
+    with card("Clearable Input"):
+        clearable_input()
 
 
 @app.get("/")
 def home():
-    return Examples()
+    return examples_view()

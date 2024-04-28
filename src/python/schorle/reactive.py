@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from functools import partial
 from typing import Callable, Generic, TypeVar
 
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr
 
 T = TypeVar("T")
 
@@ -45,3 +45,7 @@ class Reactive(BaseModel, Generic[T]):
             yield
         finally:
             await self.set(previous)
+
+    @classmethod
+    def field(cls, default_value: T | None = None) -> Field:
+        return Field(default_factory=cls.factory(default_value))

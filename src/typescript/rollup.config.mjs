@@ -21,8 +21,7 @@ export default [
     plugins: [
       terser(),
       gzipPlugin({
-        customCompression: content => brotliPromise(Buffer.from(content)),
-        fileName: '.br'
+        fileName: '.gz'
       })],
     input: `../python/schorle/assets/js/index.js`,
     output: {
