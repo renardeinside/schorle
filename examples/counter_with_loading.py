@@ -8,29 +8,29 @@ from schorle.app import Schorle
 from schorle.attrs import On, when
 from schorle.component import component
 from schorle.element import button, div
-from schorle.reactive import Reactive
+from schorle.signal import Signal
 from schorle.text import text
 
 app = Schorle(title="Schorle | Counter App")
 
 
 class CounterState(BaseModel):
-    value: Reactive[int] = Field(default_factory=Reactive.factory(1))
-    loading: Reactive[bool] = Field(default_factory=Reactive.factory(False))
+    value: Signal[int] = Field(default_factory=Signal.factory(1))
+    loading: Signal[bool] = Field(default_factory=Signal.factory(False))
 
     async def increment(self):
         async with self.loading.ctx(True):
             await asyncio.sleep(random() * 3)  # Simulate network request
-            await self.value.set(self.value.rx + 1, skip_notify=True)
+            await self.value.set(self.value.val + 1, skip_notify=True)
 
     async def decrement(self):
         async with self.loading.ctx(True):
             await asyncio.sleep(random() * 3)  # Simulate network request
-            await self.value.set(self.value.rx - 1, skip_notify=True)
+            await self.value.set(self.value.val - 1, skip_notify=True)
 
 
 @contextmanager
-def spinner(loading: Reactive[bool]):
+def spinner(loading: Signal[bool]):
     with div(classes=when(loading).then("loading loading-infinity loading-lg text-primary")):
         with div(classes=when(loading).then("hidden")):
             yield
@@ -47,11 +47,11 @@ def counter_with_loading(state: CounterState):
                 text("Increment")
             with button(
                 on=On("click", state.decrement),
-                classes=["btn btn-secondary", when(state.value.rx == 0).then("btn-disabled")],
+                classes=["btn btn-secondary", when(state.value.val == 0).then("btn-disabled")],
             ):
                 text("Decrement")
         with div(classes="text-lg font-semibold text-center m-2"):
-            text(f"Clicked {state.value.rx} times")
+            text(f"Clicked {state.value.val} times")
 
 
 @component(classes="flex flex-col items-center justify-center h-screen")

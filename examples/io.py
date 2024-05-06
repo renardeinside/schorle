@@ -4,15 +4,15 @@ from schorle.app import Schorle
 from schorle.attrs import Bind, On
 from schorle.component import component
 from schorle.element import button, div, h2, input_
-from schorle.reactive import Reactive
+from schorle.signal import Signal
 from schorle.text import text
 from schorle.theme import Theme
 
 app = Schorle(title="Schorle | IO Examples", theme=Theme.DARK)
 
 
-@component(state=Reactive.factory(""))
-def simple_input(state: Reactive[str]):
+@component(state=Signal.factory(""))
+def simple_input(state: Signal[str]):
     input_(
         type="text",
         placeholder="Enter your name",
@@ -20,11 +20,11 @@ def simple_input(state: Reactive[str]):
         classes="input input-primary w-full",
     )
     with div(classes="text-center m-2"):
-        text(f"Hello, {state.rx}!") if state.rx else text("Hello, stranger!")
+        text(f"Hello, {state.val}!") if state.val else text("Hello, stranger!")
 
 
-@component(state=Reactive.factory(""), classes="flex justify-around")
-def clearable_input(state: Reactive[str]):
+@component(state=Signal.factory(""), classes="flex justify-around")
+def clearable_input(state: Signal[str]):
     input_(
         type="text",
         placeholder="Enter something here",

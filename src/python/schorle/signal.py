@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 T = TypeVar("T")
 
 
-class Reactive(BaseModel, Generic[T]):
+class Signal(BaseModel, Generic[T]):
     _value: T | None = PrivateAttr(default=None)
     _observers: list[Callable] = PrivateAttr(default_factory=list)
 
@@ -27,14 +27,14 @@ class Reactive(BaseModel, Generic[T]):
         return partial(self.set, value)
 
     @property
-    def rx(self) -> T:
+    def val(self) -> T:
         return self._value
 
     def subscribe(self, observer):
         self._observers.append(observer)
 
     @classmethod
-    def factory(cls, value: T | None = None) -> Callable[[], Reactive[T]]:
+    def factory(cls, value: T | None = None) -> Callable[[], Signal[T]]:
         return partial(cls, value)
 
     @asynccontextmanager

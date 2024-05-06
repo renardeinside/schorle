@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import inspect
 from abc import abstractmethod
-from typing import Callable
+from copy import deepcopy
+from typing import Any, Callable
 from uuid import uuid4
 
 from loguru import logger
 from lxml import etree
-from pydantic import BaseModel
+from pydantic import Field
 
 from schorle.prototypes import ElementPrototype, WithRender
-from schorle.reactive import Reactive
 from schorle.rendering_context import RENDERING_CONTEXT, rendering_context
 from schorle.tags import HTMLTag
 
@@ -70,49 +70,45 @@ class Component(ElementPrototype, WithRender):
             await self.session.morph(self.element_id, html)
 
 
+class Injector:
+    def __init__(self, signal):
+        self.signal = signal
+
+    @abstractmethod
+    def inject(self, component: Component):
+        pass
+
+
+class Depends(Injector):
+
+    @abstractmethod
+    def inject(self, component: Component):
+        value = deepcopy(self.signal)
+        value.subscribe(component.rerender)
+        return value
+
+
 class DynamicComponent(Component):
     renderable: Callable
-    state: BaseModel | Reactive | Callable[..., Reactive] | Callable[..., BaseModel] | None = None
+    kwargs: dict[str, Any] = Field(default_factory=dict)
 
     def initialize(self):
-        if callable(self.state):
-            self.state = self.state()
-
-        if isinstance(self.state, Reactive):
-            self.state.subscribe(self.rerender)
-        elif isinstance(self.state, BaseModel):
-            for field in self.state.model_fields.keys():
-                _reactive = getattr(self.state, field)
-                if isinstance(_reactive, Reactive):
-                    _reactive.subscribe(self.rerender)
-
-        if "session" in inspect.signature(self.renderable).parameters:
-            rc = RENDERING_CONTEXT.get()
-            if not rc or not rc.session:
-                raise RuntimeError("Session not found in rendering context")
-            for field in rc.session.state.model_fields.keys():
-                _reactive = getattr(rc.session.state, field)
-                if isinstance(_reactive, Reactive):
-                    _reactive.subscribe(self.rerender)
+        params = inspect.signature(self.renderable).parameters
+        for param_name, param in params.items():
+            if isinstance(param.default, Injector):
+                self.kwargs[param_name] = param.default.inject(self)
 
     def render(self):
-        inspected = inspect.signature(self.renderable)
-        _required_params = {}
-        if "state" in inspected.parameters:
-            _required_params["state"] = self.state
-
-        if "session" in inspected.parameters:
-            _required_params["session"] = self.session
-
-        self.renderable(**_required_params)
+        if self.kwargs:
+            self.renderable(**self.kwargs)
+        else:
+            self.renderable()
 
 
 class DynamicComponentFactory:
     def __init__(self, renderable: Callable, **kwargs):
         self.renderable = renderable
         self.kwargs = kwargs
-        if "element_id" not in self.kwargs:
-            self.kwargs["element_id"] = f"sle-{str(uuid4())[0:8]}"
 
     def __call__(self):
         return DynamicComponent(renderable=self.renderable, **self.kwargs)
