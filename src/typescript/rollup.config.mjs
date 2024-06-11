@@ -1,11 +1,8 @@
 import esbuild from 'rollup-plugin-esbuild';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
-import { brotliCompress } from 'zlib';
-import { promisify } from 'util';
 import gzipPlugin from 'rollup-plugin-gzip';
 import terser from '@rollup/plugin-terser';
 
-const brotliPromise = promisify(brotliCompress);
 
 export default [
   {

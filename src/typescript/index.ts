@@ -154,7 +154,7 @@ let devReload = () => {
 
   // try to refetch the page with exponential backoff
   let backoff = 0.1;
-  let maxBackoff = 60;
+  let maxBackoff = 2;
   let refetch = () => {
     refetchPage().catch((error) => {
       console.error('[dev] error while fetching page:', error);
