@@ -8,7 +8,6 @@ from pydantic import Field
 
 from schorle.component import Component
 from schorle.element import body, div, head, link, meta, script, span, title
-from schorle.rendering_context import rendering_context
 from schorle.session import Session
 from schorle.tags import HTMLTag
 from schorle.text import text
@@ -75,7 +74,6 @@ class Document(Component):
                 meta(name="schorle-dev-mode", content="true")
 
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
-            script(src="https://unpkg.com/idiomorph@0.3.0")
             script(
                 src="/_schorle/dist/tailwind.min.js.gz",
                 integrity=get_integrity("dist/tailwind.min.js"),
@@ -105,8 +103,8 @@ class Document(Component):
                 DevLoader()
 
     def to_response(self, session: Session) -> HTMLResponse:
-        with rendering_context(root=self, session=session) as rc:
-            self.render()
+        self.session = session
+        rc = self.render_in_context()
         return HTMLResponse(
             etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8"),
             200,

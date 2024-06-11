@@ -137,7 +137,8 @@ ignore = [
     "PLR0913",
     "PLR0915",
     # Ignore string literals for error messages
-    "EM101"
+    "EM101",
+    "B008" # we're calling Depends in argument defaults
 ]
 unfixable = [
     # Don't touch unused imports

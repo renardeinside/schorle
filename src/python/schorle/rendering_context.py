@@ -8,7 +8,7 @@ from loguru import logger
 from lxml import etree
 
 from schorle.attrs import On, _When
-from schorle.prototypes import ElementPrototype, WithRender
+from schorle.prototypes import ElementPrototype
 from schorle.session import Session
 from schorle.tags import HTMLTag
 from schorle.types import LXMLElement
@@ -94,9 +94,9 @@ class RenderingContext:
             lxml_element.set("style", ";".join([f"{key}: {value}" for key, value in proto.style.items()]))
 
         for child in proto.get_children():
-            if isinstance(child, WithRender):
-                rendered = child.render_in_context()
-                lxml_child = self.covert_proto_to_lxml(rendered)
+            if hasattr(child, "render_in_context"):
+                rc = child.render_in_context()
+                lxml_child = self.covert_proto_to_lxml(rc.root)
             else:
                 lxml_child = self.covert_proto_to_lxml(child)
             lxml_element.append(lxml_child)

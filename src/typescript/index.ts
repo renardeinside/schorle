@@ -97,6 +97,7 @@ let processEvent = (event: MessageEvent, worker: Worker) => {
   }
   console.log('Morphing target:', target, event.data.html, event.data.config);
   let newHtml = new DOMParser().parseFromString(event.data.html, 'text/html').getElementById(event.data.target);
+  console.log('New html:', newHtml);
   let result = Idiomorph.morph(target, newHtml, event.data.config);
   console.log('Morph result:', result);
   processPage(worker);
