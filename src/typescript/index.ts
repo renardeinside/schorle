@@ -95,8 +95,10 @@ let processEvent = (event: MessageEvent, worker: Worker) => {
     console.error('Target element not found:', event.data.target);
     return;
   }
-
-  Idiomorph.morph(target, event.data.html, event.data.config);
+  console.log('Morphing target:', target, event.data.html, event.data.config);
+  let newHtml = new DOMParser().parseFromString(event.data.html, 'text/html').getElementById(event.data.target);
+  let result = Idiomorph.morph(target, newHtml, event.data.config);
+  console.log('Morph result:', result);
   processPage(worker);
 };
 

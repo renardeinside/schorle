@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
+from functools import partial
+from typing import Callable, ParamSpec, TypeVar
 from uuid import uuid4
 
 from loguru import logger
@@ -8,7 +10,9 @@ from lxml import etree
 
 from schorle.prototypes import ElementPrototype, WithRender
 from schorle.rendering_context import RENDERING_CONTEXT, rendering_context
+from schorle.store import Depends
 from schorle.tags import HTMLTag
+import inspect
 
 
 class Component(ElementPrototype, WithRender):
@@ -64,3 +68,47 @@ class Component(ElementPrototype, WithRender):
         else:
             html = self.to_string()
             await self.session.morph(self.element_id, html)
+
+
+class DynamicComponent(Component):
+    renderable: Callable
+
+    def initialize(self):
+        signature = inspect.signature(self.renderable)
+        params = signature.parameters
+        collected = {}
+        for name, param in params.items():
+            if isinstance(param.default, Depends):
+                logger.info(f"Found dependency: {name}")
+                signal = param.default.func()
+                collected[name] = signal
+                signal.subscribe(self.rerender)
+
+        self.renderable = partial(self.renderable, **collected)
+
+    def render(self):
+        self.renderable()
+
+
+class DynamicComponentFactory:
+    def __init__(self, renderable: Callable, **kwargs):
+        self.renderable = renderable
+        self.kwargs = kwargs
+        if "element_id" not in self.kwargs:
+            self.kwargs["element_id"] = f"sle-{str(uuid4())[0:8]}"
+
+    def __call__(self):
+        return DynamicComponent(renderable=self.renderable, **self.kwargs)
+
+
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def component(
+        **kwargs,
+) -> Callable[P, DynamicComponentFactory]:
+    def wrapper(renderable: Callable[P, T]) -> DynamicComponentFactory:
+        return DynamicComponentFactory(renderable, **kwargs)
+
+    return wrapper

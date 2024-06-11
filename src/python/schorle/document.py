@@ -75,7 +75,7 @@ class Document(Component):
                 meta(name="schorle-dev-mode", content="true")
 
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
-
+            script(src="https://unpkg.com/idiomorph@0.3.0")
             script(
                 src="/_schorle/dist/tailwind.min.js.gz",
                 integrity=get_integrity("dist/tailwind.min.js"),

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from functools import partial
 from typing import Callable, Generic, TypeVar
 
-from dependency_injector.providers import Singleton, Factory
+from dependency_injector.providers import Factory, Singleton
 from pydantic import BaseModel, PrivateAttr
 
 T = TypeVar("T")
@@ -18,17 +18,16 @@ class Signal(BaseModel, Generic[T]):
         super().__init__()
         self._value = value
 
-    async def set(self, value: T, *, skip_notify: bool = False):
+    async def update(self, value: T, *, skip_notify: bool = False):
         self._value = value
         if not skip_notify:
             for observer in self._observers:
                 await observer()
 
-    def lazy(self, value: T):
-        return partial(self.set, value)
+    def partial(self, value: T):
+        return partial(self.update, value)
 
-    @property
-    def val(self) -> T:
+    def __call__(self):
         return self._value
 
     def subscribe(self, observer):
@@ -41,12 +40,18 @@ class Signal(BaseModel, Generic[T]):
     @asynccontextmanager
     async def ctx(self, value: T):
         previous = self._value
-        await self.set(value)
+        await self.update(value)
         try:
             yield
         finally:
-            await self.set(previous)
+            await self.update(previous)
 
     @classmethod
     def shared(cls, value: T | None = None):
         return Singleton(cls, value)
+
+    def __repr__(self):
+        return f"<Signal value={self._value}>"
+
+    def __str__(self):
+        return self.__repr__()

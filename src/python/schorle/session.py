@@ -3,6 +3,7 @@ from typing import Callable, Generic, TypeVar
 from uuid import uuid4
 
 from bidict import bidict
+from loguru import logger
 from starlette.websockets import WebSocket
 
 ST = TypeVar("ST")
@@ -28,6 +29,8 @@ class Session(Generic[ST]):
     async def morph(self, target: str, html: str, config: dict[str, str] | None = None):
         config = {"ignoreActiveValue": True, "morphStyle": "outerHTML"} if config is None else config
         if self.io is not None:
-            await self.io.send_json({"event": "morph", "target": target, "html": html, "config": config})
+            _message = {"event": "morph", "target": target, "html": html, "config": config}
+            logger.info(f"Sending morph message: {_message}")
+            await self.io.send_json(_message)
         else:
             raise ValueError("Session is not connected")
