@@ -26,10 +26,10 @@ class _When:
         return self
 
     def otherwise(self, classes: str):
-        return self._classes_in_condition if self.reactive.val else classes
+        return self._classes_in_condition if self.reactive() else classes
 
     def __str__(self):
-        return self._classes_in_condition if self.reactive.val else ""
+        return self._classes_in_condition if self.reactive() else ""
 
 
 def when(reactive: Signal[bool] | bool) -> _When:

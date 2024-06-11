@@ -1,32 +1,37 @@
 import asyncio
 from contextlib import contextmanager
+from functools import partial
 from random import random
-
-from pydantic import BaseModel, Field
 
 from schorle.app import Schorle
 from schorle.attrs import On, when
 from schorle.component import component
 from schorle.element import button, div
 from schorle.signal import Signal
+from schorle.store import Depends, store
 from schorle.text import text
 
 app = Schorle(title="Schorle | Counter App")
 
 
-class CounterState(BaseModel):
-    value: Signal[int] = Field(default_factory=Signal.factory(1))
-    loading: Signal[bool] = Field(default_factory=Signal.factory(False))
+@store(scope="component")
+def value_store() -> Signal[int]:
+    return Signal(0)
 
-    async def increment(self):
-        async with self.loading.ctx(True):
-            await asyncio.sleep(random() * 3)  # Simulate network request
-            await self.value.set(self.value.val + 1, skip_notify=True)
 
-    async def decrement(self):
-        async with self.loading.ctx(True):
-            await asyncio.sleep(random() * 3)  # Simulate network request
-            await self.value.set(self.value.val - 1, skip_notify=True)
+@store(scope="component")
+def loading_store() -> Signal[bool]:
+    return Signal(False)
+
+
+async def step(loading: Signal[bool], value: Signal[int], action: callable):
+    async with loading.ctx(True):
+        await asyncio.sleep(random() * 3)  # Simulate network request
+        await value.update(action(value(), 1), skip_notify=True)
+
+
+increment = partial(step, action=lambda x, y: x + y)
+decrement = partial(step, action=lambda x, y: x - y)
 
 
 @contextmanager
@@ -38,24 +43,24 @@ def spinner(loading: Signal[bool]):
 
 @component(
     classes="m-4 w-80 h-32 flex flex-col items-center justify-center bg-base-300 rounded-xl shadow-xl",
-    state=lambda: CounterState(),
 )
-def counter_with_loading(state: CounterState):
-    with spinner(state.loading):
+def counter_with_loading(loading: Signal[bool] = Depends(loading_store), value: Signal[int] = Depends(value_store)):
+    with spinner(loading):
         with div(classes="space-x-4"):
-            with button(on=On("click", state.increment), classes="btn btn-primary"):
+            with button(on=On("click", partial(increment, value=value, loading=loading)), classes="btn btn-primary"):
                 text("Increment")
             with button(
-                on=On("click", state.decrement),
-                classes=["btn btn-secondary", when(state.value.val == 0).then("btn-disabled")],
+                on=On("click", partial(decrement, value=value, loading=loading)),
+                classes=["btn btn-secondary", when(value() == 0).then("btn-disabled")],
             ):
                 text("Decrement")
         with div(classes="text-lg font-semibold text-center m-2"):
-            text(f"Clicked {state.value.val} times")
+            text(f"Clicked {value()} times")
 
 
 @component(classes="flex flex-col items-center justify-center h-screen")
 def index_view():
+    counter_with_loading()
     counter_with_loading()
 
 
