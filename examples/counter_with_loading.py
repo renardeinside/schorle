@@ -13,15 +13,8 @@ from schorle.text import text
 
 app = Schorle(title="Schorle | Counter App")
 
-
-@store(scope="component")
-def value_store() -> Signal[int]:
-    return Signal(0)
-
-
-@store(scope="component")
-def loading_store() -> Signal[bool]:
-    return Signal(False)
+value_store = store(0, scope="component")
+loading_store = store(False, scope="component")
 
 
 async def step(loading: Signal[bool], value: Signal[int], action: callable):

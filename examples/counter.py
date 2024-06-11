@@ -10,10 +10,7 @@ from schorle.text import text
 
 app = Schorle(title="Schorle | Counter App")
 
-
-@store(scope="session")
-def counter() -> Signal[int]:
-    return Signal(0)
+counter_store = store(0, scope="session")
 
 
 async def increment(s: Signal[int]):
@@ -21,9 +18,9 @@ async def increment(s: Signal[int]):
 
 
 @component()
-def basic_btn(text_prefix: str, cnt: Signal[int] = Depends(counter)):
-    with button(on=On("click", partial(increment, cnt)), classes="btn btn-primary"):
-        text(f"{text_prefix}: {cnt()}")
+def basic_btn(text_prefix: str, counter: Signal[int] = Depends(counter_store)):
+    with button(on=On("click", partial(increment, counter)), classes="btn btn-primary"):
+        text(f"{text_prefix}: {counter()}")
 
 
 @component(classes="flex flex-col items-center justify-center h-screen space-y-2")

@@ -9,7 +9,7 @@ P = ParamSpec("P")
 T = TypeVar("T")
 
 
-def store(scope: ScopeType = "session") -> T:
+def store_wrapper(scope: ScopeType = "session") -> T:
     def decorator(func: Callable[P, T]) -> T:
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
@@ -38,8 +38,8 @@ class Depends:
             return session.state[index]
 
 
-def signal_provider(initial_value: T, scope: ScopeType = "session"):
+def store(initial_value: T, scope: ScopeType = "session"):
     def _provider():
         return Signal(initial_value)
 
-    return store(scope)(_provider)
+    return store_wrapper(scope)(_provider)

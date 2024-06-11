@@ -11,14 +11,11 @@ from schorle.theme import Theme
 
 app = Schorle(title="Schorle | IO Examples", theme=Theme.DARK)
 
-
-@store(scope="component")
-def text_input():
-    return Signal("")
+input_store = store("", scope="component")
 
 
 @component()
-def simple_input(state: Signal[str] = Depends(text_input)):
+def simple_input(state: Signal[str] = Depends(input_store)):
     input_(
         type="text",
         placeholder="Enter your name",
@@ -30,7 +27,7 @@ def simple_input(state: Signal[str] = Depends(text_input)):
 
 
 @component(classes="flex justify-around")
-def clearable_input(state: Signal[str] = Depends(text_input)):
+def clearable_input(state: Signal[str] = Depends(input_store)):
     input_(
         type="text",
         placeholder="Enter something here",

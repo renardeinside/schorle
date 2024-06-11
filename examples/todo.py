@@ -7,14 +7,14 @@ from schorle.component import component
 from schorle.element import button, div, input_
 from schorle.icon import icon
 from schorle.signal import Signal
-from schorle.store import Depends, signal_provider
+from schorle.store import Depends, store
 from schorle.text import text
 
 app = Schorle(title="Schorle | Todo App")
 
-current_store = signal_provider("", scope="session")
-loading_store = signal_provider(False, scope="session")
-todos_store = signal_provider(["Buy milk", "Walk the dog", "Do laundry"], scope="session")
+current_store = store("", scope="session")
+loading_store = store(False, scope="session")
+todos_store = store(["Buy milk", "Walk the dog", "Do laundry"], scope="session")
 
 
 async def add(current: Signal[str], todos: Signal[list[str]], loading: Signal[bool]):
