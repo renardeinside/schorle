@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from functools import partial
 from typing import Callable, Generic, TypeVar
 
-from dependency_injector.providers import Factory, Singleton
 from pydantic import BaseModel, PrivateAttr
 
 T = TypeVar("T")
@@ -35,7 +34,7 @@ class Signal(BaseModel, Generic[T]):
 
     @classmethod
     def factory(cls, value: T | None = None) -> Callable[[], Signal[T]]:
-        return Factory(cls, value)
+        return partial(cls, value)
 
     @asynccontextmanager
     async def ctx(self, value: T):
@@ -45,10 +44,6 @@ class Signal(BaseModel, Generic[T]):
             yield
         finally:
             await self.update(previous)
-
-    @classmethod
-    def shared(cls, value: T | None = None):
-        return Singleton(cls, value)
 
     def __repr__(self):
         return f"<Signal value={self._value}>"
