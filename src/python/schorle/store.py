@@ -1,6 +1,7 @@
 from typing import Callable, Literal, ParamSpec, TypeVar
 
 from schorle.session import Session
+from schorle.signal import Signal
 
 ScopeType = Literal["session", "component"]
 
@@ -35,3 +36,10 @@ class Depends:
             if index not in session.state:
                 session.state[index] = self.func()
             return session.state[index]
+
+
+def signal_provider(initial_value: T, scope: ScopeType = "session"):
+    def _provider():
+        return Signal(initial_value)
+
+    return store(scope)(_provider)
