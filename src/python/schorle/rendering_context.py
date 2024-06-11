@@ -78,9 +78,9 @@ class RenderingContext:
             if proto.bind:
 
                 async def _handler(new_value: str):
-                    await proto.bind.reactive.set(new_value)
+                    await proto.bind.reactive.update(new_value)
 
-                lxml_element.set(proto.bind.property, proto.bind.reactive.val)
+                lxml_element.set(proto.bind.property, proto.bind.reactive())
                 _on = On(event="input", handler=_handler)
                 handler_uuid = self.session.register_handler(_handler)
                 handlers.append({"event": _on.event, "handler": handler_uuid})
