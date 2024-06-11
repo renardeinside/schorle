@@ -35,7 +35,7 @@ def replace_tw_message(text):
 
 cdns = [
     CdnInfo("https://cdn.tailwindcss.com", "tailwind", "tailwind.min.js"),
-    CdnInfo("https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css", "daisyui", "daisyui.min.css"),
+    CdnInfo("https://cdn.jsdelivr.net/npm/daisyui@latest/dist/full.min.css", "daisyui", "daisyui.min.css"),
 ]
 
 dist_path = ASSETS_PATH / "dist"

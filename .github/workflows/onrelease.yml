@@ -38,7 +38,7 @@ jobs:
           pip install hatch
           hatch run sync
       - name: Download CSS dependencies
-        run: hatch run python src/python/schorle/scripts/load_css_deps.py
+        run: hatch run load-deps
       - name: Build package
         run: hatch build
       - name: Publish package distributions to PyPI

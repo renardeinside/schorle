@@ -65,7 +65,7 @@ dependencies = [
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
 test-cov = "pytest --cov-report=html --cov-report=xml --cov={args:src/python/schorle} {args:tests}"
-
+load-deps = "python src/python/schorle/scripts/load_css_deps.py"
 [[tool.hatch.envs.all.matrix]]
 python = ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
