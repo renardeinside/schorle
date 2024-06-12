@@ -45,6 +45,12 @@ let setElementData = (element: Element, data: ElementData) => {
 
 let processElement = (element: Element, worker: Worker) => {
   let handlers: [{ event: string, handler: string }] = JSON.parse(element.getAttribute('sle-on'));
+  let connectHandlers = handlers.filter(handler => handler.event === 'connect');
+
+  connectHandlers.forEach(handler => {
+    worker.postMessage({ type: 'event', handlerId: handler.handler });
+  });
+
   let handlerFunctions = handlers.map(handler => {
     let handlerFunc = (event: Event) => {
       switch (handler.event) {
