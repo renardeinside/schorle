@@ -74,6 +74,10 @@ class Document(Component):
                 meta(name="schorle-dev-mode", content="true")
 
             link(href="/favicon.svg", rel="icon", type="image/svg+xml")
+            link(
+                src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css",
+                rel="stylesheet",
+            )
             script(
                 src="/_schorle/dist/tailwind.min.js.gz",
                 integrity=get_integrity("dist/tailwind.min.js"),

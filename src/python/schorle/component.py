@@ -11,8 +11,7 @@ from lxml import etree
 
 from schorle.prototypes import ElementPrototype
 from schorle.rendering_context import RENDERING_CONTEXT, RenderingContext, rendering_context
-from schorle.session import Session
-from schorle.store import Depends
+from schorle.store import Marker
 from schorle.tags import HTMLTag
 
 
@@ -22,7 +21,7 @@ class Component(ElementPrototype):
     def initialize(self, **kwargs):
         pass
 
-    def initialize_with_session(self, session: Session):
+    def initialize_with_session(self):
         pass
 
     def __init__(self, **data):
@@ -48,7 +47,7 @@ class Component(ElementPrototype):
     def render_in_context(self) -> RenderingContext:
         self._cleanup()
         if self.session:
-            self.initialize_with_session(self.session)
+            self.initialize_with_session()
         else:
             logger.warning("No session provided for component")
         with rendering_context(root=self, session=self.session) as rc:
@@ -84,16 +83,17 @@ class DynamicComponent(Component):
         if not self.element_id:
             self.element_id = f"sle-{str(uuid4())[0:8]}"
 
-    def initialize_with_session(self, session: Session):
+    def initialize_with_session(self):
         signature = inspect.signature(self.renderable)
         params = signature.parameters
         collected = {}
         for name, param in params.items():
-            if isinstance(param.default, Depends):
-                dependency: Depends = param.default
-                signal = dependency.get_instance(session)
+            if isinstance(param.default, Marker):
+                marker: Marker = param.default
+                signal = marker.get_instance(self.session)
                 collected[name] = signal
-                signal.subscribe(self.rerender)
+                if marker.marker_type == "depends":
+                    signal.subscribe(self.rerender)
 
         self.renderable = partial(self.renderable, **collected)
 
