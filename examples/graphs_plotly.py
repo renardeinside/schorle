@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -38,6 +39,7 @@ def get_figure(data: Signal[pd.DataFrame]) -> Figure:
 
 class Plotly(Component):
     data_signal: Signal
+    plotter: Callable
 
     async def on_connect(self):
         logger.info(f"Connected to target: {self.element_id}")
@@ -48,8 +50,11 @@ class Plotly(Component):
         self.on = On("connected", self.on_connect)
         self.data_signal.subscribe(self.send_update)
 
+    def get_figure(self):
+        return self.plotter(self.data_signal)
+
     async def send_update(self):
-        _figure: Figure = get_figure(self.data_signal)
+        _figure: Figure = self.get_figure()
         _payload = _figure.to_json()
         await self.session.plotly(self.element_id, _payload)
 
@@ -60,7 +65,7 @@ class Plotly(Component):
 
 @component()
 def chart(data: Signal[pd.DataFrame] = Uses(data_store)):
-    return Plotly(data_signal=data)
+    return Plotly(data_signal=data, plotter=get_figure)
 
 
 @component(classes="m-4 w-96")
