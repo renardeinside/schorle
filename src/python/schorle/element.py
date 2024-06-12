@@ -47,6 +47,8 @@ def element_function_factory(tag: HTMLTag):
 div = element_function_factory(HTMLTag.DIV)
 span = element_function_factory(HTMLTag.SPAN)
 button = element_function_factory(HTMLTag.BUTTON)
+code = element_function_factory(HTMLTag.CODE)
+pre = element_function_factory(HTMLTag.PRE)
 input_ = element_function_factory(HTMLTag.INPUT)
 a = element_function_factory(HTMLTag.A)
 img = element_function_factory(HTMLTag.IMG)

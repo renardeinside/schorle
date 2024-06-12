@@ -32,3 +32,10 @@ class Session:
             # logger.info(f"Morph message sent")
         else:
             raise ValueError("Session is not connected")
+
+    async def plotly(self, target: str, _payload: str):
+        if self.io is not None:
+            _message = {"event": "plotly", "target": target, "payload": _payload}
+            await self.io.send_json(_message)
+        else:
+            raise ValueError("Session is not connected")

@@ -8,6 +8,10 @@ let io: WebSocket;
 let configureIO = (wsUrl: string) => {
   io = new WebSocket(wsUrl);
 
+  io.onopen = () => {
+    self.postMessage({ event: 'connected' });
+  };
+
   io.onmessage = (event) => {
     let data = JSON.parse(event.data);
     self.postMessage(data);
@@ -35,16 +39,16 @@ let sendEvent = (event: MessageEvent) => {
   // if the connection is already OPEN, send the event immediately
   if (io.readyState === io.OPEN) {
     send();
+  } else {
+    // wait for the connection to be OPEN before sending the event
+    // retry every 100ms
+    let interval = setInterval(() => {
+      if (io.readyState === io.OPEN) {
+        clearInterval(interval);
+        send();
+      }
+    }, 100);
   }
-
-  // wait for the connection to be OPEN before sending the event
-  // retry every 100ms
-  let interval = setInterval(() => {
-    if (io.readyState === io.OPEN) {
-      clearInterval(interval);
-      send();
-    }
-  }, 100);
 };
 
 self.addEventListener('message', (event) => {

@@ -1,7 +1,13 @@
 import { createIcons, icons } from 'lucide';
+// @ts-ignore
 import { Idiomorph } from 'idiomorph/dist/idiomorph.esm.js';
+import Plotly from 'plotly.js-dist-min';
+import hljs from 'highlight.js';
 
 let processIcons = () => createIcons({ icons });
+let processCodeBlocks = () => {
+  hljs.highlightAll();
+};
 
 let getCookieByName = (name: string): string | undefined => {
   let cookies = document.cookie.split(';');
@@ -45,11 +51,6 @@ let setElementData = (element: Element, data: ElementData) => {
 
 let processElement = (element: Element, worker: Worker) => {
   let handlers: [{ event: string, handler: string }] = JSON.parse(element.getAttribute('sle-on'));
-  let connectHandlers = handlers.filter(handler => handler.event === 'connect');
-
-  connectHandlers.forEach(handler => {
-    worker.postMessage({ type: 'event', handlerId: handler.handler });
-  });
 
   let handlerFunctions = handlers.map(handler => {
     let handlerFunc = (event: Event) => {
@@ -60,6 +61,9 @@ let processElement = (element: Element, worker: Worker) => {
         case 'input':
           let target = event.target as HTMLInputElement;
           worker.postMessage({ type: 'event', handlerId: handler.handler, value: target.value });
+          break;
+        case 'connected':
+          worker.postMessage({ type: 'event', handlerId: handler.handler });
           break;
       }
 
@@ -89,6 +93,7 @@ let processElement = (element: Element, worker: Worker) => {
 
 let processPage = (worker: Worker) => {
   processIcons();
+  processCodeBlocks();
   let elements = findElementsWithHandlers();
   elements.forEach((element) => processElement(element, worker));
 };
@@ -96,17 +101,54 @@ let processPage = (worker: Worker) => {
 
 let processEvent = (event: MessageEvent, worker: Worker) => {
   console.log('Received event from worker:', event.data);
+
+  if (event.data.event === 'connected') {
+    console.log('Worker connected to server');
+    // get all elements inside element with id `schorle-page`
+    let parentElement = document.getElementById('schorle-page');
+    let childElements = parentElement.querySelectorAll('*');
+    childElements.forEach((element) => {
+      // if element has schorle-data, dispatch event
+      let data = getElementData(element);
+      if (data) {
+        // check if connected event is present
+        let connectedHandler = data.handlers.find(handler => handler.event === 'connected');
+
+        if (connectedHandler) {
+          console.log('Dispatching connected event for element:', element);
+          element.dispatchEvent(new Event('connected'));
+        }
+      }
+    });
+    return;
+  }
+
+  console.log('Received event from worker to target:', event.data.target);
   let target = document.getElementById(event.data.target);
   if (!target) {
     console.error('Target element not found:', event.data.target);
     return;
   }
-  console.log('Morphing target:', target, event.data.html, event.data.config);
-  let newHtml = new DOMParser().parseFromString(event.data.html, 'text/html').getElementById(event.data.target);
-  console.log('New html:', newHtml);
-  let result = Idiomorph.morph(target, newHtml, event.data.config);
-  console.log('Morph result:', result);
-  processPage(worker);
+
+  switch (event.data.event) {
+    case 'morph':
+      let newHtml = new DOMParser().parseFromString(event.data.html, 'text/html').getElementById(event.data.target);
+      Idiomorph.morph(target, newHtml, event.data.config);
+      processPage(worker);
+      break;
+    case 'plotly':
+      console.log('Plotly event received');
+      let figure = JSON.parse(event.data.payload);
+      target.replaceChildren();
+      Plotly.newPlot(target, figure.data, figure.layout)
+        .then(() => console.log('Plotly plot done'))
+        .catch((error) => console.error('Plotly plot error:', error));
+
+      break;
+    default:
+      console.error('Unknown event type:', event.data.event);
+      break;
+  }
 };
 
 let showDevLoader = () => {

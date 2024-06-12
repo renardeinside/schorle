@@ -3,5 +3,7 @@
     "target": "ESNext",
     "module": "CommonJS",
     "lib": ["ESNext", "DOM"],
+    "types": ["node"],
+    "allowSyntheticDefaultImports": true
   }
 }
