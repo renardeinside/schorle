@@ -2,23 +2,27 @@ from __future__ import annotations
 
 import inspect
 from abc import abstractmethod
-from typing import Callable
+from functools import partial
+from typing import Callable, ParamSpec, TypeVar
 from uuid import uuid4
 
 from loguru import logger
 from lxml import etree
-from pydantic import BaseModel
 
-from schorle.prototypes import ElementPrototype, WithRender
-from schorle.reactive import Reactive
-from schorle.rendering_context import RENDERING_CONTEXT, rendering_context
+from schorle.prototypes import ElementPrototype
+from schorle.rendering_context import RENDERING_CONTEXT, RenderingContext, rendering_context
+from schorle.session import Session
+from schorle.store import Depends
 from schorle.tags import HTMLTag
 
 
-class Component(ElementPrototype, WithRender):
+class Component(ElementPrototype):
     tag: HTMLTag | str = HTMLTag.DIV
 
     def initialize(self, **kwargs):
+        pass
+
+    def initialize_with_session(self, session: Session):
         pass
 
     def __init__(self, **data):
@@ -41,11 +45,15 @@ class Component(ElementPrototype, WithRender):
     def render(self, **kwargs):
         pass
 
-    def render_in_context(self) -> ElementPrototype:
+    def render_in_context(self) -> RenderingContext:
         self._cleanup()
+        if self.session:
+            self.initialize_with_session(self.session)
+        else:
+            logger.warning("No session provided for component")
         with rendering_context(root=self, session=self.session) as rc:
             self.render()
-            return rc.root
+            return rc
 
     def __call__(self):
         self._append_to_context(strict=True)
@@ -57,9 +65,7 @@ class Component(ElementPrototype, WithRender):
         return self.__repr__()
 
     def to_string(self) -> str:
-        self._cleanup()
-        with rendering_context(root=self, session=self.session) as rc:
-            self.render()
+        rc = self.render_in_context()
         return etree.tostring(rc.to_lxml(), pretty_print=True).decode("utf-8")
 
     async def rerender(self):
@@ -72,55 +78,49 @@ class Component(ElementPrototype, WithRender):
 
 class DynamicComponent(Component):
     renderable: Callable
-    state: BaseModel | Reactive | Callable[..., Reactive] | Callable[..., BaseModel] | None = None
+    render_kwargs: dict | None = None
 
     def initialize(self):
-        if callable(self.state):
-            self.state = self.state()
+        if not self.element_id:
+            self.element_id = f"sle-{str(uuid4())[0:8]}"
 
-        if isinstance(self.state, Reactive):
-            self.state.subscribe(self.rerender)
-        elif isinstance(self.state, BaseModel):
-            for field in self.state.model_fields.keys():
-                _reactive = getattr(self.state, field)
-                if isinstance(_reactive, Reactive):
-                    _reactive.subscribe(self.rerender)
+    def initialize_with_session(self, session: Session):
+        signature = inspect.signature(self.renderable)
+        params = signature.parameters
+        collected = {}
+        for name, param in params.items():
+            if isinstance(param.default, Depends):
+                dependency: Depends = param.default
+                signal = dependency.get_instance(session)
+                collected[name] = signal
+                signal.subscribe(self.rerender)
 
-        if "session" in inspect.signature(self.renderable).parameters:
-            rc = RENDERING_CONTEXT.get()
-            if not rc or not rc.session:
-                raise RuntimeError("Session not found in rendering context")
-            for field in rc.session.state.model_fields.keys():
-                _reactive = getattr(rc.session.state, field)
-                if isinstance(_reactive, Reactive):
-                    _reactive.subscribe(self.rerender)
+        self.renderable = partial(self.renderable, **collected)
+
+        if self.render_kwargs:
+            self.renderable = partial(self.renderable, **self.render_kwargs)
 
     def render(self):
-        inspected = inspect.signature(self.renderable)
-        _required_params = {}
-        if "state" in inspected.parameters:
-            _required_params["state"] = self.state
+        self.renderable()
 
-        if "session" in inspected.parameters:
-            _required_params["session"] = self.session
 
-        self.renderable(**_required_params)
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 class DynamicComponentFactory:
-    def __init__(self, renderable: Callable, **kwargs):
+    def __init__(self, renderable: Callable[P, T], **kwargs):
         self.renderable = renderable
         self.kwargs = kwargs
-        if "element_id" not in self.kwargs:
-            self.kwargs["element_id"] = f"sle-{str(uuid4())[0:8]}"
 
-    def __call__(self):
-        return DynamicComponent(renderable=self.renderable, **self.kwargs)
+    def __call__(self, **kwargs: P.kwargs):
+        return DynamicComponent(renderable=self.renderable, render_kwargs=kwargs, **self.kwargs)
 
 
-def component(**kwargs) -> Callable[[Callable], DynamicComponentFactory]:
-    def decorator(func) -> DynamicComponentFactory:
-        c = DynamicComponentFactory(renderable=func, **kwargs)
-        return c
+def component(
+    **kwargs,
+) -> Callable[P, DynamicComponentFactory]:
+    def wrapper(renderable: Callable[P, T]) -> DynamicComponentFactory:
+        return DynamicComponentFactory(renderable, **kwargs)
 
-    return decorator
+    return wrapper

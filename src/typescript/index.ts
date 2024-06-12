@@ -95,8 +95,11 @@ let processEvent = (event: MessageEvent, worker: Worker) => {
     console.error('Target element not found:', event.data.target);
     return;
   }
-
-  Idiomorph.morph(target, event.data.html, event.data.config);
+  console.log('Morphing target:', target, event.data.html, event.data.config);
+  let newHtml = new DOMParser().parseFromString(event.data.html, 'text/html').getElementById(event.data.target);
+  console.log('New html:', newHtml);
+  let result = Idiomorph.morph(target, newHtml, event.data.config);
+  console.log('Morph result:', result);
   processPage(worker);
 };
 
@@ -151,7 +154,7 @@ let devReload = () => {
 
   // try to refetch the page with exponential backoff
   let backoff = 0.1;
-  let maxBackoff = 60;
+  let maxBackoff = 2;
   let refetch = () => {
     refetchPage().catch((error) => {
       console.error('[dev] error while fetching page:', error);

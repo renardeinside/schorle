@@ -5,7 +5,6 @@ from typing import Callable
 from uuid import uuid4
 
 from fastapi import FastAPI
-from pydantic import BaseModel
 from starlette.responses import FileResponse, HTMLResponse
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket
@@ -45,7 +44,7 @@ class SessionManager:
 
     def create_session(self):
         session_id = f"sle-{uuid4()}"
-        new_session = Session(session_id, state=self.state_provider() if self.state_provider else None)
+        new_session = Session(session_id)
         self.sessions[session_id] = new_session
         return new_session
 
@@ -55,10 +54,6 @@ class SessionManager:
     def remove_session(self, session_id: str):
         if session_id in self.sessions:
             del self.sessions[session_id]
-
-    def set_state_provider(self, func: Callable[..., BaseModel]):
-        self.state_provider = func
-        return func
 
 
 class Schorle:
@@ -117,7 +112,3 @@ class Schorle:
                 return response
 
         return decorator
-
-    def session_state(self, func: Callable[..., BaseModel]):
-        self.session_manager.set_state_provider(func)
-        return func

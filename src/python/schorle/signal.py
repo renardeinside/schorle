@@ -4,12 +4,12 @@ from contextlib import asynccontextmanager
 from functools import partial
 from typing import Callable, Generic, TypeVar
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, PrivateAttr
 
 T = TypeVar("T")
 
 
-class Reactive(BaseModel, Generic[T]):
+class Signal(BaseModel, Generic[T]):
     _value: T | None = PrivateAttr(default=None)
     _observers: list[Callable] = PrivateAttr(default_factory=list)
 
@@ -17,35 +17,36 @@ class Reactive(BaseModel, Generic[T]):
         super().__init__()
         self._value = value
 
-    async def set(self, value: T, *, skip_notify: bool = False):
+    async def update(self, value: T, *, skip_notify: bool = False):
         self._value = value
         if not skip_notify:
             for observer in self._observers:
                 await observer()
 
-    def lazy(self, value: T):
-        return partial(self.set, value)
+    def partial(self, value: T):
+        return partial(self.update, value)
 
-    @property
-    def rx(self) -> T:
+    def __call__(self):
         return self._value
 
     def subscribe(self, observer):
         self._observers.append(observer)
 
     @classmethod
-    def factory(cls, value: T | None = None) -> Callable[[], Reactive[T]]:
+    def factory(cls, value: T | None = None) -> Callable[[], Signal[T]]:
         return partial(cls, value)
 
     @asynccontextmanager
     async def ctx(self, value: T):
         previous = self._value
-        await self.set(value)
+        await self.update(value)
         try:
             yield
         finally:
-            await self.set(previous)
+            await self.update(previous)
 
-    @classmethod
-    def field(cls, default_value: T | None = None) -> Field:
-        return Field(default_factory=cls.factory(default_value))
+    def __repr__(self):
+        return f"<Signal value={self._value}>"
+
+    def __str__(self):
+        return self.__repr__()

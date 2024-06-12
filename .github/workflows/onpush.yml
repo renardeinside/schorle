@@ -34,7 +34,7 @@ jobs:
           pip install hatch
           hatch run sync
       - name: Download CSS dependencies
-        run: hatch run python src/python/schorle/scripts/load_css_deps.py
+        run: hatch run load-deps
       - name: Lint
         run: hatch run lint:style .
       - name: Test

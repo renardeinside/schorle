@@ -47,3 +47,9 @@ docs-serve-local: docs-build-local
 	@echo "Serving docs..."
 	docker run -p 4444:4444 -it schorle-docs-local
 	@echo "Done."
+
+frontend-build:
+	yarn --cwd src/typescript build
+
+frontend-watch:
+	yarn --cwd src/typescript watch
