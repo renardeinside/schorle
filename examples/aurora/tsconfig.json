@@ -1,0 +1,3 @@
+{
+  "extends": "./.schorle/tsconfig.json"
+}

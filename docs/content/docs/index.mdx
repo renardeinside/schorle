@@ -1,0 +1,304 @@
+---
+title: Introduction
+description: Introduction to schorle
+---
+
+import { File, Folder, Files } from 'fumadocs-ui/components/files';
+
+## What is schorle?
+
+Schorle is a framework for building elegant and efficient applications in Python and JS/TSX.
+
+## Why schorle?
+
+Modern Python development missess a lot of the frontend development experience.
+Practically, developers have several options:
+1. Use server-side rendering and produce static HTML files (e.g. in FastAPI / Flask + Jinja2)
+2. Use a server-side websocket-connected frameworks (e.g. Streamlit / Dash / Reflex.dev)
+3. Have two separate codebases for frontend and backend (e.g. FastAPI + React / Next.js)
+4. Refrain from using Python completely and use pure JS-based server and frontend (e.g. NextJS)
+
+Unforunately, none of these options are ideal for various reasons.
+
+The idea of Schorle is to provide developers with a single, pythonic backend and readymade frontend integrations, while preserving flexibility and avoiding complexity of frontend setup.
+
+
+## Typical `schorle` application
+
+Assume we have a project called `charming_aurora` and it has the following project structure:
+
+
+
+<Files>
+  <Folder name="src" defaultOpen>
+    <Folder name="charming_aurora" defaultOpen>
+      <File name="app.py" />
+      <File name="models.py" />
+      <Folder name="ui" defaultOpen>
+        <File name="index.css" />
+        <Folder name="components" defaultOpen>
+          <File name="button.tsx" />
+        </Folder>
+        <Folder name="pages" defaultOpen>
+          <File name="Index.tsx" />
+          <File name="About.tsx" />
+        </Folder>
+      </Folder>
+    </Folder>
+  </Folder>
+  <File name="deno.json" />
+  <File name="pyproject.toml" />
+  <File name="README.md" />
+  <File name="uv.lock" />
+  <File name="deno.lock" />
+</Files>
+
+The `app.py` file contains the following code:
+
+```python
+from fastapi import FastAPI
+from charming_aurora.ui import Index, About
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return Index()
+
+@app.get("/about")
+def read_about():
+    return About()
+```
+
+Schorle will take care of automatically compiling the frontend code and serving it on the backend.
+
+## Frontend technologies
+
+Schorle uses the following technologies for the frontend:
+
+- [Shadcn UI](https://ui.shadcn.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [React](https://react.dev/)
+
+To simplify the pages and components development.  However, users don't need to setup, compile and configure the frontend infrastructure - it's provided by Schorle.
+
+
+## Server-side parameters for Pages 
+
+A page can be defined as follows:
+
+```jsx
+import { useParams } from "schorle";
+
+export default function Greeting() {
+  const { name, greeting } = useParams();
+  return (
+    <div>
+      <h1>{greeting}, {name}!</h1>
+    </div>
+  );
+}
+```
+
+From the server side, the page can be accessed as follows:
+
+```python
+from charming_aurora.ui import Greeting
+
+@app.get("/greeting")
+def greeting():
+    return Greeting(name="John", greeting="Hello")
+```
+
+## Client-side API fetching 
+
+The client-side API is automatically generated from the server-side API. For example:
+
+```python
+from pydantic import BaseModel
+
+class Profile(BaseModel):
+    name: str
+    age: int
+
+api = FastAPI()
+
+@api.get("/profile")
+async def profile() -> Profile:
+    return Profile(name="John", age=30)
+```
+
+The client-side API will be automatically generated and put into `@/lib/api.ts` file.
+
+```tsx
+import { useProfile } from "@/lib/api";
+
+export default function ProfileComponent() {
+  const { data } = useProfile();
+  return <div>{data.name}</div>;
+}
+```
+
+## Layouts 
+
+To add layouts to a page, use `layout.tsx` file. For example:
+
+<Files>
+  <Folder name="src" defaultOpen>
+    <Folder name="charming_aurora" defaultOpen>
+      <Folder name="ui" defaultOpen>
+       <Folder name="lib">
+          <File name="api.ts" />
+        </Folder>
+        <Folder name="components">
+          <File name="button.tsx" />
+        </Folder>
+        <Folder name="pages" defaultOpen>
+          <File name="__layout.tsx" />
+          <File name="Index.tsx" />
+          <Folder name="dashboard" defaultOpen>
+            <File name="__layout.tsx" />
+            <File name="Admin.tsx" />
+            <File name="User.tsx" />
+          </Folder>
+        </Folder>
+      </Folder>
+    </Folder>
+  </Folder>
+</Files>
+
+Pages will be automatically wrapped in the layout. 
+
+<Callout>
+    Layouts are nested, e.g. the `pages/__layout.tsx` is considered as "root" layout, while `pages/dashboard/__layout.tsx` is considered as "dashboard" layout:
+    ```tsx
+    // assuming we are in the /dashboard/user page.
+    // it will be wrapped into <RootLayout> and <DashboardLayout>
+    <RootLayout>
+      <DashboardLayout>
+        <User />
+      </DashboardLayout>
+    </RootLayout>
+    ```
+</Callout>
+
+
+The `__layout.tsx` file can be defined as follows:
+
+```tsx
+import { Outlet } from "schorle";
+
+export default function Layout() {
+  return (
+    <div>
+      <Outlet />
+    </div>
+  );
+}
+```
+
+## Server side parameters for pages 
+
+Pages might require a lot of server-side information, for instance:
+- Response headers
+- SEO metadata
+
+All of it can be added to the page as arguments. For example:
+
+```python
+
+@app.get("/")
+def read_root():
+    return Index(
+        title="My App",
+        description="My App description",
+        headers={
+            "Cache-Control": "max-age=3600",
+        },
+        seo={
+            "title": "My App",
+            "description": "My App description",
+        },
+    )
+```
+
+## Why schorle if I can use `X`?
+
+Let's quickly compare schorle with other options:
+
+- Pythonic frontend frameworks (Dash / Streamlit / Reflex.dev)
+
+JSX is a great way to write frontend code. It's a simple, declarative way to describe the UI. Modern AI agents are very good at writing JSX code.
+Additionally, JSX-based frontend provides full flexibility and control over the frontend behaviour.
+
+Pythonic frontend frameworks also require a separate websocket connection for each opened page, which scales poorly.
+
+- Server-side rendering frameworks (FastAPI / Flask + Jinja2/ HTMX)
+
+Server-side rendering frameworks are great for static pages. However, they are not very good for dynamic pages, especially with rich UI components.
+
+- Pure JS frameworks (NextJS / Remix)
+
+Pure JS frameworks are great, but they require a lot of setup and configuration, and backend codebase needs to be written in JS/TS.
+
+## How it works?
+
+To start development, you need to install `schorle` and create a new project:
+
+```bash
+schorle init my-app
+```
+
+This will create a new project with the structure similar to the one shown above.
+
+To start the development server, run:
+
+```bash
+schorle dev
+```
+
+This will start the development server on `http://localhost:8000`.
+
+At the `dev` run, schorle will automatically check the `[tool.schorle]` section in the `pyproject.toml` file and search for the `frontend` section.
+
+```toml
+[tool.schorle]
+frontend_root_path = "src/charming_aurora/ui"
+```
+
+This will tell schorle to use `src/charming_aurora/ui` as the frontend root path.
+
+Schorle will automatically compile the frontend code and create an `__init__.py` file in the `src/charming_aurora/ui` directory.
+
+This file will contain the following code:
+
+```python
+# this code is automatically generated by schorle, don't edit it manually
+from schorle import Page, Assets
+class Index(Page):
+    source_file = "src/charming_aurora/ui/pages/Index.tsx"
+    assets = Assets(
+        css_file = "src/charming_aurora/ui/dist/index.css",
+        js_file = "src/charming_aurora/ui/dist/index.js",
+    )
+```
+
+This will allow you to import the pages and components from the `src/charming_aurora/ui` directory.
+
+If frontend code uses `useParams` hook, schorle will automatically add the following code to the `__init__.py` file:
+
+```python
+
+class Greeting(Page):
+    # snip...
+    name: str
+    greeting: str
+```
+
+Any changes in the frontend code will be automatically detected and the `__init__.py` file will be updated accordingly.
+
+During the serving of the page, schorle will use `Deno` to build the frontend page with parameters and assets.
+
+Deno is used in-process, without calling external servers or running it in a separate thread. To communicate with Deno, a jupyter-based Python client is used.
+
+Deno will be automatically installed during the `dev` run.

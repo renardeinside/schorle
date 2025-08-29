@@ -1,0 +1,19 @@
+{
+  // Application configuration
+  "app": {
+    "name": "MyApp",
+    "version": "1.0.0",
+    /* Server settings */
+    "server": {
+      "host": "localhost",
+      "port": 8080,
+      "debug": true
+    }
+  },
+  // Database configuration
+  "database": {
+    "type": "postgresql",
+    "host": "localhost",
+    "port": 5432
+  }
+}
