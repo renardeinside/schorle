@@ -3,6 +3,7 @@
 from pathlib import Path
 from fastapi.responses import HTMLResponse
 from schorle.render import render
+from schorle.cli import build
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
 
@@ -11,6 +12,7 @@ dist_path = root_path / ".schorle" / "dist"
 
 
 def mount_assets(app: FastAPI):
+    build(root_path)
     app.mount("/.schorle/dist", StaticFiles(directory=dist_path))
 
 

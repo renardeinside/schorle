@@ -147,7 +147,6 @@ export async function buildPages(options: BuildOptions): Promise<void> {
 
   // Create temporary directory for entrypoints
   const tempDir = join(projectRoot, ".schorle", "temp");
-  console.log(`Temp dir: ${tempDir}`);
   await mkdir(tempDir, { recursive: true });
 
   try {
@@ -167,14 +166,10 @@ export async function buildPages(options: BuildOptions): Promise<void> {
       entrypoints[component.outputName] = entrypointPath;
     }
 
-    console.log(`Entrypoints: ${JSON.stringify(entrypoints, null, 2)}`);
-
     console.log("🚀 Building with Bun...");
 
     // Ensure output directory exists
     await mkdir(outputDir, { recursive: true });
-
-    console.log(`Entrypoints: ${Object.values(entrypoints)}`);
 
     // Build all entrypoints using Bun's build API
     const result = await Bun.build({
@@ -201,7 +196,7 @@ export async function buildPages(options: BuildOptions): Promise<void> {
       result.outputs.forEach((output) => {
         const relativePath = relative(outputDir, output.path);
         console.log(
-          `  - ${relativePath} (${(output.size / 1024).toFixed(2)} KB)`,
+          `  - ${output.path} (${(output.size / 1024).toFixed(2)} KB)`,
         );
       });
 
@@ -243,7 +238,6 @@ export async function buildPages(options: BuildOptions): Promise<void> {
   } finally {
     // Clean up temporary files
     try {
-      // console.log(`Cleaning up temp dir: ${tempDir}`);
       await rm(tempDir, { recursive: true, force: true });
     } catch (error) {
       console.warn("Failed to clean up temporary directory:", error);

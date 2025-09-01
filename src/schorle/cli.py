@@ -261,10 +261,6 @@ def build(
     output_dir_resolved = str((project_path / ".schorle" / "dist").absolute())
     project_root_resolved = str((project_path).absolute())
 
-    typer.echo(
-        f"Building project {project_path} \nwith pages in {source_dir_resolved} \nand output to {output_dir_resolved}"
-    )
-
     command = [
         "schorle-bridge",
         "build",
@@ -272,8 +268,6 @@ def build(
         project_root_resolved,
         output_dir_resolved,
     ]
-
-    typer.echo(f"Running command: {' '.join(command)}")
 
     subprocess.run(
         # args:
