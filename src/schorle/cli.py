@@ -1,13 +1,16 @@
 import shutil
 import json
 import subprocess
+from textwrap import dedent
 import typer
 from pathlib import Path
 import importlib.metadata
-import tomlkit
+
+from schorle.common import static_template_path
+from schorle.render import render as render_fn
 
 __version__ = importlib.metadata.version("schorle")
-static_template_path = Path(__file__).parent / "templates"
+
 
 app = typer.Typer(
     name="schorle",
@@ -20,20 +23,7 @@ def version():
     typer.echo(f"Schorle version {__version__}")
 
 
-@app.command(name="init")
-def init(
-    project_name: str = typer.Argument(
-        help="The name of the project.",
-    ),
-    project_path: Path = typer.Argument(
-        default_factory=Path.cwd,
-        help="The path to the project.",
-    ),
-    frontend_root_path: Path | None = typer.Option(
-        None,
-        help="The path to the frontend root directory (relative to the project path).",
-    ),
-):
+def prepare_py_project(project_path: Path, project_name: str):
     # check if project path exists, if not, create it
     if not project_path.exists():
         project_path.mkdir(parents=True, exist_ok=True)
@@ -48,36 +38,69 @@ def init(
         check=True,
     )
 
+    # install schorle dep
+    subprocess.run(
+        ["uv", "add", "/Users/renarde/projects/schorle", "--editable"],
+        cwd=project_path,
+        check=True,
+    )
+    # install fastapi and uvicorn
+    subprocess.run(
+        ["uv", "add", "fastapi", "uvicorn"],
+        cwd=project_path,
+        check=True,
+    )
+
+
+@app.command(name="init")
+def init(
+    project_name: str = typer.Argument(
+        help="The name of the project.",
+    ),
+    project_path: Path = typer.Argument(
+        default_factory=Path.cwd,
+        help="The path to the project.",
+    ),
+    ui_path: Path | None = typer.Option(
+        None,
+        help="The path to the ui library.",
+    ),
+):
+    prepare_py_project(project_path, project_name)
+
+    # # populate ui folder
+    ui_path = ui_path or project_path / "src" / project_name / "ui"
+    ui_path.mkdir(parents=True, exist_ok=True)
+
+    schorle_path = ui_path / ".schorle"
+    schorle_path.mkdir(parents=True, exist_ok=True)
+
+    app_path = ui_path / "app"
+    app_path.mkdir(parents=True, exist_ok=True)
+
     # run bun init
     subprocess.run(
         ["bun", "init", "-y", "-m"],
-        cwd=project_path,
+        cwd=ui_path,
         check=True,
     )
 
-    dependencies = ["react", "react-dom", "tailwindcss", "bun-plugin-tailwind"]
-
-    dev_dependencies = [
-        "@types/react",
-        "@types/react-dom",
-    ]
+    dependencies = ["tailwindcss", "bun-plugin-tailwind", "react", "react-dom"]
 
     subprocess.run(
         ["bun", "add", *dependencies],
-        cwd=project_path,
+        cwd=ui_path,
         check=True,
     )
 
     subprocess.run(
-        ["bun", "add", *dev_dependencies, "--dev"],
-        cwd=project_path,
+        ["bun", "link", "schorle", "--save"],
+        cwd=ui_path,
         check=True,
     )
 
     # update the tsconfig.json to support the ui folder
-    schorle_dir = project_path / ".schorle"
-    schorle_dir.mkdir(parents=True, exist_ok=True)
-    tsconfig_json = schorle_dir / "tsconfig.json"
+    tsconfig_json = schorle_path / "tsconfig.json"
     tsconfig_payload = {
         "compilerOptions": {
             "lib": ["ESNext", "DOM"],
@@ -96,7 +119,7 @@ def init(
             "noUncheckedIndexedAccess": True,
             "noImplicitOverride": True,
             "baseUrl": ".",
-            "paths": {"@/*": [f"../src/{project_name}/ui/*"]},
+            "paths": {"@/*": ["../app/*"]},
             "noUnusedLocals": False,
             "noUnusedParameters": False,
             "noPropertyAccessFromIndexSignature": False,
@@ -106,40 +129,21 @@ def init(
 
     tsconfig_json.write_text(json.dumps(tsconfig_payload, indent=2))
 
-    tsconfig_in_root = project_path / "tsconfig.json"
-
-    tsconfig_in_root.write_text(
+    tsconfig_in_ui = ui_path / "tsconfig.json"
+    tsconfig_in_ui.write_text(
         json.dumps(
             {"extends": "./.schorle/tsconfig.json"},
             indent=2,
         )
     )
 
-    # # populate ui folder
-    ui_folder = project_path / "src" / project_name / "ui"
-    ui_folder.mkdir(parents=True, exist_ok=True)
-
     # # populate ui folder with:
     # # pages/index.tsx
     # # components/ (just a folder)
     # # index.css
-    ui_folder.joinpath("pages").mkdir(parents=True, exist_ok=True)
+    app_path.joinpath("pages").mkdir(parents=True, exist_ok=True)
 
-    shutil.copy(static_template_path / "Index.tsx", ui_folder / "pages" / "Index.tsx")
-
-    # adjust pyproject.toml
-    if frontend_root_path is None:
-        frontend_root_path = Path("src") / project_name / "ui"
-
-    pyproject_toml = project_path / "pyproject.toml"
-    toml_data = tomlkit.parse(pyproject_toml.read_text())
-    if "tool" not in toml_data:
-        toml_data["tool"] = tomlkit.table()
-    if "schorle" not in toml_data["tool"]:
-        toml_data["tool"]["schorle"] = tomlkit.table()
-
-    toml_data["tool"]["schorle"]["frontend_root_path"] = str(frontend_root_path)
-    pyproject_toml.write_text(tomlkit.dumps(toml_data))
+    shutil.copy(static_template_path / "Index.tsx", app_path / "pages" / "Index.tsx")
 
     # shadcn setup
     shadcn_deps = [
@@ -152,15 +156,15 @@ def init(
 
     subprocess.run(
         ["bun", "add", *shadcn_deps],
-        cwd=project_path,
+        cwd=ui_path,
         check=True,
     )
-    styles_dir = ui_folder / "styles"
+    styles_dir = app_path / "styles"
     styles_dir.mkdir(parents=True, exist_ok=True)
 
     shutil.copy(static_template_path / "globals.css", styles_dir / "globals.css")
 
-    lib_dir = ui_folder / "lib"
+    lib_dir = app_path / "lib"
     lib_dir.mkdir(parents=True, exist_ok=True)
 
     shutil.copy(static_template_path / "utils.ts", lib_dir / "utils.ts")
@@ -172,7 +176,7 @@ def init(
         "tsx": True,
         "tailwind": {
             "config": "",
-            "css": f"src/{project_name}/ui/styles/globals.css",
+            "css": "app/styles/globals.css",
             "baseColor": "neutral",
             "cssVariables": True,
             "prefix": "",
@@ -186,12 +190,114 @@ def init(
         },
         "iconLibrary": "lucide",
     }
-    components_file = project_path / "components.json"
+    components_file = ui_path / "components.json"
     components_file.write_text(json.dumps(components_file_payload, indent=2))
 
     # add button component as example
     subprocess.run(
         ["bunx", "shadcn@latest", "add", "button"],
+        cwd=ui_path,
+        check=True,
+    )
+
+    # add schorle-level gitignore
+    ui_gitignore = ui_path / ".gitignore"
+    shutil.copy(static_template_path / ".ui_gitignore", ui_gitignore)
+
+    # add project-level gitignore
+    root_gitignore = project_path / ".gitignore"
+    shutil.copy(static_template_path / ".root_gitignore", root_gitignore)
+
+    # add application
+    app_file = ui_path / "app.py"
+    app_file.write_text(
+        dedent("""
+        from schorle.app import Schorle
+        app = Schorle()
+        """).strip()
+    )
+
+    build(ui_path)
+
+    # add fastapi app
+    fastapi_app_file = project_path / "src" / project_name / "app.py"
+
+    fastapi_app_file.write_text(
+        dedent(f"""
+        from fastapi import FastAPI
+        from {project_name}.ui.app import app as ui_app
+
+        app = FastAPI()
+
+        app.mount("/dist", ui_app.static_files())
+        
+        @app.get("/")
+        async def read_root():
+            return ui_app.to_response("Index")
+
+        """).strip()
+    )
+
+    subprocess.run(
+        ["git", "init"],
         cwd=project_path,
         check=True,
     )
+
+
+@app.command(name="build")
+def build(
+    project_path: Path = typer.Argument(
+        default_factory=Path.cwd,
+        help="The path to the project.",
+    ),
+):
+    if not project_path.exists():
+        raise typer.BadParameter(f"Project path {project_path} does not exist.")
+
+    source_dir_resolved = str((project_path / "app" / "pages").absolute())
+    output_dir_resolved = str((project_path / ".schorle" / "dist").absolute())
+    project_root_resolved = str((project_path).absolute())
+
+    typer.echo(
+        f"Building project {project_path} \nwith pages in {source_dir_resolved} \nand output to {output_dir_resolved}"
+    )
+
+    command = [
+        "schorle-bridge",
+        "build",
+        source_dir_resolved,
+        project_root_resolved,
+        output_dir_resolved,
+    ]
+
+    typer.echo(f"Running command: {' '.join(command)}")
+
+    subprocess.run(
+        # args:
+        # sourceDir (where the pages are)
+        # projectRoot (where the project is)
+        # outputDir (where the output should be)
+        command,
+        cwd=project_path,
+        check=True,
+    )
+
+
+@app.command(name="render")
+def render(
+    project_path: Path = typer.Argument(
+        default_factory=Path.cwd,
+        help="The path to the project.",
+    ),
+    page_name: str = typer.Argument(
+        help="The name of the page to render.",
+    ),
+):
+    if not project_path.exists():
+        raise typer.BadParameter(f"Project path {project_path} does not exist.")
+
+    if not page_name:
+        raise typer.BadParameter("Page name is required.")
+
+    typer.echo(render_fn(project_path, page_name))

@@ -1,8 +1,6 @@
 {
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9"
+    "@types/bun": "latest"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
@@ -12,6 +10,7 @@
     "lucide-react": "^0.542.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "schorle": "link:schorle",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.12",
     "tw-animate-css": "^1.3.7"

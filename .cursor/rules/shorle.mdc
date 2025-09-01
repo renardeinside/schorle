@@ -1,0 +1,346 @@
+---
+alwaysApply: true
+---
+
+# Schorle Framework Development Guide
+
+## Overview
+
+**Schorle** is a hybrid Python/TypeScript framework that bridges the gap between Python backend development and modern frontend user interfaces. It enables developers to build full-stack applications using Python for business logic while leveraging React/TypeScript for UI components, all within a unified development experience.
+
+## Problem Statement & Solution
+
+Modern Python development lacks the sophisticated frontend development experience available in JavaScript ecosystems. Developers typically face these suboptimal choices:
+
+1. **Server-side rendering** with static HTML (FastAPI/Flask + Jinja2) - Limited interactivity and modern UI patterns
+2. **WebSocket-based frameworks** (Streamlit/Dash/Reflex.dev) - Poor scaling due to per-page connections and limited UI flexibility
+3. **Separate codebases** (FastAPI + React/Next.js) - Increased complexity, duplication, and coordination overhead
+4. **Pure JavaScript solutions** (Next.js) - Loss of Python's ecosystem and development experience
+
+**Schorle's approach:** Provides a unified development model where Python handles application logic and data while TypeScript/React manages UI rendering, connected through a sophisticated Inter-Process Communication (IPC) layer that maintains type safety and performance.
+
+## Application Architecture
+
+### Project Structure
+
+A typical Schorle application follows a structured layout that separates Python backend logic from TypeScript frontend components while maintaining clear integration points. Consider a project called `charming_aurora`:
+
+```bash
+examples/aurora
+├── bun.lock
+├── components.json
+├── package.json
+├── pyproject.toml
+├── README.md
+├── src
+│   └── aurora
+│       ├── __init__.py
+│       ├── py.typed
+│       └── ui
+│           ├── components
+│           │   └── ui
+│           │       └── button.tsx
+│           ├── lib
+│           │   └── utils.ts
+│           ├── pages
+│           │   └── Index.tsx
+│           └── styles
+│               └── globals.css
+└── tsconfig.json
+```
+
+### Backend Integration
+
+The `app.py` file demonstrates Schorle's seamless Python-to-React integration:
+
+```python
+from fastapi import FastAPI
+from charming_aurora.ui import Index, About  # Auto-generated from TSX files
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return Index()  # Returns compiled React component
+
+@app.get("/about")
+def read_about():
+    return About()  # Type-safe component instantiation
+```
+
+**Key Features:**
+
+- Auto-compilation of TypeScript/React components into Python-importable classes
+- Type-safe parameter passing between Python backend and React frontend
+- Automatic asset bundling and optimization
+
+## Frontend Technology Stack
+
+Schorle provides a pre-configured, production-ready frontend environment built on modern web technologies:
+
+- **[React](https://react.dev/)** - Component-based UI library for building interactive interfaces
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework for rapid styling
+- **[Shadcn UI](https://ui.shadcn.com/)** - High-quality, accessible component library
+- **TypeScript** - Type-safe JavaScript with full IDE support
+- **Vite/Deno** - Fast build tooling and runtime environment
+
+**Zero Configuration:** Schorle eliminates frontend setup complexity—no webpack configs, no build script management, no dependency resolution conflicts. Focus on building features, not tooling.
+
+## Server-Side Parameter Injection
+
+Schorle enables type-safe data flow from Python to React components through automatic parameter injection. Pages can access server-provided data seamlessly:
+
+```jsx
+import { useParams } from "schorle";
+
+export default function Greeting() {
+  const { name, greeting } = useParams();
+  return (
+    <div>
+      <h1>{greeting}, {name}!</h1>
+    </div>
+  );
+}
+```
+
+**Server-side usage** with automatic type inference:
+
+```python
+from charming_aurora.ui import Greeting
+
+@app.get("/greeting")
+def greeting():
+    return Greeting(name="John", greeting="Hello")
+```
+
+## Automatic API Client Generation
+
+Schorle automatically generates type-safe client-side API hooks from your Python FastAPI endpoints, eliminating manual API client code and ensuring type consistency across the stack:
+
+```python
+from pydantic import BaseModel
+
+class Profile(BaseModel):
+    name: str
+    age: int
+
+api = FastAPI()
+
+@api.get("/profile")
+async def profile() -> Profile:
+    return Profile(name="John", age=30)
+```
+
+**Generated client code** (automatically created in `@/lib/api.ts`):
+
+```tsx
+import { useProfile } from "@/lib/api";
+
+export default function ProfileComponent() {
+  const { data } = useProfile();
+  return <div>{data.name}</div>;
+}
+```
+
+## Layout System & Component Hierarchy
+
+Schorle implements a nested layout system similar to Next.js App Router, providing automatic component wrapping and hierarchical rendering:
+
+```bash
+examples/aurora
+├── bun.lock
+├── components.json
+├── package.json
+├── pyproject.toml
+├── README.md
+├── src
+│   └── aurora
+│       ├── __init__.py
+│       ├── py.typed
+│       └── ui
+│           ├── components
+│           │   └── ui
+│           │       └── button.tsx
+│           ├── lib
+│           │   └── utils.ts
+│           ├── pages
+│           │   └── Index.tsx
+│           └── styles
+│               └── globals.css
+└── tsconfig.json
+```
+
+**Automatic Layout Composition:** Pages are automatically wrapped in their corresponding layouts, following the file system hierarchy.
+
+**Layout Nesting Behavior:**
+
+```tsx
+// For route: /dashboard/user
+// Automatic composition hierarchy:
+<RootLayout>           // from pages/__layout.tsx
+  <DashboardLayout>    // from pages/dashboard/__layout.tsx  
+    <User />           // from pages/dashboard/User.tsx
+  </DashboardLayout>
+</RootLayout>
+```
+
+The `__layout.tsx` file can be defined as follows:
+
+```tsx
+import { Outlet } from "schorle";
+
+export default function Layout() {
+  return (
+    <div>
+      <Outlet />
+    </div>
+  );
+}
+```
+
+## Advanced Server-Side Integration
+
+Beyond basic data passing, Schorle supports comprehensive server-side page configuration including HTTP headers, SEO metadata, and caching directives:
+
+```python
+
+@app.get("/")
+def read_root():
+    return Index(
+        title="My App",
+        description="My App description",
+        headers={
+            "Cache-Control": "max-age=3600",
+        },
+        seo={
+            "title": "My App",
+            "description": "My App description",
+        },
+    )
+```
+
+## Comparative Advantages
+
+### vs. Pythonic Frontend Frameworks (Dash/Streamlit/Reflex)
+
+**Limitations of Python-native UI frameworks:**
+
+- Each page requires persistent WebSocket connections (poor scaling)
+- Limited UI flexibility compared to modern React patterns
+- AI code generation works better with JSX than Python UI DSLs
+- Component ecosystem is smaller and less mature
+
+**Schorle advantages:**
+
+- Stateless HTTP-based rendering (better scaling)
+- Full React ecosystem access (components, hooks, libraries)
+- Optimal AI-assisted development with JSX
+- Modern UI patterns and animations support
+
+### vs. Server-Side Rendering (FastAPI/Flask + Jinja2)
+
+**SSR limitations:**
+
+- Template-based rendering lacks component reusability
+- Limited interactivity without significant JavaScript
+- Poor developer experience for complex UI logic
+
+**Schorle advantages:**
+
+- Component-based architecture with full reusability
+- Rich client-side interactivity while maintaining Python backend
+- Type-safe data flow and automatic API generation
+
+### vs. Pure JavaScript Frameworks (Next.js/Remix)
+
+**Full-JS limitations:**
+
+- Python developers must learn Node.js ecosystem
+- Loss of Python's data science/ML libraries
+- Separate deployment and scaling considerations
+
+**Schorle advantages:**
+
+- Keep Python for backend logic, data processing, ML integration
+- Unified deployment model
+- Leverage existing Python expertise and libraries
+
+## Development Workflow & IPC Architecture
+
+### Quick Start
+
+```bash
+schorle init my-app    # Create new project with template structure
+schorle dev            # Start development server on http://localhost:8000
+```
+
+### Configuration & Build Process
+
+**Project Configuration** (`pyproject.toml`):
+
+```toml
+[tool.schorle]
+frontend_root_path = "src/charming_aurora/ui"
+```
+
+### Auto-Generated Python Bindings
+
+Schorle performs static analysis on TypeScript/React components to generate corresponding Python classes:
+
+```python
+# Auto-generated in src/charming_aurora/ui/__init__.py
+# WARNING: This file is automatically generated - do not edit manually
+
+from schorle import Page, Assets
+
+class Index(Page):
+    source_file = "src/charming_aurora/ui/pages/Index.tsx"
+    assets = Assets(
+        css_file = "src/charming_aurora/ui/dist/index.css",
+        js_file = "src/charming_aurora/ui/dist/index.js",
+    )
+```
+
+**Type-Safe Parameter Detection:**
+When components use `useParams()`, Schorle automatically generates corresponding Python class attributes:
+
+```python
+class Greeting(Page):
+    source_file = "src/charming_aurora/ui/pages/Greeting.tsx"
+    # Auto-detected from useParams() in TSX:
+    name: str
+    greeting: str
+    assets = Assets(...)
+```
+
+### Inter-Process Communication (IPC) Architecture
+
+**Core IPC Implementation:**
+
+- **Runtime:** Embedded Bun JavaScript engine running in-process within Python
+- **Communication Protocol:** Jupyter kernel protocol for bidirectional message passing
+- **Data Serialization:** JSON with automatic TypeScript/Python type mapping
+- **Process Model:** Single-process architecture (no separate servers or threading)
+
+**Build & Render Pipeline:**
+
+1. **Static Analysis Phase:** Parse TypeScript files to extract component signatures and dependencies
+2. **Code Generation Phase:** Generate Python class bindings with proper type annotations
+3. **Runtime Compilation:** On-demand Vite/Bun compilation when components are requested
+4. **Parameter Injection:** Serialize Python data to JSON, inject into React component props
+5. **SSR Execution:** Execute React rendering within Bun runtime, capture HTML output
+6. **Asset Bundling:** Include CSS/JS assets with proper cache headers
+
+**Hot Reload Mechanism:**
+
+- File system watching detects TypeScript/React changes
+- Incremental re-analysis and Python binding regeneration
+- Live reload of development server without full restart
+- Type-safe parameter validation during development
+
+**Production Optimizations:**
+
+- Ahead-of-time component compilation and asset bundling
+- Python binding caching for faster import times
+- Asset fingerprinting and CDN-ready output
+- Optimized Bun runtime initialization

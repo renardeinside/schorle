@@ -5,7 +5,7 @@
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "src/aurora/ui/styles/globals.css",
+    "css": "app/styles/globals.css",
     "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""

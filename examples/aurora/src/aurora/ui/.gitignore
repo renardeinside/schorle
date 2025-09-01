@@ -1,0 +1,8 @@
+# base gitignore file for schorle project dir 
+
+.DS_Store
+.env
+.env.*
+node_modules/
+dist/
+__pycache__/
