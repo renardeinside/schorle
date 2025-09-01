@@ -25,7 +25,7 @@ interface PageComponent {
  */
 async function findTsxFiles(
   dir: string,
-  baseDir: string
+  baseDir: string,
 ): Promise<PageComponent[]> {
   const files: PageComponent[] = [];
 
@@ -41,6 +41,10 @@ async function findTsxFiles(
         const subFiles = await findTsxFiles(fullPath, baseDir);
         files.push(...subFiles);
       } else if (entry.endsWith(".tsx")) {
+        // filter out any file with __root in the name
+        if (entry.includes("__root")) {
+          continue;
+        }
         // Check if file has default export by reading its content
         // Using Bun.file() for optimized file reading
         const fileContent = await Bun.file(fullPath).text();
@@ -72,22 +76,36 @@ async function findTsxFiles(
 /**
  * Creates a client-side hydration entrypoint for a page component
  */
-function createHydrationEntrypoint(
+async function createHydrationEntrypoint(
   component: PageComponent,
   sourceDir: string,
-  cssPath: string
-): string {
+): Promise<string> {
+  // find the __root.tsx file in the sourceDir
+  const rootFile = `${sourceDir}/__root.tsx`;
+
+  if (!Bun.file(rootFile).exists()) {
+    console.error(
+      `No __root.tsx file found in ${sourceDir} for ${component.componentName}`,
+    );
+    throw new Error(
+      `No __root.tsx file found in ${sourceDir} for ${component.componentName}`,
+    );
+  }
+
+  // root path is always @/pages/__root.tsx
+  const rootPath = `@/pages/__root.tsx`;
+  const componentPath = `@/pages/${component.outputName}`;
 
   return `import React from 'react';
 import { createRoot } from 'react-dom/client';
-import Page from '@/pages/${component.outputName}';
-import '${cssPath}';
+import Page from '${componentPath}';
+import RootLayout from '${rootPath}';
 
 // Client-side hydration
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
-  root.render(React.createElement(Page));
+  root.render(React.createElement(RootLayout, null, React.createElement(Page)));
 } else {
   console.error('Root element not found for hydration');
 }
@@ -131,23 +149,6 @@ export async function buildPages(options: BuildOptions): Promise<void> {
   const tempDir = join(projectRoot, ".schorle", "temp");
   console.log(`Temp dir: ${tempDir}`);
   await mkdir(tempDir, { recursive: true });
-  // find the global.css file via Bun.glob inside the projectRoot
-  const AllCssFiles = [...new Bun.Glob("**/globals.css").scanSync(projectRoot)];
-  console.log(`CSS path: ${AllCssFiles}`);
-
-  if (!AllCssFiles) {
-    console.error("No global.css file found");
-    return;
-  }
-
-  const cssPath = AllCssFiles[0];
-  if (!cssPath) {
-    console.error("No global.css file found");
-    return;
-  }
-  const cssWithPrefix = "./" + relative(projectRoot, cssPath);
-
-  console.log(`CSS path: ${cssWithPrefix}`);
 
   try {
     // Create hydration entrypoints
@@ -155,10 +156,9 @@ export async function buildPages(options: BuildOptions): Promise<void> {
 
     for (const component of pageComponents) {
       // Calculate CSS path relative to temp directory
-      const entrypointContent = createHydrationEntrypoint(
+      const entrypointContent = await createHydrationEntrypoint(
         component,
         sourceDir,
-        "@/styles/globals.css"
       );
       const entrypointPath = join(tempDir, `${component.outputName}.tsx`);
 
@@ -201,7 +201,7 @@ export async function buildPages(options: BuildOptions): Promise<void> {
       result.outputs.forEach((output) => {
         const relativePath = relative(outputDir, output.path);
         console.log(
-          `  - ${relativePath} (${(output.size / 1024).toFixed(2)} KB)`
+          `  - ${relativePath} (${(output.size / 1024).toFixed(2)} KB)`,
         );
       });
 
@@ -210,21 +210,21 @@ export async function buildPages(options: BuildOptions): Promise<void> {
 
       for (const [name, path] of Object.entries(entrypoints)) {
         const jsFile = result.outputs.find(
-          (out) => out.path.includes(name) && out.path.endsWith(".js")
+          (out) => out.path.includes(name) && out.path.endsWith(".js"),
         );
         const cssFile = result.outputs.find(
-          (out) => out.path.includes(name) && out.path.endsWith(".css")
+          (out) => out.path.includes(name) && out.path.endsWith(".css"),
         );
-        
+
         if (jsFile) {
           const entry: { js: string; css?: string } = {
-            js: relative(outputDir, jsFile.path)
+            js: relative(outputDir, jsFile.path),
           };
-          
+
           if (cssFile) {
             entry.css = relative(outputDir, cssFile.path);
           }
-          
+
           manifest[name] = entry;
         }
       }
@@ -233,7 +233,7 @@ export async function buildPages(options: BuildOptions): Promise<void> {
       // Using Bun.write() for optimized JSON file writing
       await Bun.write(manifestPath, JSON.stringify(manifest, null, 2));
       console.log(
-        `📋 Created manifest at: ${relative(projectRoot, manifestPath)}`
+        `📋 Created manifest at: ${relative(projectRoot, manifestPath)}`,
       );
     } else {
       console.error("❌ Build failed:");

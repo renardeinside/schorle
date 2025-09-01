@@ -8,7 +8,7 @@ async function main() {
   if (command === "build") {
     if (args.length !== 3) {
       console.error(
-        "Usage: schorle-bridge build <sourceDir> <projectRoot> <outputDir>"
+        "Usage: schorle-bridge build <sourceDir> <projectRoot> <outputDir>",
       );
       process.exit(1);
     }
@@ -17,7 +17,7 @@ async function main() {
     const outputDir = args[2];
     if (!sourceDir || !projectRoot || !outputDir) {
       console.error(
-        "Usage: schorle-bridge build <sourceDir> <projectRoot> <outputDir>"
+        "Usage: schorle-bridge build <sourceDir> <projectRoot> <outputDir>",
       );
       process.exit(1);
     }

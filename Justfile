@@ -4,11 +4,11 @@ gen-example:
 build-schorle:
     bun build.ts
 
-run-in-aurora:
-    uv --directory examples/aurora run python -c "from aurora.ui.app import app; print(app.root_path); print(app.dist_path);"
-
-render-in-aurora:
-    uv --directory examples/aurora run python -c "from aurora.ui.app import app; print(app.render('Index'))"
+render-to-std:
+    cd examples/aurora && uv run python -c "from aurora.ui.generated import Index; print(Index.render())"
 
 serve-in-aurora:
     cd examples/aurora && uv run uvicorn aurora.app:app --reload
+
+gen-module:
+    cd examples/aurora && uv run python -c "from schorle.generator import generate_module;from pathlib import Path; generate_module(Path('src/aurora/ui'))"

@@ -1,11 +1,9 @@
 from fastapi import FastAPI
-from aurora.ui.app import app as ui_app
+from aurora.ui import Index, mount_assets
 
 app = FastAPI()
-
-app.mount("/dist", ui_app.static_files())
-
+mount_assets(app)
 
 @app.get("/")
 async def read_root():
-    return ui_app.to_response("Index")
+    return Index.to_response()

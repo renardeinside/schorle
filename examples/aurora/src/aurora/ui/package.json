@@ -2,6 +2,7 @@
   "devDependencies": {
     "@types/bun": "latest"
   },
+  "name": "aurora",
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
     "bun-plugin-tailwind": "^0.0.15",
@@ -11,6 +12,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "schorle": "link:schorle",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.12",
     "tw-animate-css": "^1.3.7"

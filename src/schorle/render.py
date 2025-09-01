@@ -43,8 +43,8 @@ def render(project_root: Path, page_name: str) -> str:
     ssr_html = _prerender(project_root, page_name)
     manifest = Manifest.from_file(project_root)
     manifest_entry = manifest.data[page_name]
-    css_path = Path("dist") / manifest_entry.css
-    js_path = Path("dist") / manifest_entry.js
+    css_path = ".schorle" / Path("dist") / manifest_entry.css
+    js_path = ".schorle" / Path("dist") / manifest_entry.js
 
     return index_template.render(
         title=page_name,

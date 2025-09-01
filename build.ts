@@ -1,9 +1,9 @@
 import { rm } from "node:fs/promises";
 
-console.log(`Building the schorle bridge...`)
+console.log(`Building the schorle bridge...`);
 
 // cleanup the dist directory
-await rm("src/schorle/bin", { recursive: true, force: true })
+await rm("src/schorle/bin", { recursive: true, force: true });
 
 await Bun.build({
   entrypoints: ["src/schorle/bridge/build.ts", "src/schorle/bridge/render.ts"],
@@ -14,10 +14,10 @@ await Bun.build({
   minify: true,
   define: {
     "process.env.NODE_ENV": JSON.stringify(
-      process.env.NODE_ENV || "development"
+      process.env.NODE_ENV || "development",
     ),
   },
   external: [],
-})
+});
 
-console.log(`Bridge built successfully`)
+console.log(`Bridge built successfully`);

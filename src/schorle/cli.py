@@ -7,6 +7,7 @@ from pathlib import Path
 import importlib.metadata
 
 from schorle.common import static_template_path
+from schorle.generator import generate_module
 from schorle.render import render as render_fn
 
 __version__ = importlib.metadata.version("schorle")
@@ -61,15 +62,11 @@ def init(
         default_factory=Path.cwd,
         help="The path to the project.",
     ),
-    ui_path: Path | None = typer.Option(
-        None,
-        help="The path to the ui library.",
-    ),
 ):
     prepare_py_project(project_path, project_name)
 
     # # populate ui folder
-    ui_path = ui_path or project_path / "src" / project_name / "ui"
+    ui_path = project_path / "src" / project_name / "ui"
     ui_path.mkdir(parents=True, exist_ok=True)
 
     schorle_path = ui_path / ".schorle"
@@ -84,6 +81,12 @@ def init(
         cwd=ui_path,
         check=True,
     )
+
+    # save project_name to package.json
+    package_json = ui_path / "package.json"
+    package_json_payload = json.loads(package_json.read_text())
+    package_json_payload["name"] = project_name
+    package_json.write_text(json.dumps(package_json_payload, indent=2))
 
     dependencies = ["tailwindcss", "bun-plugin-tailwind", "react", "react-dom"]
 
@@ -152,6 +155,7 @@ def init(
         "tailwind-merge",
         "lucide-react",
         "tw-animate-css",
+        "sonner",
     ]
 
     subprocess.run(
@@ -193,29 +197,26 @@ def init(
     components_file = ui_path / "components.json"
     components_file.write_text(json.dumps(components_file_payload, indent=2))
 
-    # add button component as example
+    # add theme components
+    shutil.copytree(static_template_path / "theme", app_path / "components" / "theme")
+
+    # add root layout
+    shutil.copy(static_template_path / "__root.tsx", app_path / "pages" / "__root.tsx")
+
+    # add schorle-level gitignore
+    ui_gitignore = ui_path / ".gitignore"
+    shutil.copy(static_template_path / ".ui_gitignore", ui_gitignore)
+
+    # add button component
     subprocess.run(
         ["bunx", "shadcn@latest", "add", "button"],
         cwd=ui_path,
         check=True,
     )
 
-    # add schorle-level gitignore
-    ui_gitignore = ui_path / ".gitignore"
-    shutil.copy(static_template_path / ".ui_gitignore", ui_gitignore)
-
     # add project-level gitignore
     root_gitignore = project_path / ".gitignore"
     shutil.copy(static_template_path / ".root_gitignore", root_gitignore)
-
-    # add application
-    app_file = ui_path / "app.py"
-    app_file.write_text(
-        dedent("""
-        from schorle.app import Schorle
-        app = Schorle()
-        """).strip()
-    )
 
     build(ui_path)
 
@@ -225,15 +226,14 @@ def init(
     fastapi_app_file.write_text(
         dedent(f"""
         from fastapi import FastAPI
-        from {project_name}.ui.app import app as ui_app
+        from {project_name}.ui import Index, mount_assets
 
         app = FastAPI()
-
-        app.mount("/dist", ui_app.static_files())
+        mount_assets(app)
         
         @app.get("/")
         async def read_root():
-            return ui_app.to_response("Index")
+            return Index.to_response()
 
         """).strip()
     )
@@ -243,6 +243,8 @@ def init(
         cwd=project_path,
         check=True,
     )
+
+    generate_module(ui_path, "exact")
 
 
 @app.command(name="build")
