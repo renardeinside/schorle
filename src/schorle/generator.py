@@ -45,6 +45,11 @@ def make_imports() -> List[ast.stmt]:
             names=[ast.alias(name="FastAPI", asname=None)],
             level=0,
         ),
+        ast.ImportFrom(
+            module="schorle.cli",
+            names=[ast.alias(name="build", asname=None)],
+            level=0,
+        ),
     ]
 
 
@@ -98,6 +103,13 @@ def make_mount_assets_function() -> ast.FunctionDef:
             defaults=[],
         ),
         body=[
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id="build", ctx=ast.Load()),
+                    args=[ast.Name(id="root_path", ctx=ast.Load())],
+                    keywords=[],
+                )
+            ),
             ast.Expr(  # statements must be wrapped in Expr if they’re calls
                 value=ast.Call(
                     func=ast.Attribute(
@@ -120,7 +132,7 @@ def make_mount_assets_function() -> ast.FunctionDef:
                     ],
                     keywords=[],
                 )
-            )
+            ),
         ],
         decorator_list=[],
         returns=None,  # or ast.Name(id="None", ctx=ast.Load()) for an explicit annotation
@@ -128,64 +140,34 @@ def make_mount_assets_function() -> ast.FunctionDef:
     )
 
 
-def make_render_method(
-    page_name: str,
-) -> ast.FunctionDef:
-    f"""
-    @classmethod
-    def render(cls) -> str:
-        return render(root_path, '{page_name}')
+def make_page_handler(name: str) -> ast.FunctionDef:
     """
-    return ast.FunctionDef(
-        name="render",
-        args=ast.arguments(
-            posonlyargs=[],
-            args=[
-                ast.arg(arg="cls"),
-            ],
-            vararg=None,
-            kwonlyargs=[],
-            kw_defaults=[],
-            kwarg=None,
-            defaults=[],
-        ),
-        body=[
-            ast.Return(
-                value=ast.Call(
-                    func=ast.Name(id="render", ctx=ast.Load()),
-                    args=[
-                        ast.Name(id="root_path", ctx=ast.Load()),
-                        ast.Constant(value=page_name),
-                    ],
-                    keywords=[],
-                )
-            )
+    def <page_name>() -> HTMLResponse:
+        return HTMLResponse(content=render(root_path, <page_name>), media_type="text/html")
+    """
+
+    render_call = ast.Call(
+        func=ast.Name(id="render", ctx=ast.Load()),
+        args=[
+            ast.Name(id="root_path", ctx=ast.Load()),
+            ast.Constant(value=name),
         ],
-        decorator_list=[classmethod_decorator],
-        returns=ast.Name(id="str", ctx=ast.Load()),
-        type_comment=None,
+        keywords=[],
     )
 
-
-def make_to_response_method() -> ast.FunctionDef:
-    """
-    @classmethod
-    def to_response(cls) -> HTMLResponse:
-        return HTMLResponse(content=cls.render(), media_type="text/html")
-    """
     return ast.FunctionDef(
-        name="to_response",
+        name=name,
         args=ast.arguments(
             posonlyargs=[],
-            args=[
-                ast.arg(arg="cls"),
-            ],
+            args=[],
             vararg=None,
             kwonlyargs=[],
             kw_defaults=[],
             kwarg=None,
             defaults=[],
         ),
+        decorator_list=[],
+        returns=ast.Name(id="HTMLResponse", ctx=ast.Load()),
         body=[
             ast.Return(
                 value=ast.Call(
@@ -194,39 +176,16 @@ def make_to_response_method() -> ast.FunctionDef:
                     keywords=[
                         ast.keyword(
                             arg="content",
-                            value=ast.Call(
-                                func=ast.Attribute(
-                                    value=ast.Name(id="cls", ctx=ast.Load()),
-                                    attr="render",
-                                    ctx=ast.Load(),
-                                ),
-                                args=[],
-                                keywords=[],
-                            ),
+                            value=render_call,
                         ),
                         ast.keyword(
-                            arg="media_type", value=ast.Constant(value="text/html")
+                            arg="media_type",
+                            value=ast.Constant(value="text/html"),
                         ),
                     ],
                 )
             )
         ],
-        decorator_list=[classmethod_decorator],
-        returns=ast.Name(id="HTMLResponse", ctx=ast.Load()),
-        type_comment=None,
-    )
-
-
-def make_class(name: str) -> ast.ClassDef:
-    return ast.ClassDef(
-        name=name,
-        bases=[],
-        keywords=[],
-        body=[
-            make_render_method(name),
-            make_to_response_method(),
-        ],
-        decorator_list=[],
     )
 
 
@@ -239,11 +198,11 @@ def build_module(tsx_files: List[Path], class_casing: str) -> ast.Module:
     body += [make_mount_assets_function()]
 
     for tsx in sorted(tsx_files, key=lambda p: p.name.lower()):
-        cls_name = tsx.stem if class_casing == "exact" else to_pascal(tsx.name)
+        page_name = tsx.stem if class_casing == "exact" else to_pascal(tsx.name)
         # Ensure valid identifier (fallback if needed)
-        if not cls_name.isidentifier():
-            cls_name = to_pascal(tsx.name)
-        body.append(make_class(cls_name))
+        if not page_name.isidentifier():
+            page_name = to_pascal(tsx.name)
+        body.append(make_page_handler(page_name))
 
     mod = ast.Module(body=body, type_ignores=[])
     ast.fix_missing_locations(mod)
@@ -254,8 +213,8 @@ def generate_module(project_root: Path, class_casing: str = "exact") -> ast.Modu
     pages_path = project_root / "app" / "pages"
     output_path = project_root / "__init__.py"
     tsx_files = [p for p in pages_path.glob("*.tsx") if p.is_file()]
-    # filter out any file with __root in the name
-    tsx_files = [p for p in tsx_files if "__root" not in p.name]
+    # filter out any file with __layout in the name
+    tsx_files = [p for p in tsx_files if "__layout" not in p.name]
 
     mod = build_module(tsx_files, class_casing=class_casing)
 

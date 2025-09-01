@@ -19,3 +19,8 @@ build-backend = "uv_build"
 
 [tool.uv.sources]
 schorle = { path = "../../", editable = true }
+
+[dependency-groups]
+dev = [
+    "watchfiles>=1.1.0",
+]

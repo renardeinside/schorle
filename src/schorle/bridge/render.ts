@@ -7,11 +7,11 @@ export async function render(pageModulePath: string) {
   const abs = path.isAbsolute(pageModulePath)
     ? pageModulePath
     : path.join(process.cwd(), pageModulePath);
-  // find the __root.tsx file in the same directory as the page module path
-  const rootFile = `${path.dirname(pageModulePath)}/__root.tsx`;
+  // find the __layout.tsx file in the same directory as the page module path
+  const rootFile = `${path.dirname(pageModulePath)}/__layout.tsx`;
   if (!Bun.file(rootFile).exists()) {
     throw new Error(
-      `No __root.tsx file found in ${path.dirname(pageModulePath)}`,
+      `No __layout.tsx file found in ${path.dirname(pageModulePath)}`,
     );
   }
 

@@ -8,7 +8,10 @@ render-to-std:
     cd examples/aurora && uv run python -c "from aurora.ui.generated import Index; print(Index.render())"
 
 serve-in-aurora:
-    cd examples/aurora && uv run uvicorn aurora.app:app --reload
+    cd examples/aurora && uv run uvicorn aurora.app:app --reload \
+        --reload-include '**/*.tsx' \
+        --reload-exclude '**/temp/*.tsx' 
+
 
 gen-module:
     cd examples/aurora && uv run python -c "from schorle.generator import generate_module;from pathlib import Path; generate_module(Path('src/aurora/ui'))"
@@ -16,3 +19,6 @@ gen-module:
 fmt:
     bunx prettier . --write
     uvx ruff format .
+
+docs:
+    cd docs && yarn dev

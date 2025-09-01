@@ -1,0 +1,134 @@
+---
+title: Concepts
+description: Understanding Schorle's design philosophy and approach
+---
+
+import { File, Folder, Files } from "fumadocs-ui/components/files";
+
+## What is Schorle?
+
+Schorle is a framework for building elegant and efficient applications in Python and JS/TSX. It bridges the gap between Python backend development and modern frontend user interfaces, enabling developers to build full-stack applications using Python for business logic while leveraging React/TypeScript for UI components.
+
+## Why Schorle?
+
+Modern Python development misses a lot of the frontend development experience. Practically, developers have several options:
+
+1. **Use server-side rendering** and produce static HTML files (e.g. in FastAPI / Flask + Jinja2)
+2. **Use server-side websocket-connected frameworks** (e.g. Streamlit / Dash / Reflex.dev)
+3. **Have two separate codebases** for frontend and backend (e.g. FastAPI + React / Next.js)
+4. **Refrain from using Python completely** and use pure JS-based server and frontend (e.g. NextJS)
+
+Unfortunately, none of these options are ideal for various reasons.
+
+The idea of Schorle is to provide developers with a single, pythonic backend and readymade frontend integrations, while preserving flexibility and avoiding complexity of frontend setup.
+
+## Frontend Technologies
+
+Schorle uses the following technologies for the frontend:
+
+- **[React](https://react.dev/)** - Component-based UI library for building interactive interfaces
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework for rapid styling
+- **[Shadcn UI](https://ui.shadcn.com/)** - High-quality, accessible component library
+
+To simplify the pages and components development. However, users don't need to setup, compile and configure the frontend infrastructure - it's provided by Schorle with zero configuration.
+
+## Why Schorle Over Alternatives?
+
+Let's compare schorle with other options:
+
+### vs. Pythonic Frontend Frameworks (Dash / Streamlit / Reflex.dev)
+
+**JSX Advantages:**
+
+- JSX is a great way to write frontend code. It's a simple, declarative way to describe the UI
+- Modern AI agents are very good at writing JSX code
+- JSX-based frontend provides full flexibility and control over the frontend behavior
+
+**Scaling Issues:**
+
+- Pythonic frontend frameworks require a separate websocket connection for each opened page, which scales poorly
+- Schorle uses stateless HTTP-based rendering for better scaling
+
+**UI Flexibility:**
+
+- Limited UI flexibility compared to modern React patterns
+- Smaller component ecosystem compared to React
+- AI code generation works better with JSX than Python UI DSLs
+
+### vs. Server-side Rendering Frameworks (FastAPI / Flask + Jinja2 / HTMX)
+
+**Component Limitations:**
+
+- Server-side rendering frameworks are great for static pages
+- However, they are not very good for dynamic pages, especially with rich UI components
+- Template-based rendering lacks component reusability
+- Limited interactivity without significant JavaScript
+
+**Schorle Advantages:**
+
+- Component-based architecture with full reusability
+- Rich client-side interactivity while maintaining Python backend
+- Type-safe data flow and automatic API generation
+
+### vs. Pure JS Frameworks (NextJS / Remix)
+
+**Setup Complexity:**
+
+- Pure JS frameworks are great, but they require a lot of setup and configuration
+- Backend codebase needs to be written in JS/TS
+- Python developers must learn Node.js ecosystem
+- Loss of Python's data science/ML libraries
+- Separate deployment and scaling considerations
+
+**Schorle Advantages:**
+
+- Keep Python for backend logic, data processing, ML integration
+- Unified deployment model
+- Leverage existing Python expertise and libraries
+- Zero frontend configuration required
+
+## Typical Schorle Application Structure
+
+Assume we have a project called `charming_aurora` with the following structure:
+
+<Files>
+  <Folder name="src" defaultOpen>
+    <Folder name="charming_aurora" defaultOpen>
+      <File name="app.py" />
+      <File name="models.py" />
+      <Folder name="ui" defaultOpen>
+        <File name="index.css" />
+        <Folder name="components" defaultOpen>
+          <File name="button.tsx" />
+        </Folder>
+        <Folder name="pages" defaultOpen>
+          <File name="Index.tsx" />
+          <File name="About.tsx" />
+        </Folder>
+      </Folder>
+    </Folder>
+  </Folder>
+  <File name="bun.lock" />
+  <File name="pyproject.toml" />
+  <File name="README.md" />
+  <File name="uv.lock" />
+</Files>
+
+The `app.py` file contains:
+
+```python
+from fastapi import FastAPI
+from charming_aurora.ui import Index, About
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return Index()
+
+@app.get("/about")
+def read_about():
+    return About()
+```
+
+Schorle takes care of automatically compiling the frontend code and serving it on the backend, providing a unified development experience that combines the best of both Python and modern frontend development.

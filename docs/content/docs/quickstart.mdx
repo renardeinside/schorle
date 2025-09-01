@@ -1,0 +1,112 @@
+---
+title: Quickstart
+description: Setup and run your first schorle application
+---
+
+import { CodeEditor } from "@/components/ui/shadcn-io/code-editor";
+
+## New Project
+
+```
+uvx run schorle init my-app
+```
+
+## Existing Project
+
+Schorle can be easily added to existing projects:
+
+```bash
+uv add schorle
+uvx run schorle init <package_name>.ui --app-only
+```
+
+## Add the UI
+
+<CodeEditor
+              cursor={false}
+              className="w-full h-90"
+              lang="python"
+              title="app.py"
+              writing={false}
+              copyButton
+            >
+              {`from fastapi import FastAPI
+from <project_name>.ui import mount_assets, Index, Profile
+
+app = FastAPI()
+mount_assets(app)
+
+@app.get("/")
+def index():
+return Index(
+title="Welcome to Schorle",
+user_count=1234
+)`}
+
+</CodeEditor>
+
+As a result, the `index` page will be rendered on each request to the `/` endpoint.
+
+## Edit the UI
+
+ <CodeEditor
+              cursor={false}
+              className="w-full h-100"
+              lang="tsx"
+              title="pages/Index.tsx"
+              writing={false}
+              copyButton
+            >
+              {`import { useParams } from "schorle";
+// shadcn/ui included by default
+import { Button } from "@/components/ui/button";
+
+export default function Index() {
+  // server-side parameter passing
+  const { title, userCount } = useParams();
+
+return (
+<div>
+<h1>{title}</h1>
+<p>Join {userCount} developers</p>
+</div>
+);
+}`}
+</CodeEditor>
+
+## Start Development Server
+
+```bash
+schorle dev
+```
+
+This will:
+
+- Start the development server on `http://localhost:8000`
+- Automatically compile your TypeScript/React components
+- Generate Python bindings for your UI components
+- Enable hot reloading for both Python and TypeScript code
+
+## Project Structure
+
+After initialization, your project will have this structure:
+
+```
+my-app/
+├── src/
+│   └── my_app/
+│       ├── app.py          # FastAPI backend
+│       └── ui/             # Frontend code
+│           ├── components/ # React components
+│           ├── pages/      # Page components
+│           └── lib/        # Utilities & API hooks
+├── pyproject.toml         # Python dependencies
+└── README.md
+```
+
+## Next Steps
+
+- **[Concepts](/docs/concepts)** - Understand Schorle's design philosophy
+- **[Backend-UI Interactions](/docs/interactions)** - Learn about parameter passing, layouts, and API generation
+
+That's it! You now have a running Schorle application with type-safe Python-to-React integration.

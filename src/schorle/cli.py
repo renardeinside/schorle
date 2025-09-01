@@ -51,6 +51,12 @@ def prepare_py_project(project_path: Path, project_name: str):
         cwd=project_path,
         check=True,
     )
+    # install watchfiles for hot reloading
+    subprocess.run(
+        ["uv", "add", "watchfiles", "--dev"],
+        cwd=project_path,
+        check=True,
+    )
 
 
 @app.command(name="init")
@@ -201,7 +207,9 @@ def init(
     shutil.copytree(static_template_path / "theme", app_path / "components" / "theme")
 
     # add root layout
-    shutil.copy(static_template_path / "__root.tsx", app_path / "pages" / "__root.tsx")
+    shutil.copy(
+        static_template_path / "__layout.tsx", app_path / "pages" / "__layout.tsx"
+    )
 
     # add schorle-level gitignore
     ui_gitignore = ui_path / ".gitignore"
@@ -232,8 +240,8 @@ def init(
         mount_assets(app)
         
         @app.get("/")
-        async def read_root():
-            return Index.to_response()
+        async def index():
+            return Index()
 
         """).strip()
     )

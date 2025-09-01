@@ -41,8 +41,8 @@ async function findTsxFiles(
         const subFiles = await findTsxFiles(fullPath, baseDir);
         files.push(...subFiles);
       } else if (entry.endsWith(".tsx")) {
-        // filter out any file with __root in the name
-        if (entry.includes("__root")) {
+        // filter out any file with __layout in the name
+        if (entry.includes("__layout")) {
           continue;
         }
         // Check if file has default export by reading its content
@@ -80,26 +80,26 @@ async function createHydrationEntrypoint(
   component: PageComponent,
   sourceDir: string,
 ): Promise<string> {
-  // find the __root.tsx file in the sourceDir
-  const rootFile = `${sourceDir}/__root.tsx`;
+  // find the __layout.tsx file in the sourceDir
+  const layoutFile = `${sourceDir}/__layout.tsx`;
 
-  if (!Bun.file(rootFile).exists()) {
+  if (!Bun.file(layoutFile).exists()) {
     console.error(
-      `No __root.tsx file found in ${sourceDir} for ${component.componentName}`,
+      `No __layout.tsx file found in ${sourceDir} for ${component.componentName}`,
     );
     throw new Error(
-      `No __root.tsx file found in ${sourceDir} for ${component.componentName}`,
+      `No __layout.tsx file found in ${sourceDir} for ${component.componentName}`,
     );
   }
 
-  // root path is always @/pages/__root.tsx
-  const rootPath = `@/pages/__root.tsx`;
+  // root path is always @/pages/__layout.tsx
+  const rootLayoutPath = `@/pages/__layout.tsx`;
   const componentPath = `@/pages/${component.outputName}`;
 
   return `import React from 'react';
 import { createRoot } from 'react-dom/client';
 import Page from '${componentPath}';
-import RootLayout from '${rootPath}';
+import RootLayout from '${rootLayoutPath}';
 
 // Client-side hydration
 const container = document.getElementById('root');

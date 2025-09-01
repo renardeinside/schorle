@@ -6,5 +6,5 @@ mount_assets(app)
 
 
 @app.get("/")
-async def read_root():
-    return Index.to_response()
+async def index():
+    return Index()
