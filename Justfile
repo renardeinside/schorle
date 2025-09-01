@@ -12,3 +12,7 @@ serve-in-aurora:
 
 gen-module:
     cd examples/aurora && uv run python -c "from schorle.generator import generate_module;from pathlib import Path; generate_module(Path('src/aurora/ui'))"
+
+fmt:
+    bunx prettier . --write
+    uvx ruff format .
