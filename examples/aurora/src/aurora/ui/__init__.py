@@ -16,5 +16,9 @@ def mount_assets(app: FastAPI):
     app.mount("/.schorle/dist", StaticFiles(directory=dist_path))
 
 
+def Counter() -> HTMLResponse:
+    return HTMLResponse(content=render(root_path, "Counter"), media_type="text/html")
+
+
 def Index() -> HTMLResponse:
     return HTMLResponse(content=render(root_path, "Index"), media_type="text/html")
