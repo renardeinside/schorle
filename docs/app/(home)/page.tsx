@@ -22,7 +22,7 @@ export default function HomePage() {
           </AuroraText>
         </div>
         <h1 className="mb-6 text-4xl font-semibold leading-tight">
-          The Foundation for your Data Applications
+          The Foundation Layer for your Data Applications
         </h1>
 
         <p className="text-md mb-8 leading-relaxed text-balance">

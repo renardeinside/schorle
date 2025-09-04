@@ -1,14 +1,13 @@
 import shutil
 import json
 import subprocess
-from textwrap import dedent
 import typer
 from pathlib import Path
 import importlib.metadata
 
 from schorle.common import static_template_path
 from schorle.generator import generate_module
-from schorle.render import render as render_fn
+from schorle.render import render_to_stream
 
 __version__ = importlib.metadata.version("schorle")
 
@@ -24,87 +23,34 @@ def version():
     typer.echo(f"Schorle version {__version__}")
 
 
-def prepare_py_project(project_path: Path, project_name: str):
-    # check if project path exists, if not, create it
-    if not project_path.exists():
-        project_path.mkdir(parents=True, exist_ok=True)
-    # check if project path is a directory, if not, error
-    if not project_path.is_dir():
-        raise typer.BadParameter(f"Project path {project_path} is not a directory.")
-
-    # run uv init in the project path
-    subprocess.run(
-        ["uv", "init", "--no-workspace", "--lib", "--name", project_name],
-        cwd=project_path,
-        check=True,
-    )
-
-    # install schorle dep
-    subprocess.run(
-        ["uv", "add", "/Users/renarde/projects/schorle", "--editable"],
-        cwd=project_path,
-        check=True,
-    )
-    # install fastapi and uvicorn
-    subprocess.run(
-        ["uv", "add", "fastapi", "uvicorn"],
-        cwd=project_path,
-        check=True,
-    )
-    # install watchfiles for hot reloading
-    subprocess.run(
-        ["uv", "add", "watchfiles", "--dev"],
-        cwd=project_path,
-        check=True,
-    )
-
-
 @app.command(name="init")
 def init(
-    project_name: str = typer.Argument(
-        help="The name of the project.",
-    ),
     project_path: Path = typer.Argument(
         default_factory=Path.cwd,
         help="The path to the project.",
     ),
 ):
-    prepare_py_project(project_path, project_name)
-
-    # # populate ui folder
-    ui_path = project_path / "src" / project_name / "ui"
-    ui_path.mkdir(parents=True, exist_ok=True)
-
-    schorle_path = ui_path / ".schorle"
+    schorle_path = project_path / ".schorle"
     schorle_path.mkdir(parents=True, exist_ok=True)
 
-    app_path = ui_path / "app"
+    app_path = project_path / "app"
     app_path.mkdir(parents=True, exist_ok=True)
 
     # run bun init
     subprocess.run(
         ["bun", "init", "-y", "-m"],
-        cwd=ui_path,
-        check=True,
-    )
-
-    # save project_name to package.json
-    package_json = ui_path / "package.json"
-    package_json_payload = json.loads(package_json.read_text())
-    package_json_payload["name"] = project_name
-    package_json.write_text(json.dumps(package_json_payload, indent=2))
-
-    dependencies = ["tailwindcss", "bun-plugin-tailwind", "react", "react-dom"]
-
-    subprocess.run(
-        ["bun", "add", *dependencies],
-        cwd=ui_path,
+        cwd=project_path,
         check=True,
     )
 
     subprocess.run(
-        ["bun", "link", "schorle", "--save"],
-        cwd=ui_path,
+        [
+            "bun",
+            "add",
+            f"{Path(__file__).parent.parent.parent}/.dev/schorle-bridge-0.0.1.tgz",
+            "--dev",
+        ],
+        cwd=project_path,
         check=True,
     )
 
@@ -138,7 +84,7 @@ def init(
 
     tsconfig_json.write_text(json.dumps(tsconfig_payload, indent=2))
 
-    tsconfig_in_ui = ui_path / "tsconfig.json"
+    tsconfig_in_ui = project_path / "tsconfig.json"
     tsconfig_in_ui.write_text(
         json.dumps(
             {"extends": "./.schorle/tsconfig.json"},
@@ -153,7 +99,6 @@ def init(
     app_path.joinpath("pages").mkdir(parents=True, exist_ok=True)
 
     shutil.copy(static_template_path / "Index.tsx", app_path / "pages" / "Index.tsx")
-
     # shadcn setup
     shadcn_deps = [
         "class-variance-authority",
@@ -166,9 +111,10 @@ def init(
 
     subprocess.run(
         ["bun", "add", *shadcn_deps],
-        cwd=ui_path,
+        cwd=project_path,
         check=True,
     )
+
     styles_dir = app_path / "styles"
     styles_dir.mkdir(parents=True, exist_ok=True)
 
@@ -200,7 +146,8 @@ def init(
         },
         "iconLibrary": "lucide",
     }
-    components_file = ui_path / "components.json"
+
+    components_file = project_path / "components.json"
     components_file.write_text(json.dumps(components_file_payload, indent=2))
 
     # add theme components
@@ -212,47 +159,26 @@ def init(
     )
 
     # add schorle-level gitignore
-    ui_gitignore = ui_path / ".gitignore"
+    ui_gitignore = project_path / ".gitignore"
     shutil.copy(static_template_path / ".ui_gitignore", ui_gitignore)
+
+    # add models.py
+    shutil.copy(static_template_path / "models.py", project_path / "models.py")
 
     # add button component
     subprocess.run(
         ["bunx", "shadcn@latest", "add", "button"],
-        cwd=ui_path,
+        cwd=project_path,
         check=True,
     )
 
-    # add project-level gitignore
-    root_gitignore = project_path / ".gitignore"
-    shutil.copy(static_template_path / ".root_gitignore", root_gitignore)
-
-    build(ui_path)
-
-    # add fastapi app
-    fastapi_app_file = project_path / "src" / project_name / "app.py"
-
-    fastapi_app_file.write_text(
-        dedent(f"""
-        from fastapi import FastAPI
-        from {project_name}.ui import Index, mount_assets
-
-        app = FastAPI()
-        mount_assets(app)
-        
-        @app.get("/")
-        async def index():
-            return Index()
-
-        """).strip()
-    )
+    build(project_path)
 
     subprocess.run(
         ["git", "init"],
         cwd=project_path,
         check=True,
     )
-
-    generate_module(ui_path, "exact")
 
 
 @app.command(name="build")
@@ -265,27 +191,20 @@ def build(
     if not project_path.exists():
         raise typer.BadParameter(f"Project path {project_path} does not exist.")
 
-    source_dir_resolved = str((project_path / "app" / "pages").absolute())
-    output_dir_resolved = str((project_path / ".schorle" / "dist").absolute())
-    project_root_resolved = str((project_path).absolute())
-
     command = [
+        "bun",
+        "run",
         "schorle-bridge",
         "build",
-        source_dir_resolved,
-        project_root_resolved,
-        output_dir_resolved,
     ]
 
     subprocess.run(
-        # args:
-        # sourceDir (where the pages are)
-        # projectRoot (where the project is)
-        # outputDir (where the output should be)
         command,
         cwd=project_path,
         check=True,
     )
+
+    generate_module(project_path)
 
 
 @app.command(name="render")
@@ -304,4 +223,12 @@ def render(
     if not page_name:
         raise typer.BadParameter("Page name is required.")
 
-    typer.echo(render_fn(project_path, page_name))
+    stream = render_to_stream(project_path, page_name)
+
+    import asyncio
+
+    async def _main():
+        async for chunk in stream.body_iterator:
+            typer.echo(chunk)
+
+    asyncio.run(_main())

@@ -13,7 +13,6 @@ import {
   NavigationMenuTrigger,
   NavigationMenuViewport,
 } from "../../navigation-menu";
-import { useNav } from "fumadocs-ui/contexts/layout";
 import type {
   NavigationMenuContentProps,
   NavigationMenuTriggerProps,
@@ -33,7 +32,7 @@ export function Navbar(props: ComponentProps<"div">) {
         id="nd-nav"
         {...props}
         className={cn(
-          "fixed top-(--fd-banner-height) z-40 left-0 bg-background transition-colors *:mx-4",
+          "fixed top-(--fd-banner-height) z-40 left-0 bg-background transition-colors *:mx-10",
           value.length > 0 && "max-lg:shadow-lg max-lg:rounded-b-2xl",
           props.className,
         )}

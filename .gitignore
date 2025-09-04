@@ -11,3 +11,5 @@ wheels/
 node_modules/
 src/schorle/bin/*
 !src/schorle/bin/.gitkeep
+.ruff_cache/
+.dev/

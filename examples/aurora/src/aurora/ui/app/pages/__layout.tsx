@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { Toaster } from "sonner";
+
 import "@/styles/globals.css";
 
 export default function RootLayout({
@@ -10,9 +11,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ThemeProvider>
-      {children}
-      <Toaster />
-    </ThemeProvider>
+    <html>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body>
+        <div id="root">
+          <ThemeProvider>
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </div>
+      </body>
+    </html>
   );
 }

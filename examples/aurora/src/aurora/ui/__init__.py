@@ -1,24 +1,15 @@
 # Generated file — do not edit manually
 
 from pathlib import Path
-from fastapi.responses import HTMLResponse
-from schorle.render import render
-from fastapi.staticfiles import StaticFiles
+from schorle.render import render_to_stream
+from fastapi.responses import StreamingResponse
 from fastapi import FastAPI
-from schorle.cli import build
+from functools import partial
+from schorle.bootstrap import bootstrap as _base_bootstrap
+from typing import Callable
+project_path = Path(__file__).parent
+dist_path = project_path / '.schorle' / 'dist'
+bootstrap: Callable[[FastAPI], None] = partial(_base_bootstrap, project_path, dist_path)
 
-root_path = Path(__file__).parent
-dist_path = root_path / ".schorle" / "dist"
-
-
-def mount_assets(app: FastAPI):
-    build(root_path)
-    app.mount("/.schorle/dist", StaticFiles(directory=dist_path))
-
-
-def Counter() -> HTMLResponse:
-    return HTMLResponse(content=render(root_path, "Counter"), media_type="text/html")
-
-
-def Index() -> HTMLResponse:
-    return HTMLResponse(content=render(root_path, "Index"), media_type="text/html")
+def Index() -> StreamingResponse:
+    return render_to_stream(project_path, 'Index')
