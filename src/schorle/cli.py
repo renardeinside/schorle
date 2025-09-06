@@ -60,6 +60,12 @@ def init(
     content["name"] = project_name
     package_json.write_text(json.dumps(content, indent=2))
 
+    # add next.config.ts to schorle_path
+    shutil.copy(
+        templates_path / ".schorle" / "next.config.ts",
+        schorle_path / "next.config.ts",
+    )
+
     # copy ../templates/.schorle/tsconfig.json to schorle_path/tsconfig.json
     shutil.copy(
         templates_path / ".schorle" / "tsconfig.json",

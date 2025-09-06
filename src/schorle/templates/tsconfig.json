@@ -3,16 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./.schorle/*"],
-      "@/components/*": ["./app/components/*"]
+      "@/*": ["./.schorle/*", "./app/*"]
     }
   },
-  "include": [
-    ".schorle/**/*",
-    "app/pages/**/*",
-    "app/components/**/*",
-    "*.ts",
-    "*.tsx"
-  ],
+  "include": [".schorle/**/*", "app/**/*", "*.ts", "*.tsx"],
   "exclude": [".schorle/node_modules", ".schorle/.next"]
 }

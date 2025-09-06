@@ -146,7 +146,7 @@ class Schorle:
         if not route_path.startswith("/"):
             route_path = "/" + route_path
 
-        client = await self._ensure_http()
+        client = await self._ensure_http("render")
         url = f"{self.base_http}{route_path}"
         if query_string:
             url += f"?{query_string}"
@@ -213,6 +213,7 @@ class Schorle:
         # Supervisor
         self._shutdown_event = asyncio.Event()
         self._supervisor_task = asyncio.create_task(self._bun_supervisor())
+        await self._wait_for_ready()
 
     async def _on_shutdown(self):
         # Stop supervisor
@@ -350,9 +351,9 @@ class Schorle:
 
     # ---------- internals: HTTP/WS + supervisor ----------
 
-    async def _ensure_http(self) -> httpx.AsyncClient:
+    async def _ensure_http(self, initiator: str = "unknown") -> httpx.AsyncClient:
         while not self._server_ready:
-            print("⏳ Waiting for server to be ready...")
+            print(f"⏳ Waiting for server to be ready... (initiated by {initiator})")
             await asyncio.sleep(0.1)
         assert self._http is not None, "HTTP client not initialized"
         return self._http
@@ -492,7 +493,7 @@ class Schorle:
         # adds a websocket route that closes when server is restarted
         @self.router.websocket("/_schorle/dev-indicator")
         async def dev_indicator(ws: WebSocket):
-            await self._ensure_http()
+            await self._ensure_http("dev-indicator")
             await ws.accept()
 
             async def indicator():
