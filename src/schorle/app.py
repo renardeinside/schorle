@@ -14,6 +14,7 @@ from fastapi.concurrency import asynccontextmanager
 import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request
 from starlette.responses import StreamingResponse
+import secrets
 
 
 class Schorle:
@@ -28,7 +29,7 @@ class Schorle:
         *,
         cwd: str | os.PathLike = ".schorle",
         bun_cmd: Sequence[str] = ("bun", "run", "server.ts"),
-        socket_path: str = "/tmp/bun-nextjs.sock",
+        socket_path: str | None = None,
         upstream_host: str = "localhost",
         base_http: str = "http://localhost",  # ignored by UDS transport
         upstream_ws_path: str = "/_next/webpack-hmr",
@@ -40,7 +41,13 @@ class Schorle:
     ):
         self.project_root = Path(project_root)
         self.cwd = Path(cwd)
-        self.bun_cmd = tuple(bun_cmd)
+
+        if socket_path is None:
+            socket_path = f"/tmp/slx-{secrets.token_hex(8)}.sock"
+
+        print(f"Using socket path: {socket_path}")
+
+        self.bun_cmd = tuple(bun_cmd) + (socket_path,)
         self.socket_path = socket_path
         self.upstream_host = upstream_host
         self.base_http = base_http

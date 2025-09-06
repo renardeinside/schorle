@@ -1,7 +1,6 @@
 import shutil
 import json
 import subprocess
-import time
 import typer
 from pathlib import Path
 import importlib.metadata
@@ -112,7 +111,7 @@ def init(
 
     # copy ../templates/theme to schorle_path/components/theme
     shutil.copytree(
-        templates_path / "theme",
+        templates_path / "components" / "theme",
         project_path / "app" / "components" / "theme",
     )
 
@@ -182,7 +181,7 @@ def init(
     # copy ./template/SchorleDevIndicator.tsx to project_path/app/components/dev/SchorleDevIndicator.tsx
     (project_path / "app" / "components" / "dev").mkdir(parents=True, exist_ok=True)
     shutil.copy(
-        templates_path / "SchorleDevIndicator.tsx",
+        templates_path / "components" / "dev" / "SchorleDevIndicator.tsx",
         project_path / "app" / "components" / "dev" / "SchorleDevIndicator.tsx",
     )
 

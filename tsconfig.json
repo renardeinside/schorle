@@ -3,7 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@schorle/bridge/*": ["./src/schorle/bridge/*"]
+      "@schorle/bridge/*": ["./src/schorle/bridge/*"],
+      "@/components/*": ["src/schorle/templates/components/*"]
     },
     // Environment setup & latest features
     "lib": ["ESNext", "DOM"],

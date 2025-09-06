@@ -10,7 +10,12 @@ const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-const SOCKET_PATH = "/tmp/bun-nextjs.sock";
+const [, , SOCKET_PATH] = process.argv;
+
+if (!SOCKET_PATH) {
+  console.error("Usage: node server.ts <socket_path>");
+  process.exit(1);
+}
 
 await app.prepare();
 

@@ -5,8 +5,6 @@ app = FastAPI()
 
 ui = Schorle(
     project_root=".",  # or Path(__file__).parent
-    cwd=".schorle",  # where your server.ts lives
-    socket_path="/tmp/bun-nextjs.sock",
 )
 
 ui.mount(app)
