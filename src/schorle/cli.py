@@ -168,7 +168,8 @@ def init(
     # gen pages
     registry(
         pages=project_path / "app" / "pages",
-        out=schorle_path / "app" / "registry.gen.tsx",
+        ts_out=schorle_path / "app" / "registry.gen.tsx",
+        py_out=project_path / "registry.py",
         import_prefix="@/pages",
     )
 

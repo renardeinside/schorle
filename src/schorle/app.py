@@ -27,7 +27,6 @@ class Schorle:
         self,
         project_root: str | os.PathLike,
         *,
-        cwd: str | os.PathLike = ".schorle",
         bun_cmd: Sequence[str] = ("bun", "run", "server.ts"),
         socket_path: str | None = None,
         upstream_host: str = "localhost",
@@ -40,7 +39,18 @@ class Schorle:
         mount_assets_proxy: bool = True,  # proxy a few Next asset paths
     ):
         self.project_root = Path(project_root)
-        self.cwd = Path(cwd)
+
+        # verify project_root is a directory
+        if not self.project_root.is_dir():
+            raise ValueError(f"Project root is not a directory: {self.project_root}")
+
+        # verify project_root has ".schorle" directory
+        if not (self.project_root / ".schorle").is_dir():
+            raise ValueError(
+                f"Project root does not have a .schorle directory: {self.project_root}"
+            )
+
+        self.cwd = self.project_root / ".schorle"
 
         if socket_path is None:
             socket_path = f"/tmp/slx-{secrets.token_hex(8)}.sock"
