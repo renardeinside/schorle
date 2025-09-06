@@ -8,29 +8,16 @@
   "files": [
     "src/schorle/bridge"
   ],
-  "main": "./src/schorle/bridge/server/index.ts",
   "exports": {
-    ".": {
-      "import": "./src/schorle/bridge/server/index.ts"
+    "./utils": {
+      "import": "./src/schorle/bridge/utils.tsx"
     },
-    "./server": {
-      "import": "./src/schorle/bridge/server/index.ts"
-    },
-    "./client": {
-      "import": "./src/schorle/bridge/client/index.tsx",
-      "browser": "./src/schorle/bridge/client/index.tsx"
-    },
-    "./hydrator": {
-      "import": "./src/schorle/bridge/client/hydrator.tsx",
-      "browser": "./src/schorle/bridge/client/hydrator.tsx"
-    },
-    "./shared": {
-      "import": "./src/schorle/bridge/shared/index.ts",
-      "browser": "./src/schorle/bridge/shared/index.ts"
+    "./types": {
+      "import": "./src/schorle/bridge/types.ts"
     }
   },
   "bin": {
-    "schorle-bridge": "./src/schorle/bridge/bin.ts"
+    "slx-gen": "./src/schorle/bridge/gen.ts"
   },
   "peerDependencies": {
     "react": "^19.1.1",

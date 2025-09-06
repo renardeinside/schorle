@@ -1,3 +1,6 @@
 dist/
 node_modules/
 docs/.next/
+**/.next/
+.next/
+examples/slx/.schorle/.next

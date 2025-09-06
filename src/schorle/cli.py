@@ -1,15 +1,16 @@
 import shutil
 import json
 import subprocess
+import time
 import typer
 from pathlib import Path
 import importlib.metadata
-
-from schorle.common import static_template_path
-from schorle.generator import generate_module
-from schorle.render import render_to_stream
+import importlib.resources
+import os
+from schorle.registry import registry
 
 __version__ = importlib.metadata.version("schorle")
+templates_path = importlib.resources.files("schorle").joinpath("templates")
 
 
 app = typer.Typer(
@@ -18,217 +19,178 @@ app = typer.Typer(
 )
 
 
-@app.command(name="version")
+@app.command(name="version", help="Show the version of the schorle CLI")
 def version():
     typer.echo(f"Schorle version {__version__}")
 
 
-@app.command(name="init")
+@app.command(name="init", help="Initialize a new project")
 def init(
-    project_path: Path = typer.Argument(
-        default_factory=Path.cwd,
-        help="The path to the project.",
-    ),
+    project_name: str = typer.Argument(..., help="The name of the project"),
+    project_path: Path = typer.Argument(..., help="The path to the project"),
 ):
+    typer.echo(f"Generating project {project_name} at {project_path}")
+
+    if project_path.exists():
+        shutil.rmtree(project_path)
+
+    project_path.mkdir(parents=True, exist_ok=True)
     schorle_path = project_path / ".schorle"
     schorle_path.mkdir(parents=True, exist_ok=True)
 
-    app_path = project_path / "app"
-    app_path.mkdir(parents=True, exist_ok=True)
-
-    # run bun init
-    subprocess.run(
-        ["bun", "init", "-y", "-m"],
-        cwd=project_path,
-        check=True,
-    )
-
+    # run bun init in project_path
     subprocess.run(
         [
             "bun",
-            "add",
-            f"{Path(__file__).parent.parent.parent}/.dev/schorle-bridge-0.0.1.tgz",
-            "--dev",
+            "create",
+            "next-app",
+            "schorle",
+            "--use-bun",
+            "--typescript",
+            "--tailwind",
+            "--yes",
         ],
         cwd=project_path,
-        check=True,
     )
 
-    # update the tsconfig.json to support the ui folder
-    tsconfig_json = schorle_path / "tsconfig.json"
-    tsconfig_payload = {
-        "compilerOptions": {
-            "lib": ["ESNext", "DOM"],
-            "target": "ESNext",
-            "module": "Preserve",
-            "moduleDetection": "force",
-            "jsx": "react-jsx",
-            "allowJs": True,
-            "moduleResolution": "bundler",
-            "allowImportingTsExtensions": True,
-            "verbatimModuleSyntax": True,
-            "noEmit": True,
-            "strict": True,
-            "skipLibCheck": True,
-            "noFallthroughCasesInSwitch": True,
-            "noUncheckedIndexedAccess": True,
-            "noImplicitOverride": True,
-            "baseUrl": ".",
-            "paths": {"@/*": ["../app/*"]},
-            "noUnusedLocals": False,
-            "noUnusedParameters": False,
-            "noPropertyAccessFromIndexSignature": False,
-        },
-        "exclude": ["dist", "node_modules"],
-    }
+    os.rename(project_path / "schorle", schorle_path)
 
-    tsconfig_json.write_text(json.dumps(tsconfig_payload, indent=2))
+    # put project_name into .schorle/package.json
+    package_json = schorle_path / "package.json"
+    content = json.loads(package_json.read_text())
+    content["name"] = project_name
+    package_json.write_text(json.dumps(content, indent=2))
 
-    tsconfig_in_ui = project_path / "tsconfig.json"
-    tsconfig_in_ui.write_text(
-        json.dumps(
-            {"extends": "./.schorle/tsconfig.json"},
-            indent=2,
-        )
-    )
-
-    # # populate ui folder with:
-    # # pages/index.tsx
-    # # components/ (just a folder)
-    # # index.css
-    app_path.joinpath("pages").mkdir(parents=True, exist_ok=True)
-
-    shutil.copy(static_template_path / "Index.tsx", app_path / "pages" / "Index.tsx")
-    # shadcn setup
-    shadcn_deps = [
-        "class-variance-authority",
-        "clsx",
-        "tailwind-merge",
-        "lucide-react",
-        "tw-animate-css",
-        "sonner",
-    ]
-
-    subprocess.run(
-        ["bun", "add", *shadcn_deps],
-        cwd=project_path,
-        check=True,
-    )
-
-    styles_dir = app_path / "styles"
-    styles_dir.mkdir(parents=True, exist_ok=True)
-
-    shutil.copy(static_template_path / "globals.css", styles_dir / "globals.css")
-
-    lib_dir = app_path / "lib"
-    lib_dir.mkdir(parents=True, exist_ok=True)
-
-    shutil.copy(static_template_path / "utils.ts", lib_dir / "utils.ts")
-
-    components_file_payload = {
-        "$schema": "https://ui.shadcn.com/schema.json",
-        "style": "new-york",
-        "rsc": False,
-        "tsx": True,
-        "tailwind": {
-            "config": "",
-            "css": "app/styles/globals.css",
-            "baseColor": "neutral",
-            "cssVariables": True,
-            "prefix": "",
-        },
-        "aliases": {
-            "components": "@/components",
-            "utils": "@/lib/utils",
-            "ui": "@/components/ui",
-            "lib": "@/lib",
-            "hooks": "@/hooks",
-        },
-        "iconLibrary": "lucide",
-    }
-
-    components_file = project_path / "components.json"
-    components_file.write_text(json.dumps(components_file_payload, indent=2))
-
-    # add theme components
-    shutil.copytree(static_template_path / "theme", app_path / "components" / "theme")
-
-    # add root layout
+    # copy ../templates/.schorle/tsconfig.json to schorle_path/tsconfig.json
     shutil.copy(
-        static_template_path / "__layout.tsx", app_path / "pages" / "__layout.tsx"
+        templates_path / ".schorle" / "tsconfig.json",
+        schorle_path / "tsconfig.json",
     )
 
-    # add schorle-level gitignore
-    ui_gitignore = project_path / ".gitignore"
-    shutil.copy(static_template_path / ".ui_gitignore", ui_gitignore)
+    # prepare project_path/app/components
+    (project_path / "app" / "components").mkdir(parents=True, exist_ok=True)
 
-    # add models.py
-    shutil.copy(static_template_path / "models.py", project_path / "models.py")
-
-    # add button component
+    # add shadcn
     subprocess.run(
-        ["bunx", "shadcn@latest", "add", "button"],
-        cwd=project_path,
-        check=True,
+        ["bunx", "--bun", "shadcn@latest", "init", "--yes", "-b", "neutral"],
+        cwd=schorle_path,
     )
+    # add next-themes
+    subprocess.run(["bun", "add", "next-themes"], cwd=schorle_path)
 
-    build(project_path)
-
+    # add button
     subprocess.run(
-        ["git", "init"],
-        cwd=project_path,
-        check=True,
+        ["bunx", "--bun", "shadcn@latest", "add", "button"], cwd=schorle_path
     )
 
-
-@app.command(name="build")
-def build(
-    project_path: Path = typer.Argument(
-        default_factory=Path.cwd,
-        help="The path to the project.",
-    ),
-):
-    if not project_path.exists():
-        raise typer.BadParameter(f"Project path {project_path} does not exist.")
-
-    command = [
-        "bun",
-        "run",
-        "schorle-bridge",
-        "build",
-    ]
-
-    subprocess.run(
-        command,
-        cwd=project_path,
-        check=True,
+    # copy ../templates/server.ts to project_path/server.ts
+    shutil.copy(
+        templates_path / "server.ts",
+        schorle_path / "server.ts",
     )
 
-    generate_module(project_path)
+    # copy ../templates/tsconfig.json to project_path/tsconfig.json
+    shutil.copy(
+        templates_path / "tsconfig.json",
+        project_path / "tsconfig.json",
+    )
+
+    # init uv in project_path
+    subprocess.run(["uv", "init", "--no-workspace", "--app", "."], cwd=project_path)
+
+    # install schorle python package
+    schorle_package_path = importlib.resources.files("schorle").parent.parent
+    subprocess.run(["uv", "add", "--editable", schorle_package_path], cwd=project_path)
+
+    # copy pages/index.tsx to project_path/app/pages/index.tsx
+    project_path.joinpath("app").joinpath("pages").mkdir(parents=True, exist_ok=True)
+
+    shutil.copy(
+        templates_path / "pages" / "Index.tsx",
+        project_path / "app" / "pages" / "Index.tsx",
+    )
+
+    # copy ../templates/theme to schorle_path/components/theme
+    shutil.copytree(
+        templates_path / "theme",
+        project_path / "app" / "components" / "theme",
+    )
+
+    # copy ../templates/layout.tsx to schorle_path/app/layout.tsx
+    shutil.copy(
+        templates_path / "layout.tsx",
+        project_path / "app" / "pages" / "__layout.tsx",
+    )
+
+    # copy ../templates/page.tsx to schorle_path/app/[[...slug]]/page.tsx
+    schorle_path.joinpath("app").joinpath("[[...slug]]").mkdir(
+        parents=True, exist_ok=True
+    )
+
+    shutil.copy(
+        templates_path / "page.tsx",
+        schorle_path / "app" / "[[...slug]]" / "page.tsx",
+    )
+
+    # remove .schorle/app/page.tsx and .schorle/app/layout.tsx
+    (schorle_path / "app" / "page.tsx").unlink()
+    (schorle_path / "app" / "layout.tsx").unlink()
+
+    # add
+    # this -> @source "../../app/pages/";
+    # after -> @import "tw-animate-css";
+    # to file schorle_path/app/styles/globals.css
+    styles_file = schorle_path / "app" / "globals.css"
+    content = styles_file.read_text()
+    content = content.replace(
+        '@import "tw-animate-css";',
+        "\n".join(
+            [
+                '@import "tw-animate-css";',
+                '@source "../../app/pages/";',
+                '@source "../../app/components/";',
+            ]
+        ),
+    )
+    styles_file.write_text(content)
+
+    # add symlink from schorle_path/node_modules to project_path/node_modules
+
+    (project_path / "node_modules").symlink_to(
+        Path(".schorle/node_modules"), target_is_directory=True
+    )
+
+    # gen pages
+    registry(
+        pages=project_path / "app" / "pages",
+        out=schorle_path / "app" / "registry.gen.tsx",
+        import_prefix="@/pages",
+    )
+
+    # copy ./template/.schorle/layout.tsx to schorle_path/app/layout.tsx
+    shutil.copy(
+        templates_path / ".schorle" / "layout.tsx",
+        schorle_path / "app" / "layout.tsx",
+    )
+
+    # copy ./template/app.py to project_path/app.py
+    shutil.copy(
+        templates_path / "app.py",
+        project_path / "main.py",
+    )
+
+    # copy ./template/SchorleDevIndicator.tsx to project_path/app/components/dev/SchorleDevIndicator.tsx
+    (project_path / "app" / "components" / "dev").mkdir(parents=True, exist_ok=True)
+    shutil.copy(
+        templates_path / "SchorleDevIndicator.tsx",
+        project_path / "app" / "components" / "dev" / "SchorleDevIndicator.tsx",
+    )
+
+    # add uvicorn[standard]
+    subprocess.run(["uv", "add", "uvicorn[standard]"], cwd=project_path)
 
 
-@app.command(name="render")
-def render(
-    project_path: Path = typer.Argument(
-        default_factory=Path.cwd,
-        help="The path to the project.",
-    ),
-    page_name: str = typer.Argument(
-        help="The name of the page to render.",
-    ),
-):
-    if not project_path.exists():
-        raise typer.BadParameter(f"Project path {project_path} does not exist.")
-
-    if not page_name:
-        raise typer.BadParameter("Page name is required.")
-
-    stream = render_to_stream(project_path, page_name)
-
-    import asyncio
-
-    async def _main():
-        async for chunk in stream.body_iterator:
-            typer.echo(chunk)
-
-    asyncio.run(_main())
+app.command(
+    name="registry",
+    help="Scan a /pages tree and emit a TypeScript lazy-import registry.",
+)(registry)

@@ -1,0 +1,18 @@
+{
+  "extends": "./.schorle/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./.schorle/*"],
+      "@/components/*": ["./app/components/*"]
+    }
+  },
+  "include": [
+    ".schorle/**/*",
+    "app/pages/**/*",
+    "app/components/**/*",
+    "*.ts",
+    "*.tsx"
+  ],
+  "exclude": [".schorle/node_modules", ".schorle/.next"]
+}

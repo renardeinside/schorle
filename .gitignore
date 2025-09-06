@@ -13,3 +13,5 @@ src/schorle/bin/*
 !src/schorle/bin/.gitkeep
 .ruff_cache/
 .dev/
+
+examples/slx/node_modules

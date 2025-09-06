@@ -1,0 +1,13 @@
+[project]
+name = "slx"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "schorle",
+    "uvicorn[standard]>=0.35.0",
+]
+
+[tool.uv.sources]
+schorle = { path = "../../", editable = true }
