@@ -4,9 +4,7 @@ from registry import pages
 
 app = FastAPI()
 
-ui = Schorle(
-    project_root=".",  # or Path(__file__).parent
-)
+ui = Schorle()
 
 ui.mount(app)
 
