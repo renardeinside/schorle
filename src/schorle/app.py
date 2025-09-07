@@ -15,7 +15,7 @@ from starlette.responses import StreamingResponse
 from schorle.bun import check_and_prepare_bun
 from schorle.ipc_manager import IpcManager
 from schorle.dev_extension import DevExtension
-from schorle.settings import SchorleSettings, IpcSettings
+from schorle.settings import SchorleSettings, IpcSettings, TcpSettings, UdsSettings
 from schorle.store import SocketStore
 import msgpack
 import subprocess
@@ -34,7 +34,7 @@ class Schorle:
     def __init__(
         self,
         project_root: str | os.PathLike | Path = ".",
-        cfg: SchorleSettings = None,
+        cfg: SchorleSettings | None = None,
         ipc: IpcSettings | None = None,
     ):
         # Validate & derive paths
@@ -51,33 +51,52 @@ class Schorle:
 
         self.bun_executable = check_and_prepare_bun()
 
-        self._store_socket_path = Path(f"/tmp/slx-store-{secrets.token_hex(8)}.sock")
-        self._socket_path = Path(f"/tmp/slx-{secrets.token_hex(8)}.sock")
-
-        if ipc is None:
-            ipc = IpcSettings(
-                bun_cmd=(self.bun_executable, "run", "server.ts"),
-                socket_path=str(self._socket_path),
-                ready_check_url="/schorle/render",
-                store_socket_path=str(self._store_socket_path),
+        if not cfg:
+            self.cfg = SchorleSettings(
+                project_root=self.project_root,
+                upstream_host="localhost",
+                base_http="http://localhost",
+                upstream_ws_path="/_next/webpack-hmr",
+                prefer_http=True,
             )
-        self.cwd = self.project_root / ".schorle"
 
-        if cfg is None:
-            self.cfg = SchorleSettings()
-        else:
-            self.cfg = cfg
+        if not ipc:
+            transport: UdsSettings | TcpSettings | None = None
+            if self.cfg.prefer_http or os.name == "nt":
+                transport = TcpSettings(
+                    host=self.cfg.upstream_host,
+                    store_host=self.cfg.upstream_host,
+                )
+            elif os.name == "posix":
+                transport = UdsSettings(
+                    socket_path=f"/tmp/slx-{secrets.token_hex(8)}.sock",
+                    store_socket_path=f"/tmp/slx-store-{secrets.token_hex(8)}.sock",
+                )
 
-        # Upstream/paths
-        self.upstream_host = self.cfg.upstream_host
-        self.base_http = self.cfg.base_http
-        self.upstream_ws_path = self.cfg.upstream_ws_path
+            else:
+                raise ValueError(f"Unsupported platform: {os.name}")
+
+            ipc_config = IpcSettings(
+                command_dir=self.project_root / ".schorle",
+                bun_executable=str(self.bun_executable),
+                transport=transport,
+                ready_check_url="/schorle/render",
+                ready_timeout_s=5.0,
+                retry_base_delay_s=0.5,
+                retry_max_delay_s=5.0,
+                with_bun_logs=True,
+                env={
+                    "NODE_ENV": "development"
+                    if self.cfg.dev_mode_enabled
+                    else "production"
+                },
+            )
 
         # Lifecycle clients (initialized during startup)
         self._http: Optional[httpx.AsyncClient] = None
         self._ws: Optional[aiohttp.ClientSession] = None
 
-        if self.cfg.enable_dev_extension:
+        if self.cfg.dev_mode_enabled:
             print("[schorle] Is running in development mode")
         else:
             print("[schorle] Is running in production mode")
@@ -92,37 +111,20 @@ class Schorle:
                 print("[schorle] Running build script - finished")
             else:
                 print("[schorle] Build directory exists - skipping build script")
-            ipc.env = {"NODE_ENV": "production"}
 
         # IPC supervisor
-        self.ipc = IpcManager(
-            cwd=self.cwd,
-            bun_cmd=ipc.bun_cmd,
-            socket_path=ipc.socket_path,
-            store_socket_path=ipc.store_socket_path,
-            base_http=self.base_http,
-            ready_check_url=ipc.ready_check_url,
-            ready_timeout_s=ipc.ready_timeout_s,
-            retry_base_delay_s=ipc.retry_base_delay_s,
-            retry_max_delay_s=ipc.retry_max_delay_s,
-            upstream_host=self.upstream_host,
-            with_bun_logs=ipc.with_bun_logs,
-            env=ipc.env,
-        )
-
-        self.store = SocketStore(ipc.store_socket_path)
+        self.ipc = IpcManager(ipc=ipc_config)
+        self.store = SocketStore(self.ipc.cfg.transport)
 
         # Root router; feature routers can be included under it
         self.router = APIRouter()
 
         # Dev-only extension (HMR WS, asset proxy, dev-indicator)
         self.dev: Optional[DevExtension] = None
-        if self.cfg.enable_dev_extension:
+        if self.cfg.dev_mode_enabled:
             self.dev = DevExtension(
-                project_root=self.project_root,
-                upstream_host=self.upstream_host,
-                upstream_ws_path=self.upstream_ws_path,
-                mount_assets_proxy=self.cfg.mount_assets_proxy,
+                cfg=self.cfg,
+                ipc=self.ipc.cfg,
                 ensure_http=self._ensure_http,
                 render=partial(self.render, add_prefix=False),
                 get_ws_session=self._get_ws_session,
@@ -170,7 +172,7 @@ class Schorle:
             app.state._schorle_lifespan_installed = True
             print("[schorle] Lifespan composed and installed.")
 
-            if not self.cfg.enable_dev_extension:
+            if not self.cfg.dev_mode_enabled:
                 self._wire_production_routes(app)
 
         if not getattr(app.state, "_schorle_routes_mounted", False):
@@ -203,16 +205,21 @@ class Schorle:
             route_path = "/" + route_path
 
         client = await self._ensure_http("render")
-        url = (
-            f"{self.base_http}/schorle/render{route_path}"
-            if add_prefix
-            else f"{self.base_http}{route_path}"
-        )
+        if isinstance(self.ipc.cfg.transport, TcpSettings):
+            base_http = f"http://{self.cfg.upstream_host}:{self.ipc.cfg.transport.port}"
+        else:
+            base_http = self.cfg.base_http
+
+        if add_prefix:
+            url = f"{base_http}/schorle/render{route_path}"
+        else:
+            url = f"{base_http}{route_path}"
+
         if query_string:
             url += f"?{query_string}"
 
         in_headers = dict(headers or {})
-        in_headers.setdefault("host", self.upstream_host)
+        in_headers.setdefault("host", self.cfg.upstream_host)
 
         if props is not None:
             props_id = secrets.token_hex(10)
@@ -261,17 +268,46 @@ class Schorle:
     async def _on_startup(self):
         await self.store.start()
 
-        self._http = httpx.AsyncClient(
-            transport=httpx.AsyncHTTPTransport(uds=self.ipc.socket_path),
-            timeout=None,
-            http2=False,
-        )
-        self._ws = aiohttp.ClientSession(
-            connector=aiohttp.UnixConnector(path=self.ipc.socket_path)
-        )
+        if isinstance(self.ipc.cfg.transport, UdsSettings):
+            print(
+                f"🔵 [schorle] Starting HTTP client on {self.ipc.cfg.transport.socket_path}"
+            )
+            self._http = httpx.AsyncClient(
+                transport=httpx.AsyncHTTPTransport(
+                    uds=self.ipc.cfg.transport.socket_path
+                ),
+                timeout=None,
+            )
+            self._ws = aiohttp.ClientSession(
+                connector=aiohttp.UnixConnector(path=self.ipc.cfg.transport.socket_path)
+            )
+            print(
+                f"🔵 [schorle] HTTP client started on {self.ipc.cfg.transport.socket_path}"
+            )
+        elif isinstance(self.ipc.cfg.transport, TcpSettings):
+            print(
+                f"🔵 [schorle] Starting HTTP client on {self.ipc.cfg.transport.host}:{self.ipc.cfg.transport.port}"
+            )
+            self._http = httpx.AsyncClient(
+                base_url=f"http://{self.ipc.cfg.transport.host}:{self.ipc.cfg.transport.port}",
+                timeout=None,
+            )
+            self._ws = aiohttp.ClientSession(
+                base_url=f"http://{self.ipc.cfg.transport.host}:{self.ipc.cfg.transport.port}",
+            )
+            print(
+                f"🔵 [schorle] HTTP client started on {self.ipc.cfg.transport.host}:{self.ipc.cfg.transport.port}"
+            )
+        else:
+            raise ValueError(
+                f"Unsupported IPC settings: {type(self.ipc.cfg.transport)}"
+            )
 
+        print("🔵 [schorle] Starting IPC manager")
         await self.ipc.start()
+        print("🔵 [schorle] IPC manager started")
         await self.ipc.wait_until_ready()
+        print("🔵 [schorle] IPC manager ready")
 
         if self.dev:
             self.dev.start_watcher()

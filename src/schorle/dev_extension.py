@@ -13,6 +13,7 @@ import httpx
 from starlette.responses import Response  # only for typing/help
 from watchfiles import awatch
 from schorle.registry import registry
+from schorle.settings import IpcSettings, SchorleSettings, UdsSettings
 
 # Helper type hints for injected callables
 EnsureHttp = Callable[[str], Awaitable["httpx.AsyncClient"]]  # lazy import-safe hint
@@ -35,18 +36,15 @@ class DevExtension:
     def __init__(
         self,
         *,
-        project_root: str,
-        upstream_host: str,
-        upstream_ws_path: str = "/_next/webpack-hmr",
-        mount_assets_proxy: bool = True,
+        cfg: SchorleSettings,
+        ipc: IpcSettings,
         ensure_http: EnsureHttp,
         render: RenderFunc,
         get_ws_session: GetWsSession,
     ):
-        self.project_root = Path(project_root)
-        self.upstream_host = upstream_host
-        self.upstream_ws_path = upstream_ws_path
-        self.mount_assets_proxy = mount_assets_proxy
+        self.project_root = Path(cfg.project_root)
+        self.cfg = cfg
+        self.ipc = ipc
 
         self._ensure_http = ensure_http
         self._render = render
@@ -87,8 +85,10 @@ class DevExtension:
             await ws.accept(subprotocol=sub)
 
             headers = {
-                "Host": self.upstream_host,
-                "Origin": ws.headers.get("origin", f"http://{self.upstream_host}:8000"),
+                "Host": self.cfg.upstream_host,
+                "Origin": ws.headers.get(
+                    "origin", f"http://{self.cfg.upstream_host}:8000"
+                ),
             }
             if "cookie" in ws.headers:
                 headers["Cookie"] = ws.headers["cookie"]
@@ -96,10 +96,16 @@ class DevExtension:
 
             session = self._get_ws_session()
             try:
+                target_url = (
+                    f"ws://{self.ipc.transport.socket_path}{self.cfg.upstream_ws_path}"
+                    if isinstance(self.ipc.transport, UdsSettings)
+                    else f"ws://{self.ipc.transport.host}:{self.ipc.transport.port}{self.cfg.upstream_ws_path}"
+                )
+
                 upstream = await session.ws_connect(
-                    f"ws://{self.upstream_host}{self.upstream_ws_path}",
+                    target_url,
                     headers=headers,
-                    protocols=protocols,
+                    protocols=protocols or (),
                     autoping=True,
                     heartbeat=30.0,
                     compress=0,
@@ -144,60 +150,54 @@ class DevExtension:
                     await ws.close(code=1011)
                 raise
 
-        # Optional: small asset proxy for dev so you don't hand-write routes.
-        if self.mount_assets_proxy:
-            assets = APIRouter()
+        assets = APIRouter()
 
-            @assets.api_route(
-                "/__nextjs_restart_dev",
-                methods=["GET", "HEAD", "OPTIONS", "POST"],
-                include_in_schema=False,
-            )
-            async def _restart_dev(request: Request):
-                return await self._render(
-                    "/__nextjs_restart_dev", method=request.method
-                )
+        @assets.api_route(
+            "/__nextjs_restart_dev",
+            methods=["GET", "HEAD", "OPTIONS", "POST"],
+            include_in_schema=False,
+        )
+        async def _restart_dev(request: Request):
+            return await self._render("/__nextjs_restart_dev", method=request.method)
 
-            @assets.api_route(
-                "/__nextjs_server_status",
-                methods=["GET", "HEAD", "OPTIONS", "POST"],
-                include_in_schema=False,
-            )
-            async def _server_status(request: Request):
-                return await self._render(
-                    "/__nextjs_server_status", method=request.method
-                )
+        @assets.api_route(
+            "/__nextjs_server_status",
+            methods=["GET", "HEAD", "OPTIONS", "POST"],
+            include_in_schema=False,
+        )
+        async def _server_status(request: Request):
+            return await self._render("/__nextjs_server_status", method=request.method)
 
-            @assets.api_route(
-                "/_next/{rest:path}",
-                methods=["GET", "HEAD", "OPTIONS", "POST"],
-                include_in_schema=False,
-            )
-            async def _next_assets(request: Request, rest: str):
-                # stream static asset through UDS (cache headers preserved)
-                return await self._render("/_next/" + rest, method=request.method)
+        @assets.api_route(
+            "/_next/{rest:path}",
+            methods=["GET", "HEAD", "OPTIONS", "POST"],
+            include_in_schema=False,
+        )
+        async def _next_assets(request: Request, rest: str):
+            # stream static asset through UDS (cache headers preserved)
+            return await self._render("/_next/" + rest, method=request.method)
 
-            @assets.api_route(
-                "/__nextjs_original-stack_frame",
-                methods=["GET", "HEAD", "OPTIONS"],
-                include_in_schema=False,
-            )
-            async def _dev_stack(request: Request):
-                return await self._render("/__nextjs_original-stack_frame")
+        @assets.api_route(
+            "/__nextjs_original-stack_frame",
+            methods=["GET", "HEAD", "OPTIONS"],
+            include_in_schema=False,
+        )
+        async def _dev_stack(request: Request):
+            return await self._render("/__nextjs_original-stack_frame")
 
-            @assets.api_route(
+        @assets.api_route(
+            "/__nextjs_source-map",
+            methods=["GET", "HEAD", "OPTIONS"],
+            include_in_schema=False,
+        )
+        async def _next_source_map(request: Request):
+            return await self._render(
                 "/__nextjs_source-map",
-                methods=["GET", "HEAD", "OPTIONS"],
-                include_in_schema=False,
+                method=request.method,
+                query_string=str(request.query_params),
             )
-            async def _next_source_map(request: Request):
-                return await self._render(
-                    "/__nextjs_source-map",
-                    method=request.method,
-                    query_string=str(request.query_params),
-                )
 
-            self.router.include_router(assets)
+        self.router.include_router(assets)
 
     def _wire_dev_indicator(self):
         # adds a websocket route that closes when server is restarted

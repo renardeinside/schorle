@@ -1,13 +1,14 @@
 # schorle/socket_store.py
 import asyncio
 import contextlib
-import os
 from pathlib import Path
+from schorle.settings import UdsSettings, TcpSettings
 
 
 class SocketStore:
-    def __init__(self, socket_path: str | os.PathLike):
-        self.socket_path = Path(socket_path)
+    def __init__(self, connection_config: UdsSettings | TcpSettings):
+        """Initialize SocketStore with either new ConnectionConfig or legacy path"""
+        self.config = connection_config
         self._store: dict[str, bytes] = {}
         self._server: asyncio.AbstractServer | None = None
 
@@ -15,21 +16,60 @@ class SocketStore:
         self._store[key] = value
 
     async def start(self) -> None:
-        if self.socket_path.exists():
-            self.socket_path.unlink()
-        self.socket_path.parent.mkdir(parents=True, exist_ok=True)
-        self._server = await asyncio.start_unix_server(
-            self._handle_client, path=str(self.socket_path)
-        )
+        if isinstance(self.config, UdsSettings):
+            print(
+                f"🔵 [schorle][store] Starting UDS server on {self.config.store_socket_path}"
+            )
+            # UDS mode
+            socket_path = Path(self.config.store_socket_path)
+            if socket_path.exists():
+                socket_path.unlink()
+            socket_path.parent.mkdir(parents=True, exist_ok=True)
+            self._server = await asyncio.start_unix_server(
+                self._handle_client, path=str(socket_path)
+            )
+            print(
+                f"🔵 [schorle][store] UDS server started on {self.config.store_socket_path}"
+            )
+        elif isinstance(self.config, TcpSettings):
+            # TCP mode
+            print(
+                f"🔵 [schorle][store] Starting TCP server on {self.config.host}:{self.config.store_port}"
+            )
+            self._server = await asyncio.start_server(
+                self._handle_client, host=self.config.host, port=self.config.store_port
+            )
+            print(
+                f"🔵 [schorle][store] TCP server started on {self.config.host}:{self.config.store_port}"
+            )
+        else:
+            raise ValueError(f"Unsupported connection config: {type(self.config)}")
 
     async def stop(self) -> None:
         if self._server is not None:
             self._server.close()
             await self._server.wait_closed()
             self._server = None
-        with contextlib.suppress(FileNotFoundError):
-            if self.socket_path.exists():
-                self.socket_path.unlink()
+
+        # Only clean up socket file for UDS connections
+        if isinstance(self.config, UdsSettings):
+            with contextlib.suppress(FileNotFoundError):
+                socket_path = Path(self.config.store_socket_path)
+                if socket_path.exists():
+                    socket_path.unlink()
+
+    def get_connection_info(self) -> dict:
+        """Get connection information for clients"""
+        if isinstance(self.config, UdsSettings):
+            return {"mode": "uds", "socket_path": self.config.store_socket_path}
+        elif isinstance(self.config, TcpSettings):
+            return {
+                "mode": "tcp",
+                "host": self.config.host,
+                "port": self.config.store_port,
+            }
+        else:
+            raise ValueError(f"Unsupported connection config: {type(self.config)}")
 
     async def _handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter

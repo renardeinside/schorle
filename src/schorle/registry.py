@@ -269,9 +269,15 @@ def generate_py_registry(pages: list[FoundPage]) -> str:
 
 # ---------- CLI ----------
 def registry(
-    pages: Path = typer.Argument(..., help="Path to pages root (e.g. ./pages)"),
-    ts_out: Path = typer.Argument(..., help="Output file (e.g. ./app/gen.registry.ts)"),
-    py_out: Path = typer.Argument(..., help="Output file (e.g. __init__.py)"),
+    pages: Path = typer.Argument(
+        Path("app/pages"), help="Path to pages root (e.g. ./pages)"
+    ),
+    ts_out: Path = typer.Argument(
+        Path("app/gen.registry.ts"), help="Output file (e.g. ./app/gen.registry.ts)"
+    ),
+    py_out: Path = typer.Argument(
+        Path("registry.py"), help="Output file for python module"
+    ),
     import_prefix: str = typer.Argument(
         "@/pages",
         help='Module spec prefix for imports, e.g. "@/pages"',

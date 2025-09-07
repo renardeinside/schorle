@@ -4,3 +4,4 @@ docs/.next/
 **/.next/
 .next/
 examples/slx/.schorle/.next
+.mypy_cache/

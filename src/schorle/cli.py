@@ -66,7 +66,7 @@ def init(
 
     # copy ../templates/.schorle/**/* to schorle_path
     shutil.copytree(
-        templates_path / ".schorle",
+        str(templates_path / ".schorle"),
         schorle_path,
         dirs_exist_ok=True,
     )
@@ -76,7 +76,7 @@ def init(
 
     # copy templates/app to project_path/app
     shutil.copytree(
-        templates_path / "app",
+        str(templates_path / "app"),
         project_path / "app",
         dirs_exist_ok=True,
     )
@@ -98,7 +98,7 @@ def init(
 
     # copy ../templates/tsconfig.json to project_path/tsconfig.json
     shutil.copy(
-        templates_path / "tsconfig.json",
+        str(templates_path / "tsconfig.json"),
         project_path / "tsconfig.json",
     )
 

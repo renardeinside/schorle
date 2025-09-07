@@ -1244,6 +1244,8 @@ dev = [
     { name = "aiohttp", specifier = ">=3.12.15" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "msgpack-types", specifier = ">=0.5.0" },
+    { name = "pylint", specifier = ">=3.3.8" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
