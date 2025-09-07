@@ -43,13 +43,11 @@ class IpcManager:
 
         # Socket path
         self._socket_path = socket_path or f"/tmp/slx-{secrets.token_hex(8)}.sock"
-        self._store_socket_path = store_socket_path
+
         print(f"[ipc] Using socket path: {self._socket_path}")
 
         # Command (append socket path as final arg)
-        self._bun_cmd = (
-            tuple(bun_cmd) + (self._socket_path,) + (self._store_socket_path,)
-        )
+        self._bun_cmd = tuple(bun_cmd) + (self._socket_path,) + (store_socket_path,)
         self._base_http = base_http
         self._ready_check_url = f"{base_http}{ready_check_url}"
         self._ready_timeout_s = ready_timeout_s

@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import json
 import os
+from functools import partial
 from pathlib import Path
 import secrets
 from typing import AsyncIterator, Mapping, Optional
@@ -16,6 +17,7 @@ from schorle.ipc_manager import IpcManager
 from schorle.dev_extension import DevExtension
 from schorle.settings import SchorleSettings, IpcSettings
 from schorle.store import SocketStore
+import msgpack
 
 
 class Schorle:
@@ -41,11 +43,15 @@ class Schorle:
             raise ValueError(
                 f"Project root does not have a .schorle directory: {self.project_root}"
             )
+
+        self._store_socket_path = Path(f"/tmp/slx-store-{secrets.token_hex(8)}.sock")
+
         if ipc is None:
             ipc = IpcSettings(
                 bun_cmd=("bun", "run", "server.ts"),
                 socket_path=None,
-                ready_check_url="/",
+                ready_check_url="/schorle/render",
+                store_socket_path=str(self._store_socket_path),
             )
         self.cwd = self.project_root / ".schorle"
 
@@ -61,14 +67,12 @@ class Schorle:
         self._http: Optional[httpx.AsyncClient] = None
         self._ws: Optional[aiohttp.ClientSession] = None
 
-        self._store_socket_path = Path(f"/tmp/slx-store-{secrets.token_hex(8)}.sock")
-
         # IPC supervisor
         self.ipc = IpcManager(
             cwd=self.cwd,
             bun_cmd=ipc.bun_cmd,
             socket_path=ipc.socket_path,
-            store_socket_path=str(self._store_socket_path),
+            store_socket_path=ipc.store_socket_path,
             base_http=self.base_http,
             ready_check_url=ipc.ready_check_url,
             ready_timeout_s=ipc.ready_timeout_s,
@@ -77,7 +81,7 @@ class Schorle:
             upstream_host=self.upstream_host,
         )
 
-        self.store = SocketStore(self._store_socket_path)
+        self.store = SocketStore(ipc.store_socket_path)
 
         # Root router; feature routers can be included under it
         self.router = APIRouter()
@@ -90,7 +94,7 @@ class Schorle:
                 upstream_ws_path=self.upstream_ws_path,
                 mount_assets_proxy=cfg.mount_assets_proxy,
                 ensure_http=self._ensure_http,
-                render=self.render,
+                render=partial(self.render, add_prefix=False),
                 get_ws_session=self._get_ws_session,
             )
             self.router.include_router(self.dev.router)
@@ -151,22 +155,30 @@ class Schorle:
         body_stream: Optional[AsyncIterator[bytes]] = None,
         query_string: Optional[str] = None,
         props: Optional[dict] = None,
+        add_prefix: bool = True,
     ) -> StreamingResponse:
         if not route_path.startswith("/"):
             route_path = "/" + route_path
 
         client = await self._ensure_http("render")
-        url = f"{self.base_http}{route_path}"
+        url = (
+            f"{self.base_http}/schorle/render{route_path}"
+            if add_prefix
+            else f"{self.base_http}{route_path}"
+        )
         if query_string:
             url += f"?{query_string}"
 
         in_headers = dict(headers or {})
         in_headers.setdefault("host", self.upstream_host)
 
+        print(f"[schorle] Rendering {method} {url} with props: {props}")
         if props is not None:
-            store_id = secrets.token_hex(20)
-            self.store.set(store_id, json.dumps(props))
-            in_headers["x-schorle-store-id"] = store_id
+            props_id = secrets.token_hex(10)
+            self.store.set(props_id, msgpack.packb(props))
+            in_headers["x-schorle-props-id"] = props_id
+        else:
+            print("[schorle] No props to upload.")
 
         req = client.build_request(
             method=method,
@@ -222,7 +234,10 @@ class Schorle:
         await self.ipc.wait_until_ready()
 
     async def _on_shutdown(self):
-        await self.ipc.stop()
+        try:
+            await self.ipc.stop()
+        except Exception as e:
+            print(f"[schorle] Error stopping IPC: {e}")
         await self.store.stop()
 
         if self._http:

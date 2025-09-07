@@ -17,7 +17,7 @@ if (!SOCKET_PATH || !STORE_SOCKET_PATH) {
   process.exit(1);
 }
 
-process.env.SCHORLE_SOCKET_STORE_PATH = STORE_SOCKET_PATH;
+process.env.SCHORLE_STORE_SOCKET_PATH = STORE_SOCKET_PATH;
 
 await app.prepare();
 

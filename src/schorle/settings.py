@@ -29,7 +29,10 @@ class IpcSettings(BaseModel):
     socket_path: Optional[str] = Field(
         None, description="Explicit UDS path; random if None"
     )
-    ready_check_url: str = Field("/", description="Path to probe for readiness")
+    store_socket_path: Optional[str] = Field(
+        None, description="Explicit UDS path for store; random if None"
+    )
+    ready_check_url: str = Field("/pages/", description="Path to probe for readiness")
     ready_timeout_s: float = Field(
         30.0, description="Max seconds to wait for readiness"
     )

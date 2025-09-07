@@ -104,7 +104,7 @@ def init(
         cwd=schorle_path,
     )
     # add next-themes
-    subprocess.run(["bun", "add", "next-themes"], cwd=schorle_path)
+    subprocess.run(["bun", "add", "next-themes", "@msgpack/msgpack"], cwd=schorle_path)
 
     # add button
     subprocess.run(
