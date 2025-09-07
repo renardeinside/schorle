@@ -29,10 +29,6 @@ export const pageRegistry: PageRegistry = {
     layouts: [(await import("@/pages/./__layout")).default],
     Page: (await import("@/pages/Index")).default,
   },
-  OtherStats: {
-    layouts: [(await import("@/pages/./__layout")).default],
-    Page: (await import("@/pages/OtherStats")).default,
-  },
   Stats: {
     layouts: [(await import("@/pages/./__layout")).default],
     Page: (await import("@/pages/Stats")).default,

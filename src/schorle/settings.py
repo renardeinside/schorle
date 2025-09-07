@@ -1,5 +1,20 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Sequence
+import os
+import sys
+
+
+def define_if_dev():
+    # we assume it's a dev run in following cases:
+    # os.environ.get("SCHORLE_ENV") == "development"
+    # startup command is uvicorn with --reload flag
+    # startup command contains fastapi dev
+
+    return (
+        os.environ.get("SCHORLE_ENV") == "development"
+        or "--reload" in sys.argv
+        or "fastapi dev" in sys.argv
+    )
 
 
 class SchorleSettings(BaseModel):
@@ -17,7 +32,8 @@ class SchorleSettings(BaseModel):
         True, description="Proxy Next asset/dev routes during development"
     )
     enable_dev_extension: bool = Field(
-        True, description="Enable DevExtension (HMR, assets, dev-indicator)"
+        default_factory=define_if_dev,
+        description="Enable DevExtension (HMR, assets, dev-indicator)",
     )
 
 
@@ -39,3 +55,7 @@ class IpcSettings(BaseModel):
     retry_base_delay_s: float = Field(1.5, description="Supervisor backoff base")
     retry_max_delay_s: float = Field(30.0, description="Supervisor backoff cap")
     with_bun_logs: bool = Field(False, description="Stream Bun logs to stdout")
+    env: dict[str, str] = Field(
+        default_factory=dict,
+        description="Environment variables to set for bun child process",
+    )

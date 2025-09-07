@@ -37,12 +37,14 @@ class IpcManager:
         retry_max_delay_s: float,
         upstream_host: str,
         with_bun_logs: bool,
+        env: dict[str, str],
     ):
         self.cwd = Path(cwd)
         if not self.cwd.is_dir():
             raise ValueError(f"IpcManager cwd does not exist: {self.cwd}")
 
         self.with_bun_logs = with_bun_logs
+        self.env = env
 
         # Socket path
         self._socket_path = socket_path or f"/tmp/slx-{secrets.token_hex(8)}.sock"
@@ -186,12 +188,17 @@ class IpcManager:
         with contextlib.suppress(FileNotFoundError):
             os.unlink(self._socket_path)
 
+        full_env = os.environ.copy()
+
+        full_env.update(self.env)
+
         proc = await asyncio.create_subprocess_exec(
             *self._bun_cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             start_new_session=True,
             cwd=str(self.cwd),
+            env=full_env,
         )
 
         if self.with_bun_logs:

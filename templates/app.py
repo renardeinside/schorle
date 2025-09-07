@@ -1,11 +1,8 @@
-from schorle.app import Schorle
 from fastapi import FastAPI
-from registry import pages
+from aurora.ui import pages, ui
 from datetime import datetime
 
 app = FastAPI()
-
-ui = Schorle()
 
 ui.mount(app)
 

@@ -8,7 +8,7 @@ from typing import AsyncIterator, Mapping, Optional
 
 import aiohttp
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.concurrency import asynccontextmanager
 from starlette.responses import StreamingResponse
 
@@ -17,6 +17,9 @@ from schorle.dev_extension import DevExtension
 from schorle.settings import SchorleSettings, IpcSettings
 from schorle.store import SocketStore
 import msgpack
+import subprocess
+from schorle.utils import keys_to_camel_case
+from fastapi.staticfiles import StaticFiles
 
 
 class Schorle:
@@ -37,10 +40,12 @@ class Schorle:
         self.project_root = Path(project_root)
 
         if not self.project_root.is_dir():
-            raise ValueError(f"Project root is not a directory: {self.project_root}")
+            raise ValueError(
+                f"Project root {self.project_root.absolute()} is not a directory"
+            )
         if not (self.project_root / ".schorle").is_dir():
             raise ValueError(
-                f"Project root does not have a .schorle directory: {self.project_root}"
+                f"Project root does not have a .schorle subdirectory: {self.project_root.absolute()}"
             )
 
         self._store_socket_path = Path(f"/tmp/slx-store-{secrets.token_hex(8)}.sock")
@@ -55,16 +60,34 @@ class Schorle:
         self.cwd = self.project_root / ".schorle"
 
         if cfg is None:
-            cfg = SchorleSettings()
+            self.cfg = SchorleSettings()
+        else:
+            self.cfg = cfg
 
         # Upstream/paths
-        self.upstream_host = cfg.upstream_host
-        self.base_http = cfg.base_http
-        self.upstream_ws_path = cfg.upstream_ws_path
+        self.upstream_host = self.cfg.upstream_host
+        self.base_http = self.cfg.base_http
+        self.upstream_ws_path = self.cfg.upstream_ws_path
 
         # Lifecycle clients (initialized during startup)
         self._http: Optional[httpx.AsyncClient] = None
         self._ws: Optional[aiohttp.ClientSession] = None
+
+        if self.cfg.enable_dev_extension:
+            print("[schorle] Is running in development mode")
+        else:
+            print("[schorle] Is running in production mode")
+
+            # check if project_root/.schorle/.next/build exists
+            if not (self.project_root / ".schorle" / ".next" / "build").exists():
+                print("[schorle] Build directory does not exist - running build script")
+                subprocess.run(
+                    ["bun", "run", "build"], cwd=self.project_root / ".schorle"
+                )
+                print("[schorle] Running build script - finished")
+            else:
+                print("[schorle] Build directory exists - skipping build script")
+            ipc.env = {"NODE_ENV": "production"}
 
         # IPC supervisor
         self.ipc = IpcManager(
@@ -79,6 +102,7 @@ class Schorle:
             retry_max_delay_s=ipc.retry_max_delay_s,
             upstream_host=self.upstream_host,
             with_bun_logs=ipc.with_bun_logs,
+            env=ipc.env,
         )
 
         self.store = SocketStore(ipc.store_socket_path)
@@ -88,17 +112,26 @@ class Schorle:
 
         # Dev-only extension (HMR WS, asset proxy, dev-indicator)
         self.dev: Optional[DevExtension] = None
-        if cfg.enable_dev_extension:
+        if self.cfg.enable_dev_extension:
             self.dev = DevExtension(
                 project_root=self.project_root,
                 upstream_host=self.upstream_host,
                 upstream_ws_path=self.upstream_ws_path,
-                mount_assets_proxy=cfg.mount_assets_proxy,
+                mount_assets_proxy=self.cfg.mount_assets_proxy,
                 ensure_http=self._ensure_http,
                 render=partial(self.render, add_prefix=False),
                 get_ws_session=self._get_ws_session,
             )
             self.router.include_router(self.dev.router)
+
+    def _wire_production_routes(self, app: FastAPI):
+        next_files_path = self.project_root / ".schorle" / ".next"
+        print(f"[schorle] Wiring production routes to {next_files_path} ")
+        app.mount(
+            "/_next",
+            StaticFiles(directory=next_files_path),
+        )
+        print("[schorle] Production routes wired.")
 
     # ---------- public API ----------
 
@@ -131,6 +164,9 @@ class Schorle:
             app.router.lifespan_context = combined
             app.state._schorle_lifespan_installed = True
             print("[schorle] Lifespan composed and installed.")
+
+            if not self.cfg.enable_dev_extension:
+                self._wire_production_routes(app)
 
         if not getattr(app.state, "_schorle_routes_mounted", False):
             app.include_router(self.router)
@@ -175,7 +211,8 @@ class Schorle:
 
         if props is not None:
             props_id = secrets.token_hex(10)
-            self.store.set(props_id, msgpack.packb(props))
+            casted_props = keys_to_camel_case(props)
+            self.store.set(props_id, msgpack.packb(casted_props))
             in_headers["x-schorle-props-id"] = props_id
 
         req = client.build_request(

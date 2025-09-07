@@ -15,6 +15,10 @@ function devIndicatorUrl() {
 }
 
 export default function SchorleLiveIndicator() {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
   const [status, setStatus] = useState<Status>("connecting");
   const [lastPing, setLastPing] = useState<number | null>(null);
 
