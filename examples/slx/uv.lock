@@ -1175,6 +1175,7 @@ dev = [
     { name = "aiohttp", specifier = ">=3.12.15" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "pytest", specifier = ">=8.4.2" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
 
