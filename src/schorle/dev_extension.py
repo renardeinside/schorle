@@ -165,6 +165,18 @@ class DevExtension:
             async def _dev_stack(request: Request):
                 return await self._render("/__nextjs_original-stack_frame")
 
+            @assets.api_route(
+                "/__nextjs_source-map",
+                methods=["GET", "HEAD", "OPTIONS"],
+                include_in_schema=False,
+            )
+            async def _next_source_map(request: Request):
+                return await self._render(
+                    "/__nextjs_source-map",
+                    method=request.method,
+                    query_string=str(request.query_params),
+                )
+
             self.router.include_router(assets)
 
     def _wire_dev_indicator(self):

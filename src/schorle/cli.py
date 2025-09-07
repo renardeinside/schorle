@@ -60,20 +60,43 @@ def init(
     content["name"] = project_name
     package_json.write_text(json.dumps(content, indent=2))
 
-    # add next.config.ts to schorle_path
-    shutil.copy(
-        templates_path / ".schorle" / "next.config.ts",
-        schorle_path / "next.config.ts",
+    # copy ../templates/.schorle/**/* to schorle_path
+    shutil.copytree(
+        templates_path / ".schorle",
+        schorle_path,
+        dirs_exist_ok=True,
     )
 
-    # copy ../templates/.schorle/tsconfig.json to schorle_path/tsconfig.json
-    shutil.copy(
-        templates_path / ".schorle" / "tsconfig.json",
-        schorle_path / "tsconfig.json",
+    # remove .schorle/public folder
+    shutil.rmtree(schorle_path / "public")
+
+    # copy templates/app to project_path/app
+    shutil.copytree(
+        templates_path / "app",
+        project_path / "app",
+        dirs_exist_ok=True,
     )
 
-    # prepare project_path/app/components
-    (project_path / "app" / "components").mkdir(parents=True, exist_ok=True)
+    first_letter = project_name[0].upper()
+    logo_template = project_path / "app" / "public" / "logo.template.svg"
+    logo_template.write_text(
+        logo_template.read_text().replace("{{project_first_letter}}", first_letter)
+    )
+    shutil.copy(
+        logo_template,
+        project_path / "app" / "public" / "logo.svg",
+    )
+
+    logo_template.unlink()
+
+    # remove default page.tsx
+    (schorle_path / "app" / "page.tsx").unlink()
+
+    # copy ../templates/tsconfig.json to project_path/tsconfig.json
+    shutil.copy(
+        templates_path / "tsconfig.json",
+        project_path / "tsconfig.json",
+    )
 
     # add shadcn
     subprocess.run(
@@ -88,62 +111,6 @@ def init(
         ["bunx", "--bun", "shadcn@latest", "add", "button"], cwd=schorle_path
     )
 
-    # copy ../templates/server.ts to project_path/server.ts
-    shutil.copy(
-        templates_path / "server.ts",
-        schorle_path / "server.ts",
-    )
-
-    # copy ../templates/tsconfig.json to project_path/tsconfig.json
-    shutil.copy(
-        templates_path / "tsconfig.json",
-        project_path / "tsconfig.json",
-    )
-
-    # init uv in project_path
-    subprocess.run(["uv", "init", "--no-workspace", "--app", "."], cwd=project_path)
-
-    # install schorle python package
-    schorle_package_path = importlib.resources.files("schorle").parent.parent
-    subprocess.run(["uv", "add", "--editable", schorle_package_path], cwd=project_path)
-
-    # copy pages/index.tsx to project_path/app/pages/index.tsx
-    project_path.joinpath("app").joinpath("pages").mkdir(parents=True, exist_ok=True)
-
-    shutil.copy(
-        templates_path / "pages" / "Index.tsx",
-        project_path / "app" / "pages" / "Index.tsx",
-    )
-
-    # copy ../templates/theme to schorle_path/components/theme
-    shutil.copytree(
-        templates_path / "components" / "theme",
-        project_path / "app" / "components" / "theme",
-    )
-
-    # copy ../templates/layout.tsx to schorle_path/app/layout.tsx
-    shutil.copy(
-        templates_path / "layout.tsx",
-        project_path / "app" / "pages" / "__layout.tsx",
-    )
-
-    # copy ../templates/page.tsx to schorle_path/app/[[...slug]]/page.tsx
-    schorle_path.joinpath("app").joinpath("[[...slug]]").mkdir(
-        parents=True, exist_ok=True
-    )
-
-    shutil.copy(
-        templates_path / "page.tsx",
-        schorle_path / "app" / "[[...slug]]" / "page.tsx",
-    )
-
-    # remove .schorle/app/page.tsx and .schorle/app/layout.tsx
-    (schorle_path / "app" / "page.tsx").unlink()
-    (schorle_path / "app" / "layout.tsx").unlink()
-
-    # remove .schorle/public folder
-    shutil.rmtree(schorle_path / "public")
-
     # add
     # this -> @source "../../app/pages/";
     # after -> @import "tw-animate-css";
@@ -155,8 +122,7 @@ def init(
         "\n".join(
             [
                 '@import "tw-animate-css";',
-                '@source "../../app/pages/";',
-                '@source "../../app/components/";',
+                '@source "../../app/";',
             ]
         ),
     )
@@ -168,6 +134,13 @@ def init(
         Path(".schorle/node_modules"), target_is_directory=True
     )
 
+    # init uv in project_path
+    subprocess.run(["uv", "init", "--no-workspace", "--app", "."], cwd=project_path)
+
+    # install schorle python package
+    schorle_package_path = importlib.resources.files("schorle").parent.parent
+    subprocess.run(["uv", "add", "--editable", schorle_package_path], cwd=project_path)
+
     # gen pages
     registry(
         pages=project_path / "app" / "pages",
@@ -176,23 +149,10 @@ def init(
         import_prefix="@/pages",
     )
 
-    # copy ./template/.schorle/layout.tsx to schorle_path/app/layout.tsx
-    shutil.copy(
-        templates_path / ".schorle" / "layout.tsx",
-        schorle_path / "app" / "layout.tsx",
-    )
-
     # copy ./template/app.py to project_path/app.py
     shutil.copy(
         templates_path / "app.py",
         project_path / "main.py",
-    )
-
-    # copy ./template/SchorleDevIndicator.tsx to project_path/app/components/dev/SchorleDevIndicator.tsx
-    (project_path / "app" / "components" / "dev").mkdir(parents=True, exist_ok=True)
-    shutil.copy(
-        templates_path / "components" / "dev" / "SchorleDevIndicator.tsx",
-        project_path / "app" / "components" / "dev" / "SchorleDevIndicator.tsx",
     )
 
     # add uvicorn[standard]
