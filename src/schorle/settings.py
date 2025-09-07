@@ -40,7 +40,7 @@ class SchorleSettings(BaseModel):
 class IpcSettings(BaseModel):
     # Bun/IPC supervision config
     bun_cmd: Sequence[str] = Field(
-        ("bun", "run", "server.ts"), description="Command to launch upstream dev server"
+        ..., description="Command to launch upstream dev server"
     )
     socket_path: Optional[str] = Field(
         None, description="Explicit UDS path; random if None"

@@ -8,10 +8,11 @@ from typing import AsyncIterator, Mapping, Optional
 
 import aiohttp
 import httpx
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, FastAPI
 from fastapi.concurrency import asynccontextmanager
 from starlette.responses import StreamingResponse
 
+from schorle.bun import check_and_prepare_bun
 from schorle.ipc_manager import IpcManager
 from schorle.dev_extension import DevExtension
 from schorle.settings import SchorleSettings, IpcSettings
@@ -48,12 +49,15 @@ class Schorle:
                 f"Project root does not have a .schorle subdirectory: {self.project_root.absolute()}"
             )
 
+        self.bun_executable = check_and_prepare_bun()
+
         self._store_socket_path = Path(f"/tmp/slx-store-{secrets.token_hex(8)}.sock")
+        self._socket_path = Path(f"/tmp/slx-{secrets.token_hex(8)}.sock")
 
         if ipc is None:
             ipc = IpcSettings(
-                bun_cmd=("bun", "run", "server.ts"),
-                socket_path=None,
+                bun_cmd=(self.bun_executable, "run", "server.ts"),
+                socket_path=str(self._socket_path),
                 ready_check_url="/schorle/render",
                 store_socket_path=str(self._store_socket_path),
             )
@@ -82,7 +86,8 @@ class Schorle:
             if not (self.project_root / ".schorle" / ".next" / "build").exists():
                 print("[schorle] Build directory does not exist - running build script")
                 subprocess.run(
-                    ["bun", "run", "build"], cwd=self.project_root / ".schorle"
+                    [self.bun_executable, "run", "build"],
+                    cwd=self.project_root / ".schorle",
                 )
                 print("[schorle] Running build script - finished")
             else:

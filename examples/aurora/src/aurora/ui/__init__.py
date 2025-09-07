@@ -4,3 +4,4 @@ from schorle.app import Schorle
 from pathlib import Path
 
 ui = Schorle(Path(__file__).parent)
+__all__ = ["pages", "ui"]

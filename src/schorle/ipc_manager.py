@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 import httpx
-import secrets
 
 
 class IpcManager:
@@ -28,7 +27,7 @@ class IpcManager:
         *,
         cwd: Path,
         bun_cmd: Sequence[str],
-        socket_path: Optional[str],
+        socket_path: str,
         store_socket_path: str,
         base_http: str,
         ready_check_url: str,
@@ -47,7 +46,7 @@ class IpcManager:
         self.env = env
 
         # Socket path
-        self._socket_path = socket_path or f"/tmp/slx-{secrets.token_hex(8)}.sock"
+        self._socket_path = socket_path
 
         print(f"[ipc] Using socket path: {self._socket_path}")
 

@@ -6,6 +6,7 @@ from pathlib import Path
 import importlib.metadata
 import importlib.resources
 import os
+from schorle.bun import check_and_prepare_bun
 from schorle.registry import registry
 
 __version__ = importlib.metadata.version("schorle")
@@ -38,10 +39,12 @@ def init(
     schorle_path = project_path / ".schorle"
     schorle_path.mkdir(parents=True, exist_ok=True)
 
+    bun_executable = check_and_prepare_bun()
+
     # run bun init in project_path
     subprocess.run(
         [
-            "bun",
+            bun_executable,
             "create",
             "next-app",
             "schorle",
@@ -101,15 +104,17 @@ def init(
 
     # add shadcn
     subprocess.run(
-        ["bunx", "--bun", "shadcn@latest", "init", "--yes", "-b", "neutral"],
+        [bun_executable, "x", "shadcn@latest", "init", "--yes", "-b", "neutral"],
         cwd=schorle_path,
     )
     # add next-themes
-    subprocess.run(["bun", "add", "next-themes", "@msgpack/msgpack"], cwd=schorle_path)
+    subprocess.run(
+        [bun_executable, "add", "next-themes", "@msgpack/msgpack"], cwd=schorle_path
+    )
 
     # add button
     subprocess.run(
-        ["bunx", "--bun", "shadcn@latest", "add", "button"], cwd=schorle_path
+        [bun_executable, "x", "shadcn@latest", "add", "button"], cwd=schorle_path
     )
 
     # add
@@ -152,6 +157,7 @@ def init(
                 "from schorle.app import Schorle",
                 "from pathlib import Path",
                 "ui = Schorle(Path(__file__).parent)",
+                "__all__ = ['pages', 'ui']",
             ]
         )
     )
