@@ -6,7 +6,7 @@ import contextlib
 import json
 import os
 from pathlib import Path
-from typing import AsyncIterator, Mapping, Optional, Sequence
+from typing import AsyncIterator, Mapping, Optional
 
 import aiohttp
 import httpx
@@ -16,6 +16,7 @@ from starlette.responses import StreamingResponse
 
 from schorle.ipc_manager import IpcManager
 from schorle.dev_extension import DevExtension
+from schorle.settings import SchorleSettings, IpcSettings
 
 
 class Schorle:
@@ -28,62 +29,62 @@ class Schorle:
 
     def __init__(
         self,
-        project_root: str | os.PathLike,
-        *,
-        bun_cmd: Sequence[str] = ("bun", "run", "server.ts"),
-        socket_path: str | None = None,
-        upstream_host: str = "localhost",
-        base_http: str = "http://localhost",  # ignored by UDS transport
-        upstream_ws_path: str = "/_next/webpack-hmr",
-        ready_check_url: str = "/",
-        ready_timeout_s: float = 30.0,
-        retry_base_delay_s: float = 1.5,
-        retry_max_delay_s: float = 30.0,
-        mount_assets_proxy: bool = True,  # proxy a few Next asset paths (dev-only)
-        enable_dev_extension: bool = True,
+        project_root: str | os.PathLike | Path = ".",
+        cfg: SchorleSettings = None,
+        ipc: IpcSettings | None = None,
     ):
+        # Validate & derive paths
         self.project_root = Path(project_root)
+
         if not self.project_root.is_dir():
             raise ValueError(f"Project root is not a directory: {self.project_root}")
         if not (self.project_root / ".schorle").is_dir():
             raise ValueError(
                 f"Project root does not have a .schorle directory: {self.project_root}"
             )
-
+        if ipc is None:
+            ipc = IpcSettings(
+                bun_cmd=("bun", "run", "server.ts"),
+                socket_path=None,
+                ready_check_url="/",
+            )
         self.cwd = self.project_root / ".schorle"
 
-        # Upstream/paths
-        self.upstream_host = upstream_host
-        self.base_http = base_http
-        self.upstream_ws_path = upstream_ws_path
+        if cfg is None:
+            cfg = SchorleSettings()
 
-        # Lifecycle state
+        # Upstream/paths
+        self.upstream_host = cfg.upstream_host
+        self.base_http = cfg.base_http
+        self.upstream_ws_path = cfg.upstream_ws_path
+
+        # Lifecycle clients (initialized during startup)
         self._http: Optional[httpx.AsyncClient] = None
         self._ws: Optional[aiohttp.ClientSession] = None
 
-        # Supervisor moved into IpcManager
+        # IPC supervisor
         self.ipc = IpcManager(
             cwd=self.cwd,
-            bun_cmd=bun_cmd,
-            socket_path=socket_path,
+            bun_cmd=ipc.bun_cmd,
+            socket_path=ipc.socket_path,
             base_http=self.base_http,
-            ready_check_url=ready_check_url,
-            ready_timeout_s=ready_timeout_s,
-            retry_base_delay_s=retry_base_delay_s,
-            retry_max_delay_s=retry_max_delay_s,
+            ready_check_url=ipc.ready_check_url,
+            ready_timeout_s=ipc.ready_timeout_s,
+            retry_base_delay_s=ipc.retry_base_delay_s,
+            retry_max_delay_s=ipc.retry_max_delay_s,
             upstream_host=self.upstream_host,
         )
 
-        # Root router (feature routers can be included under it)
+        # Root router; feature routers can be included under it
         self.router = APIRouter()
 
         # Dev-only extension (HMR WS, asset proxy, dev-indicator)
         self.dev: Optional[DevExtension] = None
-        if enable_dev_extension:
+        if cfg.enable_dev_extension:
             self.dev = DevExtension(
                 upstream_host=self.upstream_host,
                 upstream_ws_path=self.upstream_ws_path,
-                mount_assets_proxy=mount_assets_proxy,
+                mount_assets_proxy=cfg.mount_assets_proxy,
                 ensure_http=self._ensure_http,
                 render=self.render,
                 get_ws_session=self._get_ws_session,
