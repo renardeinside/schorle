@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import json
 import os
 from functools import partial
 from pathlib import Path
@@ -79,6 +78,7 @@ class Schorle:
             retry_base_delay_s=ipc.retry_base_delay_s,
             retry_max_delay_s=ipc.retry_max_delay_s,
             upstream_host=self.upstream_host,
+            with_bun_logs=ipc.with_bun_logs,
         )
 
         self.store = SocketStore(ipc.store_socket_path)
@@ -90,6 +90,7 @@ class Schorle:
         self.dev: Optional[DevExtension] = None
         if cfg.enable_dev_extension:
             self.dev = DevExtension(
+                project_root=self.project_root,
                 upstream_host=self.upstream_host,
                 upstream_ws_path=self.upstream_ws_path,
                 mount_assets_proxy=cfg.mount_assets_proxy,
@@ -172,13 +173,10 @@ class Schorle:
         in_headers = dict(headers or {})
         in_headers.setdefault("host", self.upstream_host)
 
-        print(f"[schorle] Rendering {method} {url} with props: {props}")
         if props is not None:
             props_id = secrets.token_hex(10)
             self.store.set(props_id, msgpack.packb(props))
             in_headers["x-schorle-props-id"] = props_id
-        else:
-            print("[schorle] No props to upload.")
 
         req = client.build_request(
             method=method,
@@ -233,9 +231,14 @@ class Schorle:
         await self.ipc.start()
         await self.ipc.wait_until_ready()
 
+        if self.dev:
+            self.dev.start_watcher()
+
     async def _on_shutdown(self):
         try:
             await self.ipc.stop()
+            if self.dev:
+                self.dev.stop_watcher()
         except Exception as e:
             print(f"[schorle] Error stopping IPC: {e}")
         await self.store.stop()

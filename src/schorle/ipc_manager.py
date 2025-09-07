@@ -36,10 +36,13 @@ class IpcManager:
         retry_base_delay_s: float,
         retry_max_delay_s: float,
         upstream_host: str,
+        with_bun_logs: bool,
     ):
         self.cwd = Path(cwd)
         if not self.cwd.is_dir():
             raise ValueError(f"IpcManager cwd does not exist: {self.cwd}")
+
+        self.with_bun_logs = with_bun_logs
 
         # Socket path
         self._socket_path = socket_path or f"/tmp/slx-{secrets.token_hex(8)}.sock"
@@ -177,7 +180,9 @@ class IpcManager:
                 print(f"❌ Failed to start Bun: {e!r}")
                 await asyncio.sleep(start_delay)
 
-    async def _spawn_bun(self):
+    async def _spawn_bun(
+        self,
+    ) -> tuple[asyncio.subprocess.Process, asyncio.Task | None, asyncio.Task | None]:
         with contextlib.suppress(FileNotFoundError):
             os.unlink(self._socket_path)
 
@@ -188,8 +193,14 @@ class IpcManager:
             start_new_session=True,
             cwd=str(self.cwd),
         )
-        t_out = asyncio.create_task(self._stream_output("🔵 [bun]", proc.stdout))  # type: ignore[arg-type]
-        t_err = asyncio.create_task(self._stream_output("🔴 [bun]", proc.stderr))  # type: ignore[arg-type]
+
+        if self.with_bun_logs:
+            t_out = asyncio.create_task(self._stream_output("🔵 [bun]", proc.stdout))  # type: ignore[arg-type]
+            t_err = asyncio.create_task(self._stream_output("🔴 [bun]", proc.stderr))  # type: ignore[arg-type]
+        else:
+            t_out = None
+            t_err = None
+
         return proc, t_out, t_err
 
     async def _terminate_proc(

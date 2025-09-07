@@ -38,3 +38,4 @@ class IpcSettings(BaseModel):
     )
     retry_base_delay_s: float = Field(1.5, description="Supervisor backoff base")
     retry_max_delay_s: float = Field(30.0, description="Supervisor backoff cap")
+    with_bun_logs: bool = Field(False, description="Stream Bun logs to stdout")

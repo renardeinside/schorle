@@ -1203,6 +1203,7 @@ dependencies = [
     { name = "rich" },
     { name = "tomlkit" },
     { name = "typer" },
+    { name = "watchfiles" },
 ]
 
 [package.metadata]
@@ -1218,6 +1219,7 @@ requires-dist = [
     { name = "rich", specifier = ">=14.1.0" },
     { name = "tomlkit", specifier = ">=0.13.3" },
     { name = "typer", specifier = ">=0.16.1" },
+    { name = "watchfiles", specifier = ">=1.1.0" },
 ]
 
 [package.metadata.requires-dev]

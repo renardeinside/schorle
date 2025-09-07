@@ -3,6 +3,7 @@
 import asyncio
 import contextlib
 import time
+from pathlib import Path
 import uuid
 from typing import Awaitable, Callable, Optional
 
@@ -10,7 +11,8 @@ import aiohttp
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 import httpx
 from starlette.responses import Response  # only for typing/help
-
+from watchfiles import awatch
+from schorle.registry import registry
 
 # Helper type hints for injected callables
 EnsureHttp = Callable[[str], Awaitable["httpx.AsyncClient"]]  # lazy import-safe hint
@@ -33,6 +35,7 @@ class DevExtension:
     def __init__(
         self,
         *,
+        project_root: str,
         upstream_host: str,
         upstream_ws_path: str = "/_next/webpack-hmr",
         mount_assets_proxy: bool = True,
@@ -40,6 +43,7 @@ class DevExtension:
         render: RenderFunc,
         get_ws_session: GetWsSession,
     ):
+        self.project_root = Path(project_root)
         self.upstream_host = upstream_host
         self.upstream_ws_path = upstream_ws_path
         self.mount_assets_proxy = mount_assets_proxy
@@ -56,6 +60,22 @@ class DevExtension:
         self.router = APIRouter()
         self._wire_routes()
         self._wire_dev_indicator()
+
+        self.watcher_task: Optional[asyncio.Task] = None
+        self._watch_debounce_ms = 100
+        self._watch_stop_event = asyncio.Event()
+
+    def start_watcher(self):
+        print("[DevExtension] Starting watcher")
+        self.watcher_task = asyncio.create_task(self._watch_app_and_rerun_registry())
+
+    def stop_watcher(self):
+        print("[DevExtension] Stopping watcher")
+        self._watch_stop_event.set()
+
+        if self.watcher_task:
+            self.watcher_task.cancel()
+            self.watcher_task = None
 
     # ---------- wiring ----------
 
@@ -200,6 +220,32 @@ class DevExtension:
                         break
 
             await indicator()
+
+    async def _watch_app_and_rerun_registry(self):
+        app_dir = (self.project_root / "app").resolve()
+        if not app_dir.exists():
+            print(f"[DevExtension] Watch skipped: {app_dir} does not exist")
+            return
+
+        print(f"[DevExtension] Watching for changes in: {app_dir}")
+        # awatch yields sets of (Change, path) tuples; debounce coalesces bursts
+        async for _changes in awatch(
+            app_dir,
+            stop_event=self._watch_stop_event,
+            debounce=self._watch_debounce_ms,
+        ):
+            # You can inspect `_changes` if you want to filter by ext, etc.
+            try:
+                print("[DevExtension] Change detected in /app — rebuilding registry…")
+                registry(
+                    pages=self.project_root / "app" / "pages",
+                    ts_out=self.project_root / ".schorle" / "app" / "registry.gen.tsx",
+                    py_out=self.project_root / "registry.py",
+                    import_prefix="@/pages",
+                )
+                print("[DevExtension] Registry rebuild complete.")
+            except Exception as e:
+                print(f"[DevExtension] Registry rebuild failed: {e}")
 
 
 # ---------- helpers ----------

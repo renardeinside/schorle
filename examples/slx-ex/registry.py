@@ -3,4 +3,5 @@
 
 class pages:
     Index = "/Index"  # /index
+    OtherStats = "/OtherStats"  # /otherstats
     Stats = "/Stats"  # /stats
