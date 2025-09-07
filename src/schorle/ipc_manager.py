@@ -29,6 +29,7 @@ class IpcManager:
         cwd: Path,
         bun_cmd: Sequence[str],
         socket_path: Optional[str],
+        store_socket_path: str,
         base_http: str,
         ready_check_url: str,
         ready_timeout_s: float,
@@ -42,10 +43,13 @@ class IpcManager:
 
         # Socket path
         self._socket_path = socket_path or f"/tmp/slx-{secrets.token_hex(8)}.sock"
+        self._store_socket_path = store_socket_path
         print(f"[ipc] Using socket path: {self._socket_path}")
 
         # Command (append socket path as final arg)
-        self._bun_cmd = tuple(bun_cmd) + (self._socket_path,)
+        self._bun_cmd = (
+            tuple(bun_cmd) + (self._socket_path,) + (self._store_socket_path,)
+        )
         self._base_http = base_http
         self._ready_check_url = f"{base_http}{ready_check_url}"
         self._ready_timeout_s = ready_timeout_s
@@ -132,7 +136,7 @@ class IpcManager:
                 await asyncio.sleep(start_delay)
 
             print(
-                f"⏳ Starting Bun server (attempt {attempt}) -> {' '.join(self._bun_cmd)}"
+                f"⏳ Starting Bun server (attempt {attempt}) -> {' '.join(self._bun_cmd)} in dir {self.cwd}"
             )
             last_start = time.monotonic()
             try:

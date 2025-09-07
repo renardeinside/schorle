@@ -10,12 +10,14 @@ const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
-const [, , SOCKET_PATH] = process.argv;
+const [, , SOCKET_PATH, STORE_SOCKET_PATH] = process.argv;
 
-if (!SOCKET_PATH) {
-  console.error("Usage: node server.ts <socket_path>");
+if (!SOCKET_PATH || !STORE_SOCKET_PATH) {
+  console.error("Usage: node server.ts <socket_path> <store_socket_path>");
   process.exit(1);
 }
+
+process.env.SCHORLE_SOCKET_STORE_PATH = STORE_SOCKET_PATH;
 
 await app.prepare();
 

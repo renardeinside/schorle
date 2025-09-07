@@ -1,11 +1,9 @@
-# --- schorle.py (refactored Schorle) ---
-
 import asyncio
-import base64
 import contextlib
 import json
 import os
 from pathlib import Path
+import secrets
 from typing import AsyncIterator, Mapping, Optional
 
 import aiohttp
@@ -17,6 +15,7 @@ from starlette.responses import StreamingResponse
 from schorle.ipc_manager import IpcManager
 from schorle.dev_extension import DevExtension
 from schorle.settings import SchorleSettings, IpcSettings
+from schorle.store import SocketStore
 
 
 class Schorle:
@@ -62,11 +61,14 @@ class Schorle:
         self._http: Optional[httpx.AsyncClient] = None
         self._ws: Optional[aiohttp.ClientSession] = None
 
+        self._store_socket_path = Path(f"/tmp/slx-store-{secrets.token_hex(8)}.sock")
+
         # IPC supervisor
         self.ipc = IpcManager(
             cwd=self.cwd,
             bun_cmd=ipc.bun_cmd,
             socket_path=ipc.socket_path,
+            store_socket_path=str(self._store_socket_path),
             base_http=self.base_http,
             ready_check_url=ipc.ready_check_url,
             ready_timeout_s=ipc.ready_timeout_s,
@@ -74,6 +76,8 @@ class Schorle:
             retry_max_delay_s=ipc.retry_max_delay_s,
             upstream_host=self.upstream_host,
         )
+
+        self.store = SocketStore(self._store_socket_path)
 
         # Root router; feature routers can be included under it
         self.router = APIRouter()
@@ -146,7 +150,7 @@ class Schorle:
         headers: Optional[Mapping[str, str]] = None,
         body_stream: Optional[AsyncIterator[bytes]] = None,
         query_string: Optional[str] = None,
-        props: Optional[dict] = None,  # attached as base64 header
+        props: Optional[dict] = None,
     ) -> StreamingResponse:
         if not route_path.startswith("/"):
             route_path = "/" + route_path
@@ -160,10 +164,9 @@ class Schorle:
         in_headers.setdefault("host", self.upstream_host)
 
         if props is not None:
-            raw = json.dumps(props, separators=(",", ":"), ensure_ascii=False).encode(
-                "utf-8"
-            )
-            in_headers["x-schorle-props"] = base64.b64encode(raw).decode("ascii")
+            store_id = secrets.token_hex(20)
+            self.store.set(store_id, json.dumps(props))
+            in_headers["x-schorle-store-id"] = store_id
 
         req = client.build_request(
             method=method,
@@ -204,19 +207,23 @@ class Schorle:
     # ---------- lifecycle ----------
 
     async def _on_startup(self):
-        uds_path = self.ipc.socket_path
+        await self.store.start()
+
         self._http = httpx.AsyncClient(
-            transport=httpx.AsyncHTTPTransport(uds=uds_path),
+            transport=httpx.AsyncHTTPTransport(uds=self.ipc.socket_path),
             timeout=None,
             http2=False,
         )
-        self._ws = aiohttp.ClientSession(connector=aiohttp.UnixConnector(path=uds_path))
+        self._ws = aiohttp.ClientSession(
+            connector=aiohttp.UnixConnector(path=self.ipc.socket_path)
+        )
 
         await self.ipc.start()
         await self.ipc.wait_until_ready()
 
     async def _on_shutdown(self):
         await self.ipc.stop()
+        await self.store.stop()
 
         if self._http:
             await self._http.aclose()
