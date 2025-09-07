@@ -1198,7 +1198,7 @@ wheels = [
 ]
 
 [[package]]
-name = "slx"
+name = "slx-ex"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

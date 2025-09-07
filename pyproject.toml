@@ -34,4 +34,4 @@ dev = [
 ]
 
 [project.scripts]
-schorle = "schorle.__main__:main"
+slx = "schorle.__main__:main"

@@ -13,7 +13,7 @@ templates_path = importlib.resources.files("schorle").joinpath("templates")
 
 
 app = typer.Typer(
-    name="schorle",
+    name="slx",
     help="Schorle is a framework for building powerful data-driven applications.",
 )
 
