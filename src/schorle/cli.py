@@ -26,8 +26,14 @@ def version():
 
 @app.command(name="init", help="Initialize a new project")
 def init(
-    project_name: str = typer.Argument(..., help="The name of the project"),
-    project_path: Path = typer.Argument(..., help="The path to the project"),
+    project_path: Path = typer.Argument(
+        default_factory=lambda: Path.cwd(),
+        help="The path to the project, usually ui or src/{python_project_name}/ui",
+    ),
+    project_name: str = typer.Argument("ui", help="The name of the project"),
+    base_color: str = typer.Option(
+        "neutral", help="The base color property for shadcn"
+    ),
 ):
     typer.echo(f"Generating project {project_name} at {project_path}")
 
@@ -104,7 +110,7 @@ def init(
 
     # add shadcn
     subprocess.run(
-        [bun_executable, "x", "shadcn@latest", "init", "--yes", "-b", "neutral"],
+        [bun_executable, "x", "shadcn@latest", "init", "--yes", "-b", base_color],
         cwd=schorle_path,
     )
     # add next-themes
@@ -167,3 +173,96 @@ app.command(
     name="registry",
     help="Scan a /pages tree and emit a TypeScript lazy-import registry.",
 )(registry)
+
+
+@app.command("build", help="Generate the registry and build the UI")
+def build(
+    project_path: Path = typer.Argument(
+        default_factory=lambda: Path.cwd(),
+        help="The path to the project, usually ui or src/{python_project_name}/ui",
+    ),
+):
+    schorle_path = project_path / ".schorle"
+    # check if .schorle folder exists in project_path
+    if not schorle_path.exists():
+        typer.echo(f"Project path {project_path} does not have a .schorle folder")
+        raise typer.Exit(code=1)
+
+    # generate registry
+    registry(
+        pages=schorle_path / "app" / "pages",
+        ts_out=schorle_path / "app" / "registry.gen.tsx",
+        py_out=project_path / "registry.py",
+        import_prefix="@/pages",
+    )
+
+    # build
+    bun_executable = check_and_prepare_bun()
+    subprocess.run([bun_executable, "build"], cwd=schorle_path)
+
+
+add_app = typer.Typer(
+    name="add",
+    help="Add components or dependencies to the project",
+)
+app.add_typer(add_app, name="add")
+
+
+component_args = {
+    "help": """Add a component to the project.
+
+    This command will run `bun x shadcn@latest add component` with the remaining arguments.
+
+    Example:
+
+    > slx add component button
+    """,
+    "context_settings": {"allow_extra_args": True, "ignore_unknown_options": True},
+}
+
+
+@add_app.command("component", **component_args)  # type: ignore
+@add_app.command("comp", **component_args)  # type: ignore
+@add_app.command("c", **component_args)  # type: ignore
+def add_component(
+    ctx: typer.Context,
+):
+    bun_executable = check_and_prepare_bun()
+    cwd = Path.cwd()
+    schorle_path = cwd / ".schorle"
+    # check if .schorle folder exists in cwd
+    if not schorle_path.exists():
+        typer.echo(f"Project path {cwd} does not have a .schorle folder")
+        raise typer.Exit(code=1)
+
+    # run bun x shadcn@latest add component with the remaining arguments
+    subprocess.run(
+        [bun_executable, "x", "shadcn@latest", "add", *ctx.args], cwd=schorle_path
+    )
+
+
+dependency_args = {
+    "help": """Add a dependency to the project.
+
+    This command will run `bun add` with the remaining arguments.
+    """,
+    "context_settings": {"allow_extra_args": True, "ignore_unknown_options": True},
+}
+
+
+@add_app.command("dependency", **dependency_args)  # type: ignore
+@add_app.command("dep", **dependency_args)  # type: ignore
+@add_app.command("d", **dependency_args)  # type: ignore
+def add_dependency(
+    ctx: typer.Context,
+):
+    bun_executable = check_and_prepare_bun()
+    cwd = Path.cwd()
+    schorle_path = cwd / ".schorle"
+    # check if .schorle folder exists in cwd
+    if not schorle_path.exists():
+        typer.echo(f"Project path {cwd} does not have a .schorle folder")
+        raise typer.Exit(code=1)
+
+    # run bun add with the remaining arguments
+    subprocess.run([bun_executable, "add", *ctx.args], cwd=schorle_path)
