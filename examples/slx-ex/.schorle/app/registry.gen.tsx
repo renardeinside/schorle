@@ -15,22 +15,20 @@ export type PageRegistry = Record<string, PageRegistryEntry>;
 
 export function wrapLayouts(
   Page: React.ComponentType,
-  layouts: LayoutFC[]
+  layouts: LayoutFC[],
 ): React.ReactElement {
   const tree = layouts.reduceRight<React.ReactNode>(
     (child, Layout) => <Layout>{child}</Layout>,
-    <Page />
+    <Page />,
   );
   return <>{tree}</>;
 }
 
 export const pageRegistry: PageRegistry = {
-  'Index': {
-    layouts: [
-    (await import("@/pages/./__layout")).default
-  ],
+  Index: {
+    layouts: [(await import("@/pages/./__layout")).default],
     Page: (await import("@/pages/Index")).default,
-  }
+  },
 };
 
 export default pageRegistry;

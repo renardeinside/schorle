@@ -141,6 +141,9 @@ def init(
     (schorle_path / "app" / "page.tsx").unlink()
     (schorle_path / "app" / "layout.tsx").unlink()
 
+    # remove .schorle/public folder
+    shutil.rmtree(schorle_path / "public")
+
     # add
     # this -> @source "../../app/pages/";
     # after -> @import "tw-animate-css";
