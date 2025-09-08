@@ -14,21 +14,21 @@ export default function HomePage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4">
       {/* Header Section */}
-      <div className="text-center mb-16 max-w-4xl mx-auto h-screen justify-center items-center flex flex-col">
+      <div className="text-center mb-16 max-w-4xl mx-auto h-screen justify-center items-center flex flex-col space-y-6">
         <div className="flex items-center gap-2 mb-6">
           <Image src="/logo.svg" alt="Logo" width={96} height={96} />
           <AuroraText className={cn(spaceMono.className, "text-6xl font-bold")}>
             Schorle
           </AuroraText>
         </div>
-        <h1 className="mb-6 text-4xl font-semibold leading-tight">
-          The Foundation Layer for your Data Applications
+        <h1 className="mb-6 text-4xl font-semibold leading-tight text-balance">
+          The Foundation Layer for your Data and AI Applications
         </h1>
 
-        <p className="text-md mb-8 leading-relaxed text-balance">
+        <p className="text-md leading-relaxed text-balance">
           A hybrid framework that bridges Python backend development with
-          powerful frontend. Open Source and Open Code, based on FastAPI and
-          React.
+          powerful frontend. <br />Open Source and Open Code, based on FastAPI,
+          NextJS and Shadcn UI.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -54,7 +54,7 @@ export default function HomePage() {
               Simple Project Structure
             </h2>
             <p className="text-muted-foreground text-lg">
-              Organize your Python backend and React frontend in a unified
+              Organize your Python backend and NextJS frontend in a unified
               project structure.
             </p>
           </div>
@@ -87,7 +87,7 @@ export default function HomePage() {
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-bold mb-3">Seamless Integration</h2>
             <p className="text-muted-foreground text-lg">
-              Write Python backends and React frontends that work together
+              Write Python backends and React/JSX frontends that work together
               perfectly.
             </p>
           </div>
@@ -104,24 +104,23 @@ export default function HomePage() {
               copyButton
             >
               {`from fastapi import FastAPI
-from aurora.ui import mount_assets, Index, Profile
+from aurora.ui import pages, ui
 
 app = FastAPI()
-mount_assets(app)
+
+ui.mount(app)
 
 @app.get("/")
 def index():
-    return Index(
-        title="Welcome to Schorle",
-        user_count=1234
-    )
+    return ui.render(pages.Index)
 
 @app.get("/profile/{user_id}")  
 def profile(user_id: int):
-    return Profile(
-        user_id=user_id,
-        name="John Doe"
+    return ui.render(
+      pages.Profile, 
+      props={"user_id": user_id, "name": "John Doe"}
     )
+
 }`}
             </CodeEditor>
 
@@ -134,13 +133,13 @@ def profile(user_id: int):
               writing={false}
               copyButton
             >
-              {`import { useParams } from "schorle";
+              {`import { getSchorleProps } from "@/lib/props";
 // shadcn/ui included by default
 import {Button} from "@/components/ui/button"; 
 
 export default function Index() {
   // server-side parameter passing
-  const { title, userCount } = useParams();
+  const { title, userCount } = getSchorleProps();
 
   return (
     <div>
