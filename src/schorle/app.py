@@ -4,6 +4,7 @@ import os
 from functools import partial
 from pathlib import Path
 import secrets
+from types import ModuleType
 from typing import AsyncIterator, Mapping, Optional
 
 import aiohttp
@@ -19,6 +20,7 @@ from schorle.settings import SchorleSettings, IpcSettings, TcpSettings, UdsSetti
 from schorle.store import SocketStore
 import msgpack
 import subprocess
+from schorle.typegen import extract_pydantic_schemas_recursive
 from schorle.utils import keys_to_camel_case
 from fastapi.staticfiles import StaticFiles
 
@@ -72,9 +74,8 @@ class Schorle:
                     socket_path=f"/tmp/slx-{secrets.token_hex(8)}.sock",
                     store_socket_path=f"/tmp/slx-store-{secrets.token_hex(8)}.sock",
                 )
-
             else:
-                raise ValueError(f"Unsupported platform: {os.name}")
+                raise ValueError(f"Unsupported operating system {os.name}")
 
             ipc_config = IpcSettings(
                 command_dir=self.project_root / ".schorle",
@@ -86,31 +87,15 @@ class Schorle:
                 retry_max_delay_s=5.0,
                 with_bun_logs=True,
                 env={
-                    "NODE_ENV": "development"
-                    if self.cfg.dev_mode_enabled
-                    else "production"
+                    "NODE_ENV": (
+                        "development" if self.cfg.dev_mode_enabled else "production"
+                    )
                 },
             )
 
         # Lifecycle clients (initialized during startup)
         self._http: Optional[httpx.AsyncClient] = None
         self._ws: Optional[aiohttp.ClientSession] = None
-
-        if self.cfg.dev_mode_enabled:
-            print("[schorle] Is running in development mode")
-        else:
-            print("[schorle] Is running in production mode")
-
-            # check if project_root/.schorle/.next/build exists
-            if not (self.project_root / ".schorle" / ".next" / "build").exists():
-                print("[schorle] Build directory does not exist - running build script")
-                subprocess.run(
-                    [self.bun_executable, "run", "build"],
-                    cwd=self.project_root / ".schorle",
-                )
-                print("[schorle] Running build script - finished")
-            else:
-                print("[schorle] Build directory exists - skipping build script")
 
         # IPC supervisor
         self.ipc = IpcManager(ipc=ipc_config)
@@ -131,16 +116,40 @@ class Schorle:
             )
             self.router.include_router(self.dev.router)
 
-    def _wire_production_routes(self, app: FastAPI):
-        next_files_path = self.project_root / ".schorle" / ".next"
-        print(f"[schorle] Wiring production routes to {next_files_path} ")
-        app.mount(
-            "/_next",
-            StaticFiles(directory=next_files_path),
-        )
-        print("[schorle] Production routes wired.")
+    def _build_if_needed(self):
+        if self.cfg.dev_mode_enabled:
+            print("[schorle] Is running in development mode")
+        else:
+            print("[schorle] Is running in production mode")
+
+            # check if project_root/.schorle/.next/build exists
+            if not (self.project_root / ".schorle" / ".next" / "build").exists():
+                print("[schorle] Build directory does not exist - running build script")
+                subprocess.run(
+                    [self.bun_executable, "run", "build"],
+                    cwd=self.project_root / ".schorle",
+                )
+                print("[schorle] Running build script - finished")
+            else:
+                print("[schorle] Build directory exists - skipping build script")
 
     # ---------- public API ----------
+
+    def convert_models(self, module: ModuleType):
+        extract_pydantic_schemas_recursive(
+            module,
+            self.project_root / ".schorle" / "schemas.json",
+            include_submodules=True,
+            use_camel_case=True,
+        )
+        print(
+            f"[schorle] Converted models to {self.project_root / '.schorle' / 'schemas.json'}"
+        )
+        bun_executable = check_and_prepare_bun()
+        subprocess.run(
+            [bun_executable, "run", "codegen"], cwd=self.project_root / ".schorle"
+        )
+        print("[schorle] Codegen finished")
 
     def mount(self, app):
         """
@@ -172,9 +181,6 @@ class Schorle:
             app.state._schorle_lifespan_installed = True
             print("[schorle] Lifespan composed and installed.")
 
-            if not self.cfg.dev_mode_enabled:
-                self._wire_production_routes(app)
-
         if not getattr(app.state, "_schorle_routes_mounted", False):
             app.include_router(self.router)
             app.state._schorle_routes_mounted = True
@@ -182,10 +188,19 @@ class Schorle:
         else:
             print("[schorle] Router already mounted — skipping.")
 
+    def _wire_production_routes(self, app: FastAPI):
+        next_files_path = self.project_root / ".schorle" / ".next"
+        print(f"[schorle] Wiring production routes to {next_files_path} ")
+        app.mount(
+            "/_next",
+            StaticFiles(directory=next_files_path),
+        )
+        print("[schorle] Production routes wired.")
+
     @contextlib.asynccontextmanager
     async def _lifespan_cm(self, app):
         try:
-            await self._on_startup()
+            await self._on_startup(app)
             yield
         finally:
             await self._on_shutdown()
@@ -265,7 +280,11 @@ class Schorle:
 
     # ---------- lifecycle ----------
 
-    async def _on_startup(self):
+    async def _on_startup(self, app: FastAPI):
+        if not self.cfg.dev_mode_enabled:
+            self._build_if_needed()
+            self._wire_production_routes(app)
+
         await self.store.start()
 
         if isinstance(self.ipc.cfg.transport, UdsSettings):

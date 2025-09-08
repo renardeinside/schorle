@@ -8,6 +8,7 @@ alwaysApply: true
 
 - **ALWAYS** use `uv` for Python package management
 - **ALWAYS** use `bun` for node package management
+- **ALWAYS** to run `python` use `uv` in a form of `uv run python ...`
 
 Project uses:
 
@@ -81,10 +82,10 @@ Client ──HTTP──▶ Python (FastAPI)
 
 ```jsx
 // app/stats/page.tsx (Server Component)
-import { getSchorleProps } from "@/lib/store";
+import { getProps } from "@/lib/store";
 
 export default async function StatsPage() {
-  const { totalUsers } = await getSchorleProps<{ totalUsers: number }>();
+  const { totalUsers } = await getProps<{ totalUsers: number }>();
   return <div>Users: {totalUsers}</div>;
 }
 ```

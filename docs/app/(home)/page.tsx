@@ -27,8 +27,8 @@ export default function HomePage() {
 
         <p className="text-md leading-relaxed text-balance">
           A hybrid framework that bridges Python backend development with
-          powerful frontend. <br />Open Source and Open Code, based on FastAPI,
-          NextJS and Shadcn UI.
+          powerful frontend. <br />
+          Open Source and Open Code, based on FastAPI, NextJS and Shadcn UI.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">

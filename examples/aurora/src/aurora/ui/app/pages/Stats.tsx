@@ -1,7 +1,7 @@
-import { getSchorleProps } from "@/lib/props";
+import { getProps } from "@/lib/props";
 
 export default async function Stats() {
-  const { totalUsers, lastUpdatedAt } = await getSchorleProps<{
+  const { totalUsers, lastUpdatedAt } = await getProps<{
     totalUsers: number;
     lastUpdatedAt: string;
   }>();

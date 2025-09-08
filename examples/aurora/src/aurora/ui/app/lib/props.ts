@@ -9,19 +9,20 @@ const STORE_SOCKET_PATH = process.env.SCHORLE_STORE_SOCKET_PATH;
 const STORE_HOST = process.env.SCHORLE_STORE_HOST;
 const STORE_PORT = process.env.SCHORLE_STORE_PORT;
 
-let mode;
-
-if (STORE_SOCKET_PATH) {
-  mode = "uds";
-} else if (STORE_HOST && STORE_PORT) {
-  mode = "http";
-} else {
-  throw new Error(
-    "Neither UDS (SCHORLE_STORE_SOCKET_PATH) nor TCP (SCHORLE_STORE_HOST/PORT) configuration found",
-  );
-}
+const getMode = () => {
+  if (STORE_SOCKET_PATH) {
+    return "uds";
+  } else if (STORE_HOST && STORE_PORT) {
+    return "http";
+  } else {
+    throw new Error(
+      "Neither UDS (SCHORLE_STORE_SOCKET_PATH) nor TCP (SCHORLE_STORE_HOST/PORT) configuration found",
+    );
+  }
+};
 
 const fetchWithMode = async (schorleId: string) => {
+  const mode = getMode();
   if (mode === "uds") {
     return fetch(`http://localhost/${schorleId}`, {
       unix: STORE_SOCKET_PATH,
@@ -33,7 +34,7 @@ const fetchWithMode = async (schorleId: string) => {
   }
 };
 
-export async function getSchorleProps<T = unknown>(): Promise<T> {
+export async function getProps<T = unknown>(): Promise<T> {
   const schorleId = (await headers()).get("x-schorle-props-id");
   if (!schorleId) {
     throw new Error("No x-schorle-props-id header found");

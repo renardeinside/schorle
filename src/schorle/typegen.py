@@ -32,26 +32,17 @@ class CamelCaseSchemaGenerator(GenerateJsonSchema):
 
     def _transform_to_camel_case(self, schema: JsonSchemaValue) -> JsonSchemaValue:
         """Recursively transform all field names in the schema to camelCase."""
-        if isinstance(schema, dict):
-            transformed = {}
-            for key, value in schema.items():
-                if key == "properties" and isinstance(value, dict):
-                    # Transform property names to camelCase
-                    transformed[key] = {
-                        to_camel(prop_name): self._transform_to_camel_case(prop_value)
-                        for prop_name, prop_value in value.items()
-                    }
-                elif key == "required" and isinstance(value, list):
-                    # Transform required field names to camelCase
-                    transformed[key] = [to_camel(field_name) for field_name in value]
-                else:
-                    # Recursively transform nested structures
-                    transformed[key] = self._transform_to_camel_case(value)
-            return transformed
-        elif isinstance(schema, list):
-            return [self._transform_to_camel_case(item) for item in schema]
-        else:
-            return schema
+        _copy = schema.copy()
+        for k, v in _copy.items():
+            if k == "properties":
+                _copy[k] = {
+                    to_camel(k): self._transform_to_camel_case(v) for k, v in v.items()
+                }
+            elif k == "required":
+                _copy[k] = [to_camel(k) for k in v]
+            else:
+                _copy[k] = self._transform_to_camel_case(v)
+        return _copy
 
 
 def extract_pydantic_schemas(

@@ -33,6 +33,7 @@ dev = [
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "msgpack-types>=0.5.0",
+    "mypy>=1.17.1",
     "pylint>=3.3.8",
     "pytest>=8.4.2",
     "uvicorn>=0.35.0",
