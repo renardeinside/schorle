@@ -150,9 +150,10 @@ def init(
 
     # gen pages
     registry(
-        pages=project_path / "app" / "pages",
-        ts_out=schorle_path / "app" / "registry.gen.tsx",
-        py_out=project_path / "registry.py",
+        project_root=project_path,
+        pages=Path("app/pages"),
+        ts_out=Path(".schorle/app/registry.gen.tsx"),
+        py_out=Path("registry.py"),
         import_prefix="@/pages",
     )
 
@@ -191,7 +192,7 @@ def build():
     # generate registry
     registry(
         pages=project_root / "app" / "pages",
-        ts_out=project_root / "app" / "registry.gen.tsx",
+        ts_out=schorle_path / "app" / "registry.gen.tsx",
         py_out=project_root / "registry.py",
         import_prefix="@/pages",
     )
@@ -239,7 +240,11 @@ def generate_models(
             barrel_file.write_text(
                 current_content + f"\nexport * from './{module_name}.d.ts';"
             )
-    output_path.write_text(ts_schema)
+    current_ts_content = (
+        output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+    )
+    if ts_schema != current_ts_content:
+        output_path.write_text(ts_schema, encoding="utf-8")
 
 
 add_app = typer.Typer(

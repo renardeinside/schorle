@@ -6,6 +6,7 @@ from types import ModuleType
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+from schorle.dev_watcher import dev_watcher
 from schorle.cli import generate_models
 from schorle.routes import prepare_router
 from schorle.settings import SchorleSettings
@@ -14,6 +15,8 @@ from schorle.utils import keys_to_camel_case, lines_printer
 from fastapi.responses import StreamingResponse
 import msgpack
 import secrets
+
+from schorle.registry import registry
 
 
 class Schorle:
@@ -52,13 +55,26 @@ class Schorle:
         self._stdout_task: asyncio.Task | None = None
         self._stderr_task: asyncio.Task | None = None
 
-        self.router = prepare_router(self._proxy_client)
+        self.router = prepare_router(self._proxy_client, self.settings.dev)
+
+        self._dev_watcher_task: asyncio.Task | None = None
+
+    def _run_generators(self):
+        self._generate_registry()
+        self._generate_models()
+
+    def _generate_registry(self):
+        registry(
+            project_root=self.settings.project_root,
+            pages=Path("app/pages"),
+            ts_out=Path(".schorle/app/registry.gen.tsx"),
+            py_out=Path("registry.py"),
+            import_prefix="@/pages",
+        )
 
     def _generate_models(self):
         for module in self._model_registry:
-            generate_models(
-                project_path=self.settings.project_root, module_name=module.__name__
-            )
+            generate_models(module_name=module.__name__)
 
     async def _wait_for_proxy_ready(self) -> bool:
         print("[schorle] Waiting for proxy to be ready...")
@@ -79,12 +95,27 @@ class Schorle:
 
     @contextlib.asynccontextmanager
     async def _lifespan(self):
+        next_build_path = self.settings.project_root / ".schorle" / ".next" / "build"
+
+        if not self.settings.dev and not next_build_path.exists():
+            raise RuntimeError("Next.js build not found, run `slx build` first")
+
+        if self.settings.dev:
+            self._run_generators()
+            self._dev_watcher_task = asyncio.create_task(
+                dev_watcher(self.settings.project_root / "app", [self._run_generators])
+            )
+
         async with self._visor:
             async with lines_printer(self._visor.get_stdout_lines, "stdout"):
                 async with lines_printer(self._visor.get_stderr_lines, "stderr"):
                     await self._wait_for_proxy_ready()
                     async with self._store:
-                        yield
+                        try:
+                            yield
+                        finally:
+                            if self._dev_watcher_task:
+                                self._dev_watcher_task.cancel()
 
     def add_to_model_registry(self, module: ModuleType):
         self._model_registry.append(module)

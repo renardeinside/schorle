@@ -8,6 +8,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from schorle.utils import find_project_root
+
 app = typer.Typer(add_completion=False)
 console = Console()
 
@@ -269,11 +271,13 @@ def generate_py_registry(pages: list[FoundPage]) -> str:
 
 # ---------- CLI ----------
 def registry(
+    project_root: Path | None = None,
     pages: Path = typer.Argument(
         Path("app/pages"), help="Path to pages root (e.g. ./pages)"
     ),
     ts_out: Path = typer.Argument(
-        Path("app/gen.registry.ts"), help="Output file (e.g. ./app/gen.registry.ts)"
+        Path(".schorle/app/gen.registry.ts"),
+        help="Output file (e.g. ./app/gen.registry.ts)",
     ),
     py_out: Path = typer.Argument(
         Path("registry.py"), help="Output file for python module"
@@ -283,6 +287,17 @@ def registry(
         help='Module spec prefix for imports, e.g. "@/pages"',
     ),
 ):
+    project_root = find_project_root() if project_root is None else project_root
+    if project_root is None:
+        console.print(
+            f":x: [red]Project root after searching in {Path.cwd()} not found[/red]"
+        )
+        raise typer.Exit(code=1)
+
+    pages = project_root / "app" / "pages"
+    ts_out = project_root / ".schorle" / "app" / "registry.gen.tsx"
+    py_out = project_root / "registry.py"
+
     t0 = time.perf_counter()
 
     info = Table.grid(padding=(0, 10))
@@ -316,10 +331,19 @@ def registry(
         ts_content = generate_ts_registry(pages_list)
         py_content = generate_py_registry(pages_list)
         ensure_dir_for_file(ts_out.resolve())
-        ts_out.write_text(ts_content, encoding="utf-8")
+
+        current_ts_content = (
+            ts_out.read_text(encoding="utf-8") if ts_out.exists() else ""
+        )
+        if ts_content != current_ts_content:
+            ts_out.write_text(ts_content, encoding="utf-8")
 
         ensure_dir_for_file(py_out.resolve())
-        py_out.write_text(py_content, encoding="utf-8")
+        current_py_content = (
+            py_out.read_text(encoding="utf-8") if py_out.exists() else ""
+        )
+        if py_content != current_py_content:
+            py_out.write_text(py_content, encoding="utf-8")
     except Exception as e:
         console.print(f":x: [red]Failed to write registry file:[/red] {e}")
         raise typer.Exit(code=1)
