@@ -8,17 +8,6 @@
   "files": [
     "src/schorle/bridge"
   ],
-  "exports": {
-    "./utils": {
-      "import": "./src/schorle/bridge/utils.tsx"
-    },
-    "./types": {
-      "import": "./src/schorle/bridge/types.ts"
-    }
-  },
-  "bin": {
-    "slx-gen": "./src/schorle/bridge/gen.ts"
-  },
   "peerDependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1"

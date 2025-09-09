@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from aurora.ui import pages, ui
 from datetime import datetime
+from aurora import models
 
 app = FastAPI()
 
 ui.mount(app)
+ui.add_to_model_registry(models)
 
 
 @app.get("/")
@@ -16,5 +18,7 @@ async def index():
 async def stats():
     return await ui.render(
         pages.Stats,
-        props={"total_users": 100, "last_updated_at": datetime.now().isoformat()},
+        props=models.StatsProps(
+            total_users=100, last_updated_at=datetime.now().isoformat()
+        ),
     )

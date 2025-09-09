@@ -8,37 +8,35 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "aiohttp>=3.12.15",
-    "cookiecutter>=2.6.0",
-    "datamodel-code-generator>=0.33.0",
     "fastapi>=0.116.1",
-    "httpx>=0.28.1",
-    "jinja2>=3.1.6",
     "msgpack>=1.1.1",
     "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "requests>=2.32.5",
     "rich>=14.1.0",
-    "tomlkit>=0.13.3",
-    "typer>=0.16.1",
-    "uvicorn[standard]>=0.35.0",
-    "watchfiles>=1.1.0",
-]
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[dependency-groups]
-dev = [
-    "aiohttp>=3.12.15",
-    "httpx>=0.28.1",
-    "loguru>=0.7.3",
-    "msgpack-types>=0.5.0",
-    "mypy>=1.17.1",
-    "pylint>=3.3.8",
-    "pytest>=8.4.2",
-    "uvicorn>=0.35.0",
+    "typer>=0.17.4",
 ]
 
 [project.scripts]
 slx = "schorle.__main__:main"
 
+[tool.maturin]
+module-name = "schorle._core"
+python-packages = ["schorle"]
+python-source = "src"
+
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[dependency-groups]
+dev = [
+    "maturin>=1.9.4",
+    "msgpack-types>=0.5.0",
+    "mypy>=1.17.1",
+    "pyo3-stubgen>=0.3.0",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.1.0",
+    "ruff>=0.12.12",
+    "types-requests>=2.32.4.20250809",
+]

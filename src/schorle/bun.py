@@ -70,11 +70,9 @@ def check_and_prepare_bun() -> Path:
         bun_path = user_dir / "bun"
         os.environ["PATH"] = str(bun_path) + os.pathsep + os.environ["PATH"]
 
-    bun_path = shutil.which("bun")
-    if not bun_path:
+    post_check_bun_path = shutil.which("bun")
+    if not post_check_bun_path:
         raise RuntimeError(
             "Bun not found even after installation. Please check your PATH."
         )
-
-    print(f"[schorle] Bun path: {bun_path}")
-    return bun_path
+    return Path(post_check_bun_path)

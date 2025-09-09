@@ -7,7 +7,9 @@ import importlib.metadata
 import importlib.resources
 import os
 from schorle.bun import check_and_prepare_bun
+from schorle.json_schema import generate_schemas
 from schorle.registry import registry
+from schorle.utils import find_project_root, schema_to_ts
 
 __version__ = importlib.metadata.version("schorle")
 templates_path = importlib.resources.files("schorle").joinpath("templates")
@@ -176,29 +178,68 @@ app.command(
 
 
 @app.command("build", help="Generate the registry and build the UI")
-def build(
-    project_path: Path = typer.Argument(
-        default_factory=lambda: Path.cwd(),
-        help="The path to the project, usually ui or src/{python_project_name}/ui",
-    ),
-):
-    schorle_path = project_path / ".schorle"
-    # check if .schorle folder exists in project_path
-    if not schorle_path.exists():
-        typer.echo(f"Project path {project_path} does not have a .schorle folder")
+def build():
+    project_root = find_project_root()
+    if project_root is None:
+        typer.echo(f"Project root not found after searching in {Path.cwd()}")
         raise typer.Exit(code=1)
+
+    print(f"Building project {project_root}")
+
+    schorle_path = project_root / ".schorle"
 
     # generate registry
     registry(
-        pages=schorle_path / "app" / "pages",
-        ts_out=schorle_path / "app" / "registry.gen.tsx",
-        py_out=project_path / "registry.py",
+        pages=project_root / "app" / "pages",
+        ts_out=project_root / "app" / "registry.gen.tsx",
+        py_out=project_root / "registry.py",
         import_prefix="@/pages",
     )
 
-    # build
+    # next JS build
     bun_executable = check_and_prepare_bun()
-    subprocess.run([bun_executable, "build"], cwd=schorle_path)
+    subprocess.run([bun_executable, "run", "build"], cwd=schorle_path)
+
+
+@app.command("codegen", help="Generate models from the project")
+def generate_models(
+    module_name: str = typer.Argument(
+        help="The name of the module to generate models for",
+    ),
+):
+    project_root = find_project_root()
+    if project_root is None:
+        typer.echo(f"Project root not found after searching in {Path.cwd()}")
+        raise typer.Exit(code=1)
+
+    # generate models
+    bun_executable = check_and_prepare_bun()
+    module = importlib.import_module(module_name)
+    json_schema = generate_schemas(module)
+    ts_schema = schema_to_ts(json_schema, bun_executable)
+    types_dir = project_root / "app" / "lib" / "types"
+    types_dir.mkdir(parents=True, exist_ok=True)
+    output_path = types_dir / f"{module_name}.d.ts"
+    typer.echo(f"Writing models to {output_path}")
+
+    barrel_file = types_dir / "index.d.ts"
+    # check if barrel_file exists
+    if not barrel_file.exists():
+        barrel_file.write_text(
+            "\n".join(
+                [
+                    f"export * from './{module_name}.d.ts';",
+                ]
+            )
+        )
+    else:
+        # check if export * from './{module_name}.d.ts'; exists, add it if not
+        if f"export * from './{module_name}.d.ts';" not in barrel_file.read_text():
+            current_content = barrel_file.read_text()
+            barrel_file.write_text(
+                current_content + f"\nexport * from './{module_name}.d.ts';"
+            )
+    output_path.write_text(ts_schema)
 
 
 add_app = typer.Typer(

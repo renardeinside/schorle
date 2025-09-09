@@ -5,3 +5,4 @@ docs/.next/
 .next/
 examples/slx/.schorle/.next
 .mypy_cache/
+target/

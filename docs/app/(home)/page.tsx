@@ -105,20 +105,21 @@ export default function HomePage() {
             >
               {`from fastapi import FastAPI
 from aurora.ui import pages, ui
-
+from aurora import models
 app = FastAPI()
 
 ui.mount(app)
+ui.add_to_model_registry(models)
 
 @app.get("/")
 def index():
     return ui.render(pages.Index)
 
-@app.get("/profile/{user_id}")  
-def profile(user_id: int):
+@app.get("/stats")
+def stats():
     return ui.render(
-      pages.Profile, 
-      props={"user_id": user_id, "name": "John Doe"}
+      pages.Stats, 
+      props=models.Stats(total_users=100, last_updated_at=datetime.now())
     )
 
 }`}
@@ -133,18 +134,22 @@ def profile(user_id: int):
               writing={false}
               copyButton
             >
-              {`import { getSchorleProps } from "@/lib/props";
+              {`import { getProps } from "@/lib/props";
+
+              // types are automatically generated from the Python backend
+              import { Stats } from "@/lib/types";
 // shadcn/ui included by default
 import {Button} from "@/components/ui/button"; 
 
 export default function Index() {
   // server-side parameter passing
-  const { title, userCount } = getSchorleProps();
+  const { totalUsers, lastUpdatedAt } = getProps<Stats>();
 
   return (
     <div>
-      <h1>{title}</h1>
-      <p>Join {userCount} developers</p>
+      <h1>Stats</h1>
+      <p>Total users: {totalUsers}</p>
+      <p>Last updated at: {lastUpdatedAt}</p>
     </div>
   );
 }`}

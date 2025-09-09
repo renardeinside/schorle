@@ -13,11 +13,10 @@ gen-project:
     cd examples/aurora && uv run slx init src/aurora/ui aurora-ui
     cd examples/aurora && uv add uvicorn[standard]
     cd examples/aurora && cp ../../templates/app.py src/aurora/app.py
+    cd examples/aurora && cp ../../templates/models.py src/aurora/models.py
+    cd examples/aurora && uv run slx codegen aurora.models
 
-[working-directory: 'examples/aurora']
-start-dev:
-    uv run uvicorn aurora.app:app --reload
 
-[working-directory: 'examples/aurora']
-start-prod:
-    uv run uvicorn aurora.app:app
+in-aurora *args:
+    cd examples/aurora && {{args}}
+
