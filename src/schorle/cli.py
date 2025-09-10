@@ -117,7 +117,8 @@ def init(
     )
     # add next-themes
     subprocess.run(
-        [bun_executable, "add", "next-themes", "@msgpack/msgpack"], cwd=schorle_path
+        [bun_executable, "add", "next-themes", "@msgpack/msgpack", "jose"],
+        cwd=schorle_path,
     )
 
     # add button
@@ -274,11 +275,14 @@ def add_component(
     ctx: typer.Context,
 ):
     bun_executable = check_and_prepare_bun()
-    cwd = Path.cwd()
-    schorle_path = cwd / ".schorle"
+    project_root = find_project_root()
+    if project_root is None:
+        typer.echo(f"Project root not found after searching in {Path.cwd()}")
+        raise typer.Exit(code=1)
+    schorle_path = project_root / ".schorle"
     # check if .schorle folder exists in cwd
     if not schorle_path.exists():
-        typer.echo(f"Project path {cwd} does not have a .schorle folder")
+        typer.echo(f"Project path {project_root} does not have a .schorle folder")
         raise typer.Exit(code=1)
 
     # run bun x shadcn@latest add component with the remaining arguments
@@ -303,11 +307,14 @@ def add_dependency(
     ctx: typer.Context,
 ):
     bun_executable = check_and_prepare_bun()
-    cwd = Path.cwd()
-    schorle_path = cwd / ".schorle"
+    project_root = find_project_root()
+    if project_root is None:
+        typer.echo(f"Project root not found after searching in {Path.cwd()}")
+        raise typer.Exit(code=1)
+    schorle_path = project_root / ".schorle"
     # check if .schorle folder exists in cwd
     if not schorle_path.exists():
-        typer.echo(f"Project path {cwd} does not have a .schorle folder")
+        typer.echo(f"Project path {project_root} does not have a .schorle folder")
         raise typer.Exit(code=1)
 
     # run bun add with the remaining arguments

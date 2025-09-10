@@ -3,6 +3,7 @@ import contextlib
 import os
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -11,10 +12,12 @@ from schorle.cli import generate_models
 from schorle.routes import prepare_router
 from schorle.settings import SchorleSettings
 from schorle._core import FastClient, ProcessSupervisor, SocketStore
-from schorle.utils import keys_to_camel_case, lines_printer
+from schorle.token import make_token
+from schorle.utils import keys_to_camel_case
 from fastapi.responses import StreamingResponse
 import msgpack
 import secrets
+from fastapi.openapi.utils import get_openapi
 
 from schorle.registry import registry
 
@@ -27,11 +30,13 @@ class Schorle:
             )
         self.settings = settings
         self._model_registry: list[ModuleType] = []
-        os.environ["SCHORLE_FC_LOG"] = "debug"
-        os.environ["SCHORLE_STORE_LOG"] = "debug"
+
+        self._ipc_secret = secrets.token_hex(32)
 
         _env = os.environ.copy()
         _env["NODE_ENV"] = "development" if self.settings.dev else "production"
+        _env["SCHORLE_JWT_SECRET"] = self._ipc_secret
+
         self._visor = ProcessSupervisor(
             self.settings.proxy_cmd,
             str(self.settings.schorle_dir),
@@ -51,9 +56,6 @@ class Schorle:
             if not self.settings.prefer_http
             else None,
         )
-
-        self._stdout_task: asyncio.Task | None = None
-        self._stderr_task: asyncio.Task | None = None
 
         self.router = prepare_router(self._proxy_client, self.settings.dev)
 
@@ -81,16 +83,20 @@ class Schorle:
         num_tries = 0
         total_seconds_to_wait = 10
         seconds_to_wait = 0.1
-        while not await self._is_proxy_ready():
-            num_tries += 1
-            if num_tries > total_seconds_to_wait:
-                print("[schorle] Proxy is not ready after 1 second. Giving up.")
-                raise RuntimeError(
-                    "[schorle] Proxy is not ready after 1 second. Giving up."
-                )
-            await asyncio.sleep(seconds_to_wait)
-            seconds_to_wait *= 2
-        print("[schorle] Proxy is ready.")
+        try:
+            while not await self._is_proxy_ready():
+                num_tries += 1
+                if num_tries > total_seconds_to_wait:
+                    print("[schorle] Proxy is not ready after 1 second. Giving up.")
+                    raise RuntimeError(
+                        "[schorle] Proxy is not ready after 1 second. Giving up."
+                    )
+                await asyncio.sleep(seconds_to_wait)
+                seconds_to_wait *= 2
+            print("[schorle] Proxy is ready.")
+        except Exception as e:
+            print(f"[schorle] Error waiting for proxy to be ready: {e}")
+            raise e
         return True
 
     @contextlib.asynccontextmanager
@@ -107,15 +113,13 @@ class Schorle:
             )
 
         async with self._visor:
-            async with lines_printer(self._visor.get_stdout_lines, "stdout"):
-                async with lines_printer(self._visor.get_stderr_lines, "stderr"):
-                    await self._wait_for_proxy_ready()
-                    async with self._store:
-                        try:
-                            yield
-                        finally:
-                            if self._dev_watcher_task:
-                                self._dev_watcher_task.cancel()
+            await self._wait_for_proxy_ready()
+            async with self._store:
+                try:
+                    yield
+                finally:
+                    if self._dev_watcher_task:
+                        self._dev_watcher_task.cancel()
 
     def add_to_model_registry(self, module: ModuleType):
         self._model_registry.append(module)
@@ -128,7 +132,7 @@ class Schorle:
             return
 
         if existing:
-            print("[schorle] Existing lifespan detected: {bool(existing)}")
+            print(f"[schorle] Existing lifespan detected: {bool(existing)}")
 
             @contextlib.asynccontextmanager
             async def combined(app_):
@@ -144,7 +148,11 @@ class Schorle:
 
     async def _is_proxy_ready(self) -> bool:
         try:
-            response = await self._proxy_client.request("GET", "/schorle/render")
+            response = await self._proxy_client.request(
+                "GET",
+                "/schorle/render",
+                headers={"x-schorle-token": make_token(self._ipc_secret)},
+            )
             return response.status == 200
         except Exception:
             return False
@@ -153,6 +161,8 @@ class Schorle:
         self, route_path: str, props: dict | BaseModel | None = None
     ) -> StreamingResponse:
         headers = {}
+        headers["x-schorle-token"] = make_token(self._ipc_secret)
+
         if props is not None:
             props_id = secrets.token_hex(10)
             casted_props = keys_to_camel_case(

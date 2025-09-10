@@ -20,3 +20,5 @@ gen-project:
 in-aurora *args:
     cd examples/aurora && {{args}}
 
+in-aurora-ui *args:
+    cd examples/aurora/src/aurora/ui/.schorle && {{args}}
