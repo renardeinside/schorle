@@ -6,19 +6,25 @@ stackenblochen:
 docs:
     cd docs && yarn dev
 
-gen-project:
-    rm -rf examples/aurora
-    cd examples && uv init --no-workspace --package --name=aurora aurora
-    cd examples/aurora && uv add ../../ --editable
-    cd examples/aurora && uv run slx init src/aurora/ui aurora-ui
-    cd examples/aurora && uv add uvicorn[standard]
-    cd examples/aurora && cp ../../templates/app.py src/aurora/app.py
-    cd examples/aurora && cp ../../templates/models.py src/aurora/models.py
-    cd examples/aurora && uv run slx codegen aurora.models
+clean-aurora:
+    mkdir -p packages/aurora
+    rm -rf packages/aurora/*
 
 
+install-shadcn-deps:
+    bun add class-variance-authority clsx tailwind-merge lucide-react tw-animate-css
+
+[working-directory: 'packages/aurora']
+init-aurora: clean-aurora
+    bun init -y -m . && rm -rf ./.cursor
+
+    uv init --name aurora --lib .
+    uv run slx init src/aurora/ui
+    uv run slx build
+
+    cp ../../templates/app.py ./src/aurora/app.py
+
+
+[working-directory: 'packages/aurora']
 in-aurora *args:
-    cd examples/aurora && {{args}}
-
-in-aurora-ui *args:
-    cd examples/aurora/src/aurora/ui/.schorle && {{args}}
+    {{args}}

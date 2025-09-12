@@ -1,19 +1,15 @@
-import shutil
-import json
+from pathlib import Path
 import subprocess
 import typer
-from pathlib import Path
 import importlib.metadata
 import importlib.resources
-import os
+from tomlkit import parse, dumps, table
+from schorle.build import build_entrypoints
 from schorle.bun import check_and_prepare_bun
-from schorle.json_schema import generate_schemas
-from schorle.registry import registry
-from schorle.utils import find_project_root, schema_to_ts
+from schorle.utils import find_schorle_project
 
 __version__ = importlib.metadata.version("schorle")
 templates_path = importlib.resources.files("schorle").joinpath("templates")
-
 
 app = typer.Typer(
     name="slx",
@@ -32,290 +28,99 @@ def init(
         default_factory=lambda: Path.cwd(),
         help="The path to the project, usually ui or src/{python_project_name}/ui",
     ),
-    project_name: str = typer.Argument("ui", help="The name of the project"),
-    base_color: str = typer.Option(
-        "neutral", help="The base color property for shadcn"
-    ),
 ):
-    typer.echo(f"Generating project {project_name} at {project_path}")
+    typer.echo(f"Generating project at {project_path}")
+    root_path = Path.cwd()
 
     if project_path.exists():
         typer.echo(f"Project path {project_path} already exists")
         raise typer.Exit(code=1)
 
+    # check if pyproject.toml exists in root_path
+    pyproject_toml_path = root_path / "pyproject.toml"
+    if not pyproject_toml_path.exists():
+        typer.echo(f"pyproject.toml not found in {root_path}, it will be created")
+
+    doc = (
+        parse(pyproject_toml_path.read_text())
+        if pyproject_toml_path.exists()
+        else table()
+    )
+
+    if "tool" not in doc:
+        doc["tool"] = table()
+
+    if "schorle" not in doc["tool"]:  # type: ignore
+        doc["tool"]["schorle"] = table()  # type: ignore
+
+    doc["tool"]["schorle"]["project_root"] = str(project_path)  # type: ignore
+
+    pyproject_toml_path.write_text(dumps(doc))
+
     project_path.mkdir(parents=True, exist_ok=True)
-    schorle_path = project_path / ".schorle"
-    schorle_path.mkdir(parents=True, exist_ok=True)
+
+    pages_path = project_path / "pages"
+    pages_path.mkdir(parents=True, exist_ok=True)
+
+    components_path = project_path / "components"
+    components_path.mkdir(parents=True, exist_ok=True)
+
+    styles_path = project_path / "styles"
+    styles_path.mkdir(parents=True, exist_ok=True)
+
+    lib_path = project_path / "lib"
+    lib_path.mkdir(parents=True, exist_ok=True)
+
+    tsconfig_path = root_path / "tsconfig.json"
+    tsconfig_path.write_text(templates_path.joinpath("tsconfig.json").read_text())
+
+    package_json_path = root_path / "package.json"
+    package_json_path.write_text(templates_path.joinpath("package.json").read_text())
+
+    components_path = root_path / "components.json"
+    components_path.write_text(templates_path.joinpath("components.json").read_text())
+
+    utils_path = project_path / "lib/utils.ts"
+    utils_path.write_text(templates_path.joinpath("utils.ts").read_text())
+
+    globals_css_path = project_path / "styles/globals.css"
+    globals_css_path.write_text(templates_path.joinpath("globals.css").read_text())
+
+    pages_path = project_path / "pages/Index.tsx"
+    pages_path.write_text(templates_path.joinpath("Index.tsx").read_text())
+
+    layout_path = project_path / "pages/__layout.tsx"
+    layout_path.write_text(templates_path.joinpath("__layout.tsx").read_text())
 
     bun_executable = check_and_prepare_bun()
 
-    # run bun init in project_path
     subprocess.run(
-        [
-            bun_executable,
-            "create",
-            "next-app",
-            "schorle",
-            "--use-bun",
-            "--typescript",
-            "--tailwind",
-            "--yes",
-        ],
-        cwd=project_path,
+        [bun_executable, "x", "--bun", "shadcn@latest", "add", "button"],
+        cwd=root_path,
     )
 
-    os.rename(project_path / "schorle", schorle_path)
+    # check if .gitignore exists in root_path
 
-    # put project_name into .schorle/package.json
-    package_json = schorle_path / "package.json"
-    content = json.loads(package_json.read_text())
-    content["name"] = project_name
-    package_json.write_text(json.dumps(content, indent=2))
+    ignorables = ["node_modules", ".schorle"]
 
-    # copy ../templates/.schorle/**/* to schorle_path
-    shutil.copytree(
-        str(templates_path / ".schorle"),
-        schorle_path,
-        dirs_exist_ok=True,
-    )
-
-    # remove .schorle/public folder
-    shutil.rmtree(schorle_path / "public")
-
-    # copy templates/app to project_path/app
-    shutil.copytree(
-        str(templates_path / "app"),
-        project_path / "app",
-        dirs_exist_ok=True,
-    )
-
-    first_letter = project_name[0].upper()
-    logo_template = project_path / "app" / "public" / "logo.template.svg"
-    logo_template.write_text(
-        logo_template.read_text().replace("{{project_first_letter}}", first_letter)
-    )
-    shutil.copy(
-        logo_template,
-        project_path / "app" / "public" / "logo.svg",
-    )
-
-    logo_template.unlink()
-
-    # remove default page.tsx
-    (schorle_path / "app" / "page.tsx").unlink()
-
-    # copy ../templates/tsconfig.json to project_path/tsconfig.json
-    shutil.copy(
-        str(templates_path / "tsconfig.json"),
-        project_path / "tsconfig.json",
-    )
-
-    # add shadcn
-    subprocess.run(
-        [bun_executable, "x", "shadcn@latest", "init", "--yes", "-b", base_color],
-        cwd=schorle_path,
-    )
-    # add next-themes
-    subprocess.run(
-        [bun_executable, "add", "next-themes", "@msgpack/msgpack", "jose"],
-        cwd=schorle_path,
-    )
-
-    # add button
-    subprocess.run(
-        [bun_executable, "x", "shadcn@latest", "add", "button"], cwd=schorle_path
-    )
-
-    # add
-    # this -> @source "../../app/pages/";
-    # after -> @import "tw-animate-css";
-    # to file schorle_path/app/styles/globals.css
-    styles_file = schorle_path / "app" / "globals.css"
-    content = styles_file.read_text()
-    content = content.replace(
-        '@import "tw-animate-css";',
-        "\n".join(
-            [
-                '@import "tw-animate-css";',
-                '@source "../../app/";',
-            ]
-        ),
-    )
-    styles_file.write_text(content)
-
-    # add symlink from schorle_path/node_modules to project_path/node_modules
-
-    (project_path / "node_modules").symlink_to(
-        Path(".schorle/node_modules"), target_is_directory=True
-    )
-
-    # gen pages
-    registry(
-        project_root=project_path,
-        pages=Path("app/pages"),
-        ts_out=Path(".schorle/app/registry.gen.tsx"),
-        py_out=Path("registry.py"),
-        import_prefix="@/pages",
-    )
-
-    # add __init__.py to project_path
-    (project_path / "__init__.py").write_text(
-        "\n".join(
-            [
-                "# This file is generated by schorle init",
-                "from .registry import pages",
-                "from schorle.app import Schorle",
-                "from pathlib import Path",
-                "ui = Schorle(Path(__file__).parent)",
-                "__all__ = ['pages', 'ui']",
-            ]
-        )
-    )
-
-
-app.command(
-    name="registry",
-    help="Scan a /pages tree and emit a TypeScript lazy-import registry.",
-)(registry)
-
-
-@app.command("build", help="Generate the registry and build the UI")
-def build():
-    project_root = find_project_root()
-    if project_root is None:
-        typer.echo(f"Project root not found after searching in {Path.cwd()}")
-        raise typer.Exit(code=1)
-
-    print(f"Building project {project_root}")
-
-    schorle_path = project_root / ".schorle"
-
-    # generate registry
-    registry(
-        pages=project_root / "app" / "pages",
-        ts_out=schorle_path / "app" / "registry.gen.tsx",
-        py_out=project_root / "registry.py",
-        import_prefix="@/pages",
-    )
-
-    # next JS build
-    bun_executable = check_and_prepare_bun()
-    subprocess.run([bun_executable, "run", "build"], cwd=schorle_path)
-
-
-@app.command("codegen", help="Generate models from the project")
-def generate_models(
-    module_name: str = typer.Argument(
-        help="The name of the module to generate models for",
-    ),
-):
-    project_root = find_project_root()
-    if project_root is None:
-        typer.echo(f"Project root not found after searching in {Path.cwd()}")
-        raise typer.Exit(code=1)
-
-    # generate models
-    bun_executable = check_and_prepare_bun()
-    module = importlib.import_module(module_name)
-    json_schema = generate_schemas(module)
-    ts_schema = schema_to_ts(json_schema, bun_executable)
-    types_dir = project_root / "app" / "lib" / "types"
-    types_dir.mkdir(parents=True, exist_ok=True)
-    output_path = types_dir / f"{module_name}.d.ts"
-    typer.echo(f"Writing models to {output_path}")
-
-    barrel_file = types_dir / "index.d.ts"
-    # check if barrel_file exists
-    if not barrel_file.exists():
-        barrel_file.write_text(
-            "\n".join(
-                [
-                    f"export * from './{module_name}.d.ts';",
-                ]
-            )
-        )
+    gitignore_path = root_path / ".gitignore"
+    if not gitignore_path.exists():
+        gitignore_path.write_text("\n".join(ignorables))
     else:
-        # check if export * from './{module_name}.d.ts'; exists, add it if not
-        if f"export * from './{module_name}.d.ts';" not in barrel_file.read_text():
-            current_content = barrel_file.read_text()
-            barrel_file.write_text(
-                current_content + f"\nexport * from './{module_name}.d.ts';"
-            )
-    current_ts_content = (
-        output_path.read_text(encoding="utf-8") if output_path.exists() else ""
-    )
-    if ts_schema != current_ts_content:
-        output_path.write_text(ts_schema, encoding="utf-8")
+        # check if ignorables are in .gitignore
+        to_be_added = []
+        for ignoreable in ignorables:
+            if ignoreable not in gitignore_path.read_text():
+                to_be_added.append(ignoreable)
+        if to_be_added:
+            gitignore_path.write_text("\n".join(to_be_added))
+
+    typer.echo("Project initialized successfully")
 
 
-add_app = typer.Typer(
-    name="add",
-    help="Add components or dependencies to the project",
-)
-app.add_typer(add_app, name="add")
+@app.command(name="build", help="Build the project")
+def build():
+    typer.echo("Building project")
+    project = find_schorle_project(Path.cwd())
 
-
-component_args = {
-    "help": """Add a component to the project.
-
-    This command will run `bun x shadcn@latest add component` with the remaining arguments.
-
-    Example:
-
-    > slx add component button
-    """,
-    "context_settings": {"allow_extra_args": True, "ignore_unknown_options": True},
-}
-
-
-@add_app.command("component", **component_args)  # type: ignore
-@add_app.command("comp", **component_args)  # type: ignore
-@add_app.command("c", **component_args)  # type: ignore
-def add_component(
-    ctx: typer.Context,
-):
-    bun_executable = check_and_prepare_bun()
-    project_root = find_project_root()
-    if project_root is None:
-        typer.echo(f"Project root not found after searching in {Path.cwd()}")
-        raise typer.Exit(code=1)
-    schorle_path = project_root / ".schorle"
-    # check if .schorle folder exists in cwd
-    if not schorle_path.exists():
-        typer.echo(f"Project path {project_root} does not have a .schorle folder")
-        raise typer.Exit(code=1)
-
-    # run bun x shadcn@latest add component with the remaining arguments
-    subprocess.run(
-        [bun_executable, "x", "shadcn@latest", "add", *ctx.args], cwd=schorle_path
-    )
-
-
-dependency_args = {
-    "help": """Add a dependency to the project.
-
-    This command will run `bun add` with the remaining arguments.
-    """,
-    "context_settings": {"allow_extra_args": True, "ignore_unknown_options": True},
-}
-
-
-@add_app.command("dependency", **dependency_args)  # type: ignore
-@add_app.command("dep", **dependency_args)  # type: ignore
-@add_app.command("d", **dependency_args)  # type: ignore
-def add_dependency(
-    ctx: typer.Context,
-):
-    bun_executable = check_and_prepare_bun()
-    project_root = find_project_root()
-    if project_root is None:
-        typer.echo(f"Project root not found after searching in {Path.cwd()}")
-        raise typer.Exit(code=1)
-    schorle_path = project_root / ".schorle"
-    # check if .schorle folder exists in cwd
-    if not schorle_path.exists():
-        typer.echo(f"Project path {project_root} does not have a .schorle folder")
-        raise typer.Exit(code=1)
-
-    # run bun add with the remaining arguments
-    subprocess.run([bun_executable, "add", *ctx.args], cwd=schorle_path)
+    build_entrypoints(("bun", "run", "slx-ipc", "build"), project)

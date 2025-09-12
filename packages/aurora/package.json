@@ -1,0 +1,12 @@
+{
+  "name": "aurora",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.3",
+    "@schorle/server": "workspace:*",
+    "@schorle/shared": "workspace:*"
+  }
+}

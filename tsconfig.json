@@ -1,18 +1,17 @@
 {
-  "type": "module",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@schorle/bridge/*": ["./src/schorle/bridge/*"],
-      "@/components/*": ["src/schorle/templates/components/*"]
-    },
     // Environment setup & latest features
-    "lib": ["ESNext", "DOM"],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@/packages/aurora/*": ["packages/aurora/src/aurora/ui/*"]
+    },
 
     // Bundler mode
     "moduleResolution": "bundler",
@@ -31,5 +30,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["packages/aurora/src/aurora/ui/**/*.tsx"]
 }

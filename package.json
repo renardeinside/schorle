@@ -1,28 +1,29 @@
 {
-  "name": "@schorle/bridge",
-  "version": "0.0.1",
-  "type": "module",
-  "engines": {
-    "bun": ">=1.1.0"
-  },
-  "files": [
-    "src/schorle/bridge"
+  "name": "schorle-mono",
+  "private": true,
+  "workspaces": [
+    "packages/*"
   ],
-  "peerDependencies": {
+  "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@msgpack/msgpack": "^3.1.2",
+    "@radix-ui/react-compose-refs": "^1.1.2",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@schorle/server": "link:@schorle/server",
+    "@schorle/shared": "link:@schorle/shared",
     "@types/bun": "latest",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.544.0",
+    "shadcn": "^3.2.1",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.13",
+    "tw-animate-css": "^1.3.8"
+  },
+  "peerDependencies": {
     "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9",
-    "bun-plugin-tailwind": "^0.0.15",
-    "jose": "^6.1.0",
-    "lucide-react": "^0.542.0",
-    "next": "^15.5.2",
-    "next-themes": "^0.4.6",
-    "sonner": "^2.0.7",
-    "tailwindcss": "^4.1.12"
+    "@types/react-dom": "^19.1.9"
   }
 }

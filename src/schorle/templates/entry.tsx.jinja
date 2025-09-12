@@ -1,0 +1,11 @@
+import {hydrateRoot} from 'react-dom/client';
+import {wrapLayouts} from '@schorle/shared';
+
+{{ import_statements }}
+
+function hydrate(element: HTMLElement, App: React.FC) {
+    const layouts = {{ layout_components }};
+    hydrateRoot(document, wrapLayouts(Page, layouts));
+}
+
+hydrate()

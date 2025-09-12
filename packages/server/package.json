@@ -1,0 +1,22 @@
+{
+  "name": "@schorle/server",
+  "version": "0.1.0",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "package.json"
+  ],
+  "bin": {
+    "slx-ipc": "./src/bin.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "bun-plugin-tailwind": "^0.0.15",
+    "@schorle/shared": "^0.1.0"
+  }
+}

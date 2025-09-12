@@ -66,6 +66,7 @@ def check_and_prepare_bun() -> Path:
     bun = bun_installed()
     if not bun:
         user_dir = Path.home() / ".schorle"
+        user_dir.mkdir(parents=True, exist_ok=True)
         install_bun(user_dir)
         bun_path = user_dir / "bun"
         os.environ["PATH"] = str(bun_path) + os.pathsep + os.environ["PATH"]

@@ -1,36 +1,30 @@
-import asyncio
 import contextlib
+import json
 import os
 from pathlib import Path
-import re
-import socket
 import subprocess
 import sys
-from typing import Any, Callable, Mapping
-import json
-from fastapi.datastructures import Headers
-from typing_extensions import Iterable
+from typing import Generator
+from pydantic import BaseModel
+from tomlkit import parse
 
 
-def to_camel_case(s: str) -> str:
-    """Convert snake_case, kebab-case, or spaced string to camelCase."""
-    parts = re.split(r"[_\-\s]+", s)
-    return parts[0].lower() + "".join(word.capitalize() for word in parts[1:])
+@contextlib.contextmanager
+def cwd(path: Path | str) -> Generator[None, None, None]:
+    current_dir = os.getcwd()
+    os.chdir(str(path))
+    try:
+        yield
+    finally:
+        os.chdir(current_dir)
 
 
-def keys_to_camel_case(
-    obj: dict[str, Any] | list[Any] | Any,
-) -> dict[str, Any] | list[Any] | Any:
-    """Recursively convert all dict keys to camelCase."""
-    if isinstance(obj, dict):
-        return {
-            to_camel_case(k) if isinstance(k, str) else k: keys_to_camel_case(v)
-            for k, v in obj.items()
-        }
-    elif isinstance(obj, list):
-        return [keys_to_camel_case(item) for item in obj]
-    else:
-        return obj
+def define_if_dev():
+    # we assume it's a dev run in following cases:
+    # startup command is uvicorn with --reload flag
+    # startup command contains fastapi dev
+
+    return "--reload" in sys.argv or "fastapi dev" in sys.argv
 
 
 def schema_to_ts(json_schema_str: str, bun_executable: Path) -> str:
@@ -61,55 +55,45 @@ def schema_to_ts(json_schema_str: str, bun_executable: Path) -> str:
     return proc.stdout
 
 
-def define_if_dev():
-    # we assume it's a dev run in following cases:
-    # startup command is uvicorn with --reload flag
-    # startup command contains fastapi dev
+class SchorleProject(BaseModel):
+    root_path: Path
+    project_root: Path
 
-    return "--reload" in sys.argv or "fastapi dev" in sys.argv
+    @property
+    def schorle_dir(self) -> Path:
+        return self.root_path / ".schorle"
 
+    @property
+    def pages_path(self) -> Path:
+        return self.project_root / "pages"
 
-def find_free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("localhost", 0))
-        return s.getsockname()[1]
-
-
-def prefer_http() -> bool:
-    return os.name == "nt"
-
-
-async def lines_printer_task(getter: Callable[[], list[str]], label: str):
-    while True:
-        lines = getter()
-        if lines:
-            for line in lines:
-                print(f"[schorle] {label}:", line)
-        await asyncio.sleep(0.1)
+    @property
+    def dist_path(self) -> Path:
+        return self.schorle_dir / "dist"
 
 
-@contextlib.asynccontextmanager
-async def lines_printer(getter: Callable[[], list[str]], label: str):
-    task = asyncio.create_task(lines_printer_task(getter, label))
-    try:
-        yield
-    except asyncio.CancelledError:
-        pass
-    finally:
-        task.cancel()
-
-
-def forwardable_headers(
-    h: Headers | Mapping[str, str],
-    allow: Iterable[str] = ("cookie", "user-agent", "sec-websocket-protocol"),
-) -> dict[str, str]:
-    allow = {k.lower() for k in allow}
-    return {k: v for k, v in dict(h).items() if k.lower() in allow and v is not None}
-
-
-def find_project_root() -> Path | None:
-    current_dir = Path.cwd()
-    for root, dirs, files in os.walk(current_dir):
-        if ".schorle" in dirs:
-            return Path(root)
-    return None
+# searches the directories upwards until it finds a pyproject.toml file
+def find_schorle_project(
+    path: Path, max_iterations: int = 10, left_iterations: int = 0
+) -> SchorleProject:
+    path = path.resolve()
+    if max_iterations == 0 or left_iterations == max_iterations - 1:
+        raise FileNotFoundError(
+            f"pyproject.toml not found after {left_iterations} iterations"
+        )
+    if path.joinpath("pyproject.toml").exists():
+        ## check if [tool.schorle] exists
+        doc = parse(path.joinpath("pyproject.toml").read_text())
+        if "tool" in doc and "schorle" in doc["tool"]:  # type: ignore
+            project_root = Path(doc["tool"]["schorle"]["project_root"])  # type: ignore
+            return SchorleProject(
+                root_path=path,
+                project_root=project_root,
+            )
+        else:
+            return find_schorle_project(
+                path.parent, max_iterations, left_iterations + 1
+            )
+    else:
+        print(f"pyproject.toml not found in {path}, searching in {path.parent}")
+        return find_schorle_project(path.parent, max_iterations, left_iterations + 1)

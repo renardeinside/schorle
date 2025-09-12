@@ -9,27 +9,24 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.116.1",
+    "jinja2>=3.1.6",
     "msgpack>=1.1.1",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
     "pyjwt>=2.10.1",
     "requests>=2.32.5",
     "rich>=14.1.0",
+    "tomlkit>=0.13.3",
     "typer>=0.17.4",
     "watchfiles>=1.1.0",
 ]
 
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"
+
 [project.scripts]
 slx = "schorle.__main__:main"
-
-[tool.maturin]
-module-name = "schorle._core"
-python-packages = ["schorle"]
-python-source = "src"
-
-[build-system]
-requires = ["maturin>=1.0,<2.0"]
-build-backend = "maturin"
 
 [dependency-groups]
 dev = [
@@ -41,4 +38,10 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "ruff>=0.12.12",
     "types-requests>=2.32.4.20250809",
+    "uvicorn>=0.35.0",
+]
+
+[tool.uv.workspace]
+members = [
+    "packages/aurora",
 ]

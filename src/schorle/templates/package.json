@@ -1,0 +1,11 @@
+{
+  "name": "aurora",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "@schorle/shared": "workspace:*",
+    "@schorle/server": "workspace:*"
+  }
+}
