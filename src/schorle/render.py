@@ -108,8 +108,6 @@ def render(project: SchorleProject, page_path: Path) -> Generator[bytes, None, N
         "css": f"/.schorle/{css_asset.relative_to(project.dist_path)}",
     }
 
-    print(f"Render info: {render_info}")
-
     # Execute bun command and capture output in stream
     full_cmd = [
         "bun",
@@ -119,7 +117,6 @@ def render(project: SchorleProject, page_path: Path) -> Generator[bytes, None, N
         json.dumps(render_info),
     ]
 
-    print(f"Full command: {' '.join(full_cmd)}")
     completed = subprocess.Popen(
         full_cmd,
         cwd=str(project.root_path),
@@ -141,6 +138,7 @@ def render(project: SchorleProject, page_path: Path) -> Generator[bytes, None, N
                 link_tag = f"<link rel='stylesheet' href='{render_info['css']}' />\n"
             else:
                 link_tag = ""
+
             injected = decoded.replace("</head>", f"{link_tag}</head>")
             yield injected.encode("utf-8")
 

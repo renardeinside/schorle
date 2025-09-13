@@ -1,16 +1,21 @@
 import "@/styles/globals.css";
+import { Meta } from "@schorle/shared";
+import { ThemeProvider } from "@schorle/shared";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const storageKey = "theme";
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+        <Meta storageKey={storageKey} />
       </head>
-      <body>{children}</body>
+      <body>
+        <ThemeProvider storageKey={storageKey}>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

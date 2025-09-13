@@ -124,9 +124,14 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
             *command,
             json.dumps([str(p) for p in hydrator_entrypoints]),
         ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
     if result.returncode != 0:
         print(result.stderr)
-        print(result.stdout)
         raise RuntimeError("Failed to build")
+    
+    result_json = json.loads(result.stdout)
+    print("build output:")
+    print(json.dumps(result_json, indent=2))
     print("Built all entry files.")

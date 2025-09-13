@@ -1,20 +1,11 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import Counter from "@/components/Counter";
+import { getProps } from "@/lib/props";
 
-export default function Index() {
-  const [count, setCount] = useState(0);
+export default async function Index() {
+  const props = await getProps();
   return (
     <main className="min-h-screen grid place-items-center">
-      <div className="text-center">
-        <div className="text-6xl font-semibold">{count}</div>
-        <div className="mt-4 flex gap-2 justify-center">
-          <Button onClick={() => setCount((c) => c - 1)}>-1</Button>
-          <Button variant="secondary" onClick={() => setCount(0)}>
-            Reset
-          </Button>
-          <Button onClick={() => setCount((c) => c + 1)}>+1</Button>
-        </div>
-      </div>
+      <Counter />
     </main>
   );
 }

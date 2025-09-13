@@ -11,8 +11,6 @@ export async function build(hydratorPathsRaw: string) {
     process.exit(1);
   }
 
-  console.log("Building entry:", hydratorPathsRaw);
-
   const hydratorPaths = JSON.parse(hydratorPathsRaw) as string[];
 
   if (hydratorPaths.length === 0) {
@@ -40,6 +38,6 @@ export async function build(hydratorPathsRaw: string) {
     console.error("Build failed:", result.logs);
     process.exit(1);
   } else {
-    console.log("Build succeeded!");
+    console.log(JSON.stringify(result.outputs, null, 2));
   }
 }

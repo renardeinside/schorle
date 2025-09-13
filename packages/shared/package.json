@@ -24,7 +24,7 @@
     "typescript": "^5.4.0"
   },
   "scripts": {
-    "build:esm": "bun build src/index.tsx --outdir dist/esm --format esm --target browser --sourcemap",
+    "build:esm": "bun build src/index.tsx --outdir dist/esm --format esm --target browser --sourcemap --external react --external react-dom",
     "build:types": "tsc --emitDeclarationOnly",
     "build": "bun run build:esm && bun run build:types"
   }

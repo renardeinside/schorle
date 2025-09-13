@@ -92,6 +92,9 @@ def init(
     layout_path = project_path / "pages/__layout.tsx"
     layout_path.write_text(templates_path.joinpath("__layout.tsx").read_text())
 
+    counter_path = project_path / "components/Counter.tsx"
+    counter_path.write_text(templates_path.joinpath("Counter.tsx").read_text())
+
     bun_executable = check_and_prepare_bun()
 
     subprocess.run(
