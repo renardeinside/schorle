@@ -16,3 +16,17 @@ It combines Pythonic backend with simple and easy to work with JSX/CSS setup.
 ---
 
 **Note:** This project is in an early stage of development. It is not ready for production use.
+
+
+## Roadmap
+
+v0:
+
+- [x] dev reload
+- [x] server-side props passing
+- [ ] headers/cookies
+- [ ] typesafe page names autogen
+- [ ] models autogen
+- [ ] api client autogen
+- [ ] components CLI
+- [ ] dependencies CLI
