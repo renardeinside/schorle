@@ -95,6 +95,12 @@ def init(
     counter_path = project_path / "components/Counter.tsx"
     counter_path.write_text(templates_path.joinpath("Counter.tsx").read_text())
 
+    dev_helper_path = project_path / "components" / "dev" / "SchorleDevHelper.tsx"
+    dev_helper_path.parent.mkdir(parents=True, exist_ok=True)
+    dev_helper_path.write_text(
+        templates_path.joinpath("SchorleDevHelper.tsx").read_text()
+    )
+
     bun_executable = check_and_prepare_bun()
 
     subprocess.run(

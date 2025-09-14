@@ -7,6 +7,7 @@ import json
 class SchorleProject(BaseModel):
     root_path: Path
     project_root: Path
+    dev: bool | None = None
 
     @property
     def schorle_dir(self) -> Path:

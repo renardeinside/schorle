@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import subprocess
 import shutil
@@ -73,6 +74,9 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
     print("Generated all entry files.")
     print("Running bun build...")
     # run bun build on all generated files
+
+    base_env = os.environ.copy()
+    base_env["NODE_ENV"] = "development" if project.dev else "production"
     result = subprocess.run(
         [
             *command,
@@ -80,6 +84,7 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=base_env,
     )
     if result.returncode != 0:
         print(result.stderr)

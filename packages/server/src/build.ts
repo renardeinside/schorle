@@ -34,6 +34,7 @@ export async function build(hydratorPathsRaw: string) {
       chunk: "/chunks/[hash].[ext]",
       asset: "pages/[dir]/[name]/assets/[hash].[ext]",
     },
+    define: { "process.env.NODE_ENV": JSON.stringify("development") },
   });
 
   if (result.success === false) {

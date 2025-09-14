@@ -12,15 +12,13 @@ function readInitialProps() {
   return decode(u8);
 }
 
-function hydrate() {
-    const layouts = {{ layout_components }};
-    const pageTree = wrapLayouts(Page, layouts);
-    const initialProps = readInitialProps();
-    const element = (
-        <PropsProvider value={initialProps}>
-            {pageTree}
-        </PropsProvider>
-    );
-    hydrateRoot(document, element);
-}
-hydrate()
+const layouts = {{ layout_components }};
+const pageTree = wrapLayouts(Page, layouts);
+const initialProps = readInitialProps();
+const element = (
+    <PropsProvider value={initialProps}>
+        {pageTree}
+    </PropsProvider>
+);
+
+hydrateRoot(document, element);

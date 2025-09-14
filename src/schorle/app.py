@@ -2,17 +2,26 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from schorle.cli import build
+from schorle.dev import DevManager
 from schorle.render import render
-from schorle.utils import find_schorle_project
+from schorle.utils import cwd, define_if_dev, find_schorle_project
 from schorle.manifest import PageInfo
 from pathlib import Path
 import msgpack
+from fastapi.routing import _merge_lifespan_context
 
 
 class Schorle:
-    def __init__(self) -> None:
+    def __init__(self, dev: bool | None = None) -> None:
         self.project = find_schorle_project(Path.cwd())
+        self.project.dev = dev if dev is not None else define_if_dev()
         self._page_infos: list[PageInfo] | None = None
+        self.dev_manager: DevManager | None = None
+
+    def _build(self):
+        with cwd(self.project.root_path):
+            build()
 
     def mount(self, app: FastAPI):
         # mount the static files
@@ -28,6 +37,17 @@ class Schorle:
         except Exception:
             # If manifest is missing or build not run yet, keep empty list; callers may handle 404s.
             self._page_infos = []
+
+        if self.project.dev:
+            # Initialize DevManager once and wire websocket + lifespan
+            if self.dev_manager is None:
+                self.dev_manager = DevManager(self.project.root_path, [self._build])
+            app.websocket_route("/_schorle/dev-indicator")(
+                self.dev_manager.websocket_endpoint
+            )
+            app.router.lifespan_context = _merge_lifespan_context(
+                app.router.lifespan_context, self.dev_manager.lifespan
+            )
 
     def _resolve_page_info(self, page: Path) -> PageInfo:
         if self._page_infos is None:

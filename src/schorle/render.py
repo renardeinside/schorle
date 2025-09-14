@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import IO, Generator, Union
@@ -83,12 +84,16 @@ def render(
         json.dumps(render_info),
     ]
 
+    base_env = os.environ.copy()
+    base_env["NODE_ENV"] = "development" if project.dev else "production"
+
     completed = subprocess.Popen(
         full_cmd,
         cwd=str(project.root_path),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=base_env,
     )
 
     if completed.stdout is None:
