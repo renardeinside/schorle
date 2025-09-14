@@ -28,5 +28,6 @@ v0:
 - [ ] typesafe page names autogen
 - [ ] models autogen
 - [ ] api client autogen
+- [ ] MDX rendering
 - [ ] components CLI
 - [ ] dependencies CLI
