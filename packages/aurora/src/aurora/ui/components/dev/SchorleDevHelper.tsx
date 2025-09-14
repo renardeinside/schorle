@@ -85,7 +85,21 @@ export default function SchorleLiveIndicator() {
           }
         };
 
-        ws.onmessage = () => setLastPing(Date.now());
+        ws.onmessage = (evt) => {
+          setLastPing(Date.now());
+          try {
+            const data = JSON.parse(String(evt.data ?? "{}"));
+            if (data && data.type === "reload") {
+              // Prefetch current page to warm caches, then hard reload
+              const href = window.location.href;
+              fetch(href, { cache: "no-store" }).finally(() => {
+                window.location.reload();
+              });
+            }
+          } catch {
+            // ignore non-JSON pings
+          }
+        };
         ws.onerror = () => {
           /* onclose will handle retry */
         };

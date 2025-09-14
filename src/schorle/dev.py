@@ -58,6 +58,27 @@ class DevManager:
             if ws in self._websockets:
                 self._websockets.remove(ws)
 
+    async def _broadcast_json(self, payload: dict) -> None:
+        if not self._websockets:
+            return
+        stale: list[WebSocket] = []
+        send_tasks: list[asyncio.Task] = []
+        for ws in list(self._websockets):
+
+            async def _send(w: WebSocket) -> None:
+                try:
+                    await w.send_json(payload)
+                except Exception:
+                    stale.append(w)
+
+            send_tasks.append(asyncio.create_task(_send(ws)))
+        if send_tasks:
+            await asyncio.gather(*send_tasks, return_exceptions=True)
+        # prune any sockets that errored
+        for ws in stale:
+            if ws in self._websockets:
+                self._websockets.remove(ws)
+
     async def _disconnect_all(self) -> None:
         if not self._websockets:
             return
@@ -82,11 +103,13 @@ class DevManager:
                     # Keep watcher alive even if a callback throws
                     print(f"Error in reload callback: {e}")
                     continue
-            # After reload callbacks complete, disconnect active dev websockets
-            await self._disconnect_all()
+            # After reload callbacks complete, notify connected dev clients to reload
+            await self._broadcast_json({"type": "reload", "ts": time.time()})
 
     @asynccontextmanager
     async def lifespan(self, app):
+        for cb in list(self._reload_callbacks):
+            cb()
         try:
             self._watcher_task = asyncio.create_task(self._watcher())
             yield
