@@ -1,11 +1,26 @@
 import {hydrateRoot} from 'react-dom/client';
 import {wrapLayouts} from '@schorle/shared';
+import { PropsProvider } from "@schorle/shared";
+import {decode} from "msgpackr"
 
 {{ import_statements }}
 
-function hydrate(element: HTMLElement, App: React.FC) {
-    const layouts = {{ layout_components }};
-    hydrateRoot(document, wrapLayouts(Page, layouts));
+function readInitialProps() {
+  const el = document.getElementById("__SCHORLE_PROPS__") as HTMLScriptElement | null;
+  if (!el || !el.textContent) return null;
+  const u8 = Uint8Array.from(atob(el.textContent), c => c.charCodeAt(0));
+  return decode(u8);
 }
 
+function hydrate() {
+    const layouts = {{ layout_components }};
+    const pageTree = wrapLayouts(Page, layouts);
+    const initialProps = readInitialProps();
+    const element = (
+        <PropsProvider value={initialProps}>
+            {pageTree}
+        </PropsProvider>
+    );
+    hydrateRoot(document, element);
+}
 hydrate()

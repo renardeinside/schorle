@@ -10,4 +10,4 @@ ui.mount(app)
 
 @app.get("/")
 def index():
-    return ui.render(Path("Index.tsx"))
+    return ui.render(Path("Index.tsx"), props=dict(title="Hello, World!"))

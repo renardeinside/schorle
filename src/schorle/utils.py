@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 from typing import Generator
-from pydantic import BaseModel
+from schorle.manifest import SchorleProject
 from tomlkit import parse
 
 
@@ -53,23 +53,6 @@ def schema_to_ts(json_schema_str: str, bun_executable: Path) -> str:
         check=True,
     )
     return proc.stdout
-
-
-class SchorleProject(BaseModel):
-    root_path: Path
-    project_root: Path
-
-    @property
-    def schorle_dir(self) -> Path:
-        return self.root_path / ".schorle"
-
-    @property
-    def pages_path(self) -> Path:
-        return self.project_root / "pages"
-
-    @property
-    def dist_path(self) -> Path:
-        return self.schorle_dir / "dist"
 
 
 # searches the directories upwards until it finds a pyproject.toml file

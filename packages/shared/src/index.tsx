@@ -1,6 +1,7 @@
 import type { JSX, ReactNode, ComponentType, ReactElement } from "react";
 import { ThemeProvider } from "./theme-provider";
 import { Meta } from "./Meta";
+import { PropsProvider, useProps } from "./props";
 type LayoutFC = (props: { children: ReactNode }) => JSX.Element;
 
 function wrapLayouts(Page: ComponentType, layouts: LayoutFC[]): ReactElement {
@@ -11,4 +12,11 @@ function wrapLayouts(Page: ComponentType, layouts: LayoutFC[]): ReactElement {
   return <>{tree}</>; // fragment avoids extra DOM element
 }
 
-export { ThemeProvider, wrapLayouts, type LayoutFC, Meta };
+export {
+  ThemeProvider,
+  wrapLayouts,
+  type LayoutFC,
+  Meta,
+  PropsProvider,
+  useProps,
+};

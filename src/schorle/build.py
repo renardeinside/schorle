@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 import subprocess
-from pydantic import BaseModel
 import shutil
 import jinja2
 import importlib.resources
 
+from schorle.manifest import PageInfo
 from schorle.utils import SchorleProject
 
 template_path: Path = (
@@ -20,59 +20,13 @@ def get_template() -> jinja2.Template:
     return template
 
 
-class PageInfo(BaseModel):
-    page: Path
-    layouts: list[Path]
-
-    def __str__(self):
-        layout_str = " -> ".join(
-            str(layout.relative_to(self.page.parent.parent)) for layout in self.layouts
-        )
-        return (
-            f"{self.page.relative_to(self.page.parent.parent)} (Layouts: {layout_str})"
-        )
-
-
 def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None:
-    # find all **/*.tsx files
-    tsx_files = list(project.pages_path.glob("**/*.tsx"))
-
-    # expected structure looks like:
-    # /path/to/pages/Index.tsx
-    # /path/to/pages/__layout.tsx
-    # /path/to/pages/dashboard/__layout.tsx
-    # /path/to/pages/dashboard/Settings.tsx
-    # /path/to/pages/dashboard/profile/Profile.tsx
-
-    page_infos: list[PageInfo] = []
-    for tsx_file in tsx_files:
-        if tsx_file.name.startswith("__"):
-            continue
-
-        relative_path = tsx_file.relative_to(project.pages_path)
-        # parts will be like ('dashboard', 'profile', 'Profile.tsx') for nested files
-        # and ('Index.tsx',) for top-level files
-        # we need to cover both cases
-
-        parts = list(relative_path.parts[:-1])  # exclude the file name
-
-        # always include root layout if exists
-        parts = ["/"] + parts
-
-        layouts = []
-
-        for part in parts:
-            print(f"Checking for layout in part: {part}")
-
-            if part == "/":
-                layout_path = project.pages_path.joinpath("__layout.tsx")
-            else:
-                layout_path = project.pages_path.joinpath(part, "__layout.tsx")
-
-            if layout_path.exists():
-                layouts.append(layout_path)
-
-        page_infos.append(PageInfo(page=tsx_file, layouts=layouts))
+    # Discover pages and layouts using the manifest-aware API. At build time, js/css
+    # might be missing; we only need the TSX imports to generate hydrator entrypoints.
+    # For entrypoint generation, we do not require a manifest yet.
+    page_infos: list[PageInfo] = (
+        project.collect_page_infos(require_manifest=False) or []
+    )
 
     for page_info in page_infos:
         print(f"Page: {page_info}")
@@ -130,8 +84,5 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
     if result.returncode != 0:
         print(result.stderr)
         raise RuntimeError("Failed to build")
-    
-    result_json = json.loads(result.stdout)
-    print("build output:")
-    print(json.dumps(result_json, indent=2))
+
     print("Built all entry files.")

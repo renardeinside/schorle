@@ -1,4 +1,6 @@
+import type { BuildArtifact } from "bun";
 import plugin from "bun-plugin-tailwind";
+import { relative } from "path";
 
 export async function build(hydratorPathsRaw: string) {
   if (!hydratorPathsRaw) {
@@ -38,6 +40,15 @@ export async function build(hydratorPathsRaw: string) {
     console.error("Build failed:", result.logs);
     process.exit(1);
   } else {
-    console.log(JSON.stringify(result.outputs, null, 2));
+    const artifacts = result.outputs.map((o: BuildArtifact) => ({
+      kind: o.kind, // "entry" | "chunk" | "asset"
+      path: relative(".schorle/dist/entry", o.path), // nice relative path
+      loader: o.loader ?? null, // "js" | "css" | ...
+      bytes: o.size ?? null, // size in bytes
+    }));
+    Bun.write(
+      ".schorle/dist/entry/manifest.json",
+      JSON.stringify(artifacts, null, 2),
+    );
   }
 }
