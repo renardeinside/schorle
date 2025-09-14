@@ -100,6 +100,11 @@ class SchorleProject(BaseModel):
 
         return page_layout_pairs
 
+    @property
+    def page_infos(self) -> list[PageInfo]:
+        # Dynamically compute on each access to reflect latest files and manifest
+        return self.collect_page_infos(require_manifest=True)
+
     def _build_manifest_lookup(self) -> dict[str, tuple[str, str | None]]:
         """
         Build a lookup of entry directory -> (js_url, css_url) from the raw manifest.

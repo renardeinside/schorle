@@ -20,16 +20,17 @@ export async function build(hydratorPathsRaw: string) {
     process.exit(1);
   }
 
-  const isDev = process.env.NODE_ENV === "development";
+  const isDev = process.env.NODE_ENV !== "production";
 
   const entryName = isDev
-    ? "pages/[dir]/[name]/[hash].[ext]"
-    : "pages/[dir]/[name]/dev.[ext]";
+    ? "pages/[dir]/[name]/dev.[ext]"
+    : "pages/[dir]/[name]/[hash].[ext]";
+
   const chunkName = isDev
-    ? "/chunks/[hash].[ext]"
+    ? "pages/[dir]/[name]/chunks/dev.[ext]"
     : "pages/[dir]/[name]/chunks/[hash].[ext]";
   const assetName = isDev
-    ? "pages/[dir]/[name]/assets/[hash].[ext]"
+    ? "pages/[dir]/[name]/assets/dev.[ext]"
     : "pages/[dir]/[name]/assets/[hash].[ext]";
 
   const result = await Bun.build({
@@ -46,7 +47,11 @@ export async function build(hydratorPathsRaw: string) {
       chunk: chunkName,
       asset: assetName,
     },
-    define: { "process.env.NODE_ENV": JSON.stringify("development") },
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(
+        isDev ? "development" : "production",
+      ),
+    },
   });
 
   if (result.success === false) {

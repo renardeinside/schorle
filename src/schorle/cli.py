@@ -128,8 +128,11 @@ def init(
 
 
 @app.command(name="build", help="Build the project")
-def build():
+def build(
+    dev: bool = typer.Option(False, help="Build in dev mode"),
+):
     typer.echo("Building project")
     project = find_schorle_project(Path.cwd())
+    project.dev = dev
 
     build_entrypoints(("bun", "run", "slx-ipc", "build"), project)

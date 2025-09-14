@@ -4,7 +4,7 @@ import { useProps } from "@schorle/shared";
 export default function Index() {
   const props = useProps();
   return (
-    <main className="min-h-screen grid place-items-center">
+    <main className="min-h-screen grid place-items-center bg-red-500">
       <Counter />
       <h2>Props</h2>
       <pre>

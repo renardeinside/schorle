@@ -18,10 +18,11 @@ class Schorle:
         self.project.dev = dev if dev is not None else define_if_dev()
         self._page_infos: list[PageInfo] | None = None
         self.dev_manager: DevManager | None = None
+        print(f"[schorle] running in {'dev' if self.project.dev else 'prod'} mode")
 
     def _build(self):
         with cwd(self.project.root_path):
-            build()
+            build(dev=self.project.dev)
 
     def mount(self, app: FastAPI):
         # mount the static files
