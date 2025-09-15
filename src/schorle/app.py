@@ -19,6 +19,12 @@ class Schorle:
         self._page_infos: list[PageInfo] | None = None
         self.dev_manager: DevManager | None = None
         print(f"[schorle] running in {'dev' if self.project.dev else 'prod'} mode")
+        if not self.project.dev:
+            # check if the manifest exists, raise an error if it doesn't
+            if not self.project.manifest_path.exists():
+                raise RuntimeError(
+                    "Cannot run in prod mode without a build. Please run `slx build`."
+                )
 
     def _build(self):
         with cwd(self.project.root_path):
