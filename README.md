@@ -17,7 +17,6 @@ It combines Pythonic backend with simple and easy to work with JSX/CSS setup.
 
 **Note:** This project is in an early stage of development. It is not ready for production use.
 
-
 ## Roadmap
 
 v0:

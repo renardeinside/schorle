@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -7,6 +8,8 @@ from typing import IO, Generator, Union
 
 from schorle.utils import SchorleProject
 from schorle.manifest import PageInfo
+
+logger = logging.getLogger(__name__)
 
 
 def _compute_import_uris(
@@ -22,7 +25,11 @@ def _compute_import_uris(
 
 
 def _resolve_page_info(project: SchorleProject, page: Path) -> PageInfo:
-    """Resolve a `Path` to a `PageInfo` by scanning the prepared manifest mapping."""
+    """Resolve a `Path` to a `PageInfo` by scanning the prepared manifest mapping.
+
+    Always reads the manifest fresh to avoid caching issues between dev/prod modes.
+    """
+    # Always get fresh page infos to ensure we have the latest manifest data
     page_infos = project.collect_page_infos()
 
     if page.is_absolute():
@@ -49,19 +56,53 @@ def _resolve_page_info(project: SchorleProject, page: Path) -> PageInfo:
 
 def render(
     project: SchorleProject,
-    page_or_info: Union[Path, PageInfo],
+    page: Union[str, Path, PageInfo],
     props: bytes | None = None,
 ) -> Generator[bytes, None, None]:
     """Render a built page using precomputed PageInfo (with js/css URLs).
 
-    Accepts either a `PageInfo` or a `Path` for backward compatibility.
+    Args:
+        project: The Schorle project
+        page: Page to render - can be:
+            - str: Page name (e.g., "Index" for Index.tsx) - uses BuildManifest
+            - Path: Path to page file - uses legacy path resolution
+            - PageInfo: Pre-computed page info object
+        props: Optional props to pass to the page
+
+    Returns:
+        Generator yielding rendered page bytes
     """
 
-    page_info = (
-        page_or_info
-        if isinstance(page_or_info, PageInfo)
-        else _resolve_page_info(project, page_or_info)
-    )
+    # Handle different input types
+    if isinstance(page, PageInfo):
+        page_info = page
+    elif isinstance(page, str):
+        # String page name - use BuildManifest approach (preferred)
+        manifest_entry = project.get_manifest_entry(page)
+        if manifest_entry is None:
+            raise FileNotFoundError(f"Page not found in manifest: {page}")
+
+        # Debug logging to track what assets are being used for rendering
+        logger.debug(
+            f"Rendering page '{page}' with assets: js={manifest_entry.assets.js}, css={manifest_entry.assets.css}"
+        )
+
+        page_file = project.find_page_file(page)
+        if page_file is None:
+            raise FileNotFoundError(f"Page file not found: {page}")
+
+        layouts = project.get_page_layouts(page_file)
+
+        # Create a PageInfo object
+        page_info = PageInfo(
+            page=page_file,
+            layouts=layouts,
+            js=manifest_entry.assets.js,
+            css=manifest_entry.assets.css,
+        )
+    else:
+        # Path - use legacy path resolution
+        page_info = _resolve_page_info(project, page)
 
     # Compute import paths
     page_import, layout_imports = _compute_import_uris(project, page_info)

@@ -64,9 +64,8 @@ export async function build(hydratorPathsRaw: string) {
       loader: o.loader ?? null, // "js" | "css" | ...
       bytes: o.size ?? null, // size in bytes
     }));
-    Bun.write(
-      ".schorle/dist/entry/manifest.json",
-      JSON.stringify(artifacts, null, 2),
-    );
+    // Output the manifest payload to stdout for consumption by build.py
+    // Use process.stdout.write() directly to ensure it goes to stdout, not stderr
+    process.stdout.write(JSON.stringify(artifacts) + "\n");
   }
 }

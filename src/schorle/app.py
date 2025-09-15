@@ -23,6 +23,12 @@ class Schorle:
     def _build(self):
         with cwd(self.project.root_path):
             build(dev=self.project.dev)
+        # Invalidate cached page info after build to pick up new manifest
+        self._invalidate_cache()
+
+    def _invalidate_cache(self):
+        """Invalidate cached page info to force fresh reads from the manifest."""
+        self._page_infos = None
 
     def mount(self, app: FastAPI):
         # mount the static files

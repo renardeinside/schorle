@@ -7,3 +7,4 @@ def test_build_entrypoints():
     with cwd("packages/aurora"):
         proj = find_schorle_project(Path.cwd())
         build_entrypoints(("bun", "run", "slx-ipc", "build"), proj)
+        assert proj.manifest.entries[0].page == "Index"

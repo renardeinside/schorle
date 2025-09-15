@@ -2,6 +2,9 @@ from __future__ import annotations
 from pydantic import BaseModel
 from pathlib import Path
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SchorleProject(BaseModel):
@@ -22,23 +25,31 @@ class SchorleProject(BaseModel):
         return self.schorle_dir / "dist"
 
     @property
-    def raw_manifest_path(self) -> Path:
-        return self.dist_path / "entry" / "manifest.json"
+    def manifest_path(self) -> Path:
+        return self.dist_path / "manifest.json"
 
     @property
-    def raw_manifest(self) -> list[RawManifestEntry]:
-        # The manifest is a JSON array written by the Bun build step
-        # e.g. [{ kind, path, loader, bytes }, ...]
+    def manifest(self) -> BuildManifest:
+        """Read the manifest file fresh every time to avoid caching issues."""
+        if not self.manifest_path.exists():
+            raise FileNotFoundError(f"Manifest file not found: {self.manifest_path}")
 
-        try:
-            text = self.raw_manifest_path.read_text()
-        except FileNotFoundError:
-            return []
-        try:
-            data = json.loads(text)
-        except json.JSONDecodeError:
-            return []
-        return [RawManifestEntry.model_validate(item) for item in data]
+        # Always read the file fresh to ensure we get the latest content
+        manifest_content = self.manifest_path.read_text()
+        manifest = BuildManifest.model_validate_json(manifest_content)
+
+        # Debug logging to track manifest reads and content
+        if logger.isEnabledFor(logging.DEBUG):
+            asset_info = []
+            for entry in manifest.entries:
+                asset_info.append(
+                    f"{entry.page}: js={entry.assets.js}, css={entry.assets.css}"
+                )
+            logger.debug(
+                f"Read manifest from {self.manifest_path} - entries: {asset_info}"
+            )
+
+        return manifest
 
     def collect_page_infos(self, require_manifest: bool = True) -> list[PageInfo]:
         """
@@ -54,9 +65,17 @@ class SchorleProject(BaseModel):
         """
         tsx_files = list(self.pages_path.glob("**/*.tsx"))
 
-        # Build a lookup from entry directory (e.g. "pages/Index" or
-        # "pages/dashboard/Profile") to its js and css assets using the manifest
-        manifest_entries = self._build_manifest_lookup() if require_manifest else {}
+        # Build a lookup from page name to assets using the new manifest
+        manifest_lookup: dict[str, BuildManifestAssets] = {}
+        if require_manifest:
+            try:
+                # Always read the manifest fresh to avoid caching issues
+                manifest = self.manifest
+                for entry in manifest.entries:
+                    manifest_lookup[entry.page] = entry.assets
+            except (FileNotFoundError, json.JSONDecodeError):
+                # Manifest doesn't exist or is invalid, continue without assets
+                pass
 
         page_layout_pairs: list[PageInfo] = []
         for tsx_file in tsx_files:
@@ -79,17 +98,18 @@ class SchorleProject(BaseModel):
                     layouts.append(layout_path)
 
             if require_manifest:
-                entry_dir_key = str(Path("pages") / relative_path.with_suffix(""))
-                assets = manifest_entries.get(entry_dir_key)
+                # Look up assets by page name (e.g., "Index" for "Index.tsx")
+                page_name = relative_path.stem
+                assets = manifest_lookup.get(page_name)
                 if assets is None:
                     # Skip pages that have no corresponding built assets yet
                     # (e.g., build not run). Caller can handle empty list accordingly.
                     continue
 
-                js_url, css_url = assets
-
                 page_layout_pairs.append(
-                    PageInfo(page=tsx_file, layouts=layouts, js=js_url, css=css_url)
+                    PageInfo(
+                        page=tsx_file, layouts=layouts, js=assets.js, css=assets.css
+                    )
                 )
             else:
                 # During the entrypoint generation phase, we may not have a manifest yet.
@@ -105,71 +125,50 @@ class SchorleProject(BaseModel):
         # Dynamically compute on each access to reflect latest files and manifest
         return self.collect_page_infos(require_manifest=True)
 
-    def _build_manifest_lookup(self) -> dict[str, tuple[str, str | None]]:
+    def get_manifest_entry(self, page_name: str) -> BuildManifestEntry | None:
+        """Get a manifest entry by page name (e.g., 'Index').
+
+        Always reads the manifest fresh to avoid caching issues between dev/prod modes.
         """
-        Build a lookup of entry directory -> (js_url, css_url) from the raw manifest.
+        try:
+            # Always read the manifest fresh to ensure we get the latest content
+            manifest = self.manifest
+            for entry in manifest.entries:
+                if entry.page == page_name:
+                    return entry
+            return None
+        except (FileNotFoundError, json.JSONDecodeError):
+            return None
 
-        - Entry directory example keys:
-          "pages/Index", "pages/dashboard/Profile"
-        - js_url/css_url are public URLs under "/.schorle/" that the server exposes.
-        """
-        entries = self.raw_manifest
+    def find_page_file(self, page_name: str) -> Path | None:
+        """Find the actual page file by page name."""
+        potential_files = [
+            self.pages_path / f"{page_name}.tsx",
+            self.pages_path / page_name / "index.tsx",
+        ]
+        for file_path in potential_files:
+            if file_path.exists():
+                return file_path
+        return None
 
-        # First, collect JS entry directories
-        js_dirs: dict[str, str] = {}
-        for item in entries:
-            path_str = str(item.path)
-            if not path_str.endswith(".js"):
-                continue
-            kind = (item.kind or "").lower()
-            if kind not in {"entry", "entry-point"}:
-                continue
-            directory = str(Path(path_str).parent)
-            js_dirs[directory] = f"/.schorle/dist/entry/{path_str}"
+    def get_page_layouts(self, page_file: Path) -> list[Path]:
+        """Get layouts for a specific page file."""
+        relative_path = page_file.relative_to(self.pages_path)
+        parts = list(relative_path.parts[:-1])
 
-        # Then, associate CSS assets to the closest JS directory prefix
-        dir_to_css: dict[str, str] = {}
-        for item in entries:
-            path_str = str(item.path)
-            if not path_str.endswith(".css"):
-                continue
-            css_dir = str(Path(path_str).parent)
+        # always include root layout if exists by marking root with "/"
+        parts = ["/"] + parts
 
-            # Find the longest js_dir that is a prefix of css_dir
-            best_match: str | None = None
-            for js_dir in js_dirs.keys():
-                if css_dir == js_dir or css_dir.startswith(js_dir + "/"):
-                    if best_match is None or len(js_dir) > len(best_match):
-                        best_match = js_dir
-            if best_match is not None:
-                dir_to_css[best_match] = f"/.schorle/dist/entry/{path_str}"
+        layouts: list[Path] = []
+        for part in parts:
+            if part == "/":
+                layout_path = self.pages_path.joinpath("__layout.tsx")
+            else:
+                layout_path = self.pages_path.joinpath(part, "__layout.tsx")
+            if layout_path.exists():
+                layouts.append(layout_path)
 
-        # Build final lookup for only the keys under pages/*
-        lookup: dict[str, tuple[str, str | None]] = {}
-        for directory, js_url in js_dirs.items():
-            if not directory.startswith("pages/"):
-                continue
-            css_url = dir_to_css.get(directory)
-            lookup[directory] = (js_url, css_url)
-
-        return lookup
-
-
-class RawManifestEntry(BaseModel):
-    kind: str
-    path: Path
-    loader: str | None = None
-    bytes: int
-
-
-class ManifestEntry(BaseModel):
-    js: str
-    css: str | None = None
-    layouts: list[str]
-
-
-class Manifest(BaseModel):
-    entries: dict[str, ManifestEntry]
+        return layouts
 
 
 class PageInfo(BaseModel):
@@ -185,3 +184,18 @@ class PageInfo(BaseModel):
         return (
             f"{self.page.relative_to(self.page.parent.parent)} (Layouts: {layout_str})"
         )
+
+
+class BuildManifestAssets(BaseModel):
+    js: str
+    css: str | None = None
+
+
+class BuildManifestEntry(BaseModel):
+    page: str
+    layouts: list[str]
+    assets: BuildManifestAssets
+
+
+class BuildManifest(BaseModel):
+    entries: list[BuildManifestEntry]
