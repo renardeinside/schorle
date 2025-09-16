@@ -6,6 +6,9 @@ import subprocess
 from pathlib import Path
 from typing import IO, Generator, Union
 
+from fastapi.datastructures import Headers
+from pydantic import BaseModel
+
 from schorle.utils import SchorleProject
 from schorle.manifest import PageInfo
 
@@ -58,6 +61,8 @@ def render(
     project: SchorleProject,
     page: Union[str, Path, PageInfo],
     props: bytes | None = None,
+    headers: Headers | BaseModel | None = None,
+    cookies: dict[str, str] | BaseModel | None = None,
 ) -> Generator[bytes, None, None]:
     """Render a built page using precomputed PageInfo (with js/css URLs).
 
@@ -108,12 +113,30 @@ def render(
     page_import, layout_imports = _compute_import_uris(project, page_info)
 
     # Prepare render info JSON
+
+    # convert headers and cookies to dicts
+    _headers = {}
+    _cookies = {}
+    if headers is not None:
+        if isinstance(headers, BaseModel):
+            _headers = headers.model_dump()
+        elif isinstance(headers, Headers):
+            _headers = dict(headers)
+            print(f"headers: {_headers}")
+    if cookies is not None:
+        if isinstance(cookies, BaseModel):
+            _cookies = cookies.model_dump()
+        elif isinstance(cookies, dict):
+            _cookies = cookies
+
     render_info = {
         "page": page_import,
         "layouts": layout_imports,
         "js": page_info.js or "",
         # Included for completeness; the current renderer ignores css
         "css": page_info.css or "",
+        "headers": _headers,
+        "cookies": _cookies,
     }
 
     # Execute bun command and capture output in stream
@@ -165,6 +188,12 @@ def render(
             if props:
                 props_b64 = base64.b64encode(props).decode("utf-8")
                 injection += f"<script id='__SCHORLE_PROPS__' type='application/msgpack'>{props_b64}</script>\n"
+
+            if render_info["headers"]:
+                injection += f"<script id='__SCHORLE_HEADERS__' type='application/json'>{json.dumps(render_info['headers'])}</script>\n"
+
+            if render_info["cookies"]:
+                injection += f"<script id='__SCHORLE_COOKIES__' type='application/json'>{json.dumps(render_info['cookies'])}</script>\n"
 
             injected = decoded.replace("</head>", f"{injection}</head>")
             yield injected.encode("utf-8")

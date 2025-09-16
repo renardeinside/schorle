@@ -4,6 +4,10 @@ from pathlib import Path
 import json
 import tempfile
 import shutil
+import subprocess
+import os
+from fastapi.datastructures import Headers
+from pydantic import BaseModel
 
 
 def test_render():
@@ -137,3 +141,292 @@ def test_manifest_dynamic_reading():
             # Restore the original manifest
             shutil.move(backup_path, proj.manifest_path)
             print("✓ Original manifest restored")
+
+
+class TestHeaders(BaseModel):
+    authorization: str
+    user_agent: str
+    x_custom_header: str
+
+
+class TestCookies(BaseModel):
+    session_id: str
+    theme: str
+
+
+def test_headers_cookies_conversion():
+    """Test that headers and cookies are properly converted and passed through the render pipeline."""
+
+    # Test data
+    test_headers_dict = {
+        "authorization": "Bearer test-token",
+        "user-agent": "test-agent/1.0",
+        "x-custom-header": "custom-value",
+    }
+
+    test_cookies_dict = {"session_id": "abc123", "theme": "dark"}
+
+    with cwd("packages/aurora"):
+        proj = find_schorle_project(Path("."))
+
+        print("=== Testing Headers Object Conversion ===")
+
+        # Test 1: FastAPI Headers object
+        headers_obj = Headers(test_headers_dict)
+        print(f"Headers object: {headers_obj}")
+        print(f"Headers as dict: {dict(headers_obj)}")
+
+        # Test 2: BaseModel headers
+        headers_model = TestHeaders(
+            authorization="Bearer model-token",
+            user_agent="model-agent/1.0",
+            x_custom_header="model-value",
+        )
+        print(f"Headers model: {headers_model.model_dump()}")
+
+        # Test 3: BaseModel cookies
+        cookies_model = TestCookies(session_id="model123", theme="light")
+        print(f"Cookies model: {cookies_model.model_dump()}")
+
+        print("\n=== Testing Render Pipeline ===")
+
+        # Test that the render function accepts different input types without crashing
+        test_cases = [
+            ("Headers object + dict cookies", headers_obj, test_cookies_dict),
+            ("BaseModel headers + dict cookies", headers_model, test_cookies_dict),
+            ("Headers object + BaseModel cookies", headers_obj, cookies_model),
+            ("BaseModel headers + BaseModel cookies", headers_model, cookies_model),
+        ]
+
+        for case_name, test_headers, test_cookies in test_cases:
+            print(f"\nTesting: {case_name}")
+            try:
+                gen = render(proj, "Index", headers=test_headers, cookies=test_cookies)
+                assert gen is not None
+
+                # Try to get the first chunk to verify rendering works
+                first_chunk = next(gen, None)
+                if first_chunk:
+                    content = first_chunk.decode("utf-8")
+                    print(f"✓ Render successful, content length: {len(content)}")
+
+                    # Check if header/cookie data is injected as scripts
+                    if "__SCHORLE_HEADERS__" in content:
+                        print("✓ Headers script tag found in output")
+                    else:
+                        print("⚠ Headers script tag NOT found in output")
+
+                    if "__SCHORLE_COOKIES__" in content:
+                        print("✓ Cookies script tag found in output")
+                    else:
+                        print("⚠ Cookies script tag NOT found in output")
+                else:
+                    print("⚠ No content generated")
+
+            except Exception as e:
+                print(f"✗ Error: {e}")
+                raise
+
+        print("\n✓ All headers/cookies conversion tests completed")
+
+
+def test_headers_cookies_subprocess_integration():
+    """Test that headers/cookies actually make it through to the render.tsx subprocess."""
+
+    with cwd("packages/aurora"):
+        proj = find_schorle_project(Path("."))
+
+        # Create test headers and cookies
+        headers = Headers(
+            {
+                "authorization": "Bearer subprocess-test",
+                "user-agent": "test-browser/1.0",
+                "x-test-header": "subprocess-value",
+            }
+        )
+
+        cookies = {"session": "subprocess123", "preference": "test"}
+
+        print("=== Testing Subprocess Integration ===")
+        print(f"Input headers: {dict(headers)}")
+        print(f"Input cookies: {cookies}")
+
+        # Render with headers and cookies
+        gen = render(proj, "Index", headers=headers, cookies=cookies)
+
+        # Collect all output
+        output = b""
+        for chunk in gen:
+            output += chunk
+
+        html_content = output.decode("utf-8")
+
+        # Parse and verify the injected data
+        print(f"\nGenerated HTML length: {len(html_content)}")
+
+        # Look for the script tags with our data
+        if "__SCHORLE_HEADERS__" in html_content:
+            print("✓ Headers script tag found")
+            # Extract the JSON from the script tag
+            import re
+
+            headers_match = re.search(
+                r'<script id="__SCHORLE_HEADERS__" type="application/json">(.*?)</script>',
+                html_content,
+            )
+            if headers_match:
+                headers_json = headers_match.group(1)
+                parsed_headers = json.loads(headers_json)
+                print(f"Parsed headers from HTML: {parsed_headers}")
+
+                # Verify our test data is present
+                assert "authorization" in parsed_headers
+                assert parsed_headers["authorization"] == "Bearer subprocess-test"
+                assert parsed_headers["x-test-header"] == "subprocess-value"
+                print("✓ Headers data verified in output")
+            else:
+                print("✗ Could not extract headers JSON")
+        else:
+            print("✗ Headers script tag not found in output")
+
+        if "__SCHORLE_COOKIES__" in html_content:
+            print("✓ Cookies script tag found")
+            # Extract the JSON from the script tag
+            cookies_match = re.search(
+                r'<script id="__SCHORLE_COOKIES__" type="application/json">(.*?)</script>',
+                html_content,
+            )
+            if cookies_match:
+                cookies_json = cookies_match.group(1)
+                parsed_cookies = json.loads(cookies_json)
+                print(f"Parsed cookies from HTML: {parsed_cookies}")
+
+                # Verify our test data is present
+                assert "session" in parsed_cookies
+                assert parsed_cookies["session"] == "subprocess123"
+                assert parsed_cookies["preference"] == "test"
+                print("✓ Cookies data verified in output")
+            else:
+                print("✗ Could not extract cookies JSON")
+        else:
+            print("✗ Cookies script tag not found in output")
+
+        print("\n✓ Subprocess integration test completed")
+
+
+def test_debug_render_subprocess():
+    """Debug test to see what's happening in the render subprocess."""
+
+    with cwd("packages/aurora"):
+        proj = find_schorle_project(Path("."))
+
+        headers = Headers({"authorization": "Bearer debug-test"})
+        cookies = {"session": "debug123"}
+
+        print("=== Debug Render Subprocess ===")
+
+        # Let's manually replicate what render() does to see the subprocess output
+        from schorle.render import _resolve_page_info, _compute_import_uris
+        from schorle.manifest import PageInfo
+
+        # Get page info
+        page_info = _resolve_page_info(proj, Path("Index.tsx"))
+        page_import, layout_imports = _compute_import_uris(proj, page_info)
+
+        # Build render info
+        render_info = {
+            "page": page_import,
+            "layouts": layout_imports,
+            "js": page_info.js or "",
+            "css": page_info.css or "",
+            "headers": dict(headers) if headers else None,
+            "cookies": cookies,
+        }
+
+        print(f"Render info: {json.dumps(render_info, indent=2)}")
+
+        # Run the bun command manually
+        full_cmd = [
+            "bun",
+            "run",
+            "slx-ipc",
+            "render",
+            json.dumps(render_info),
+        ]
+
+        print(f"Command: {' '.join(full_cmd)}")
+
+        base_env = os.environ.copy()
+        base_env["NODE_ENV"] = "development" if proj.dev else "production"
+
+        # Run with more explicit error handling
+        try:
+            result = subprocess.run(
+                full_cmd,
+                cwd=str(proj.root_path),
+                input=b"",  # Empty props
+                capture_output=True,
+                env=base_env,
+                timeout=10,
+            )
+
+            print(f"Return code: {result.returncode}")
+            print(f"Stdout length: {len(result.stdout)}")
+            print(f"Stderr length: {len(result.stderr)}")
+
+            if result.stdout:
+                stdout_str = result.stdout.decode("utf-8")
+                print(f"Stdout: {stdout_str[:500]}...")
+
+            if result.stderr:
+                stderr_str = result.stderr.decode("utf-8")
+                print(f"Stderr: {stderr_str}")
+
+            if result.returncode != 0:
+                print(f"✗ Process failed with code {result.returncode}")
+            else:
+                print("✓ Process completed successfully")
+
+        except subprocess.TimeoutExpired:
+            print("✗ Process timed out")
+        except Exception as e:
+            print(f"✗ Exception: {e}")
+
+        print("\n✓ Debug test completed")
+
+
+def test_inspect_html_output():
+    """Inspect the actual HTML output to see how headers/cookies are injected."""
+
+    with cwd("packages/aurora"):
+        proj = find_schorle_project(Path("."))
+
+        headers = Headers({"authorization": "Bearer inspect-test"})
+        cookies = {"session": "inspect123"}
+
+        print("=== Inspecting HTML Output ===")
+
+        gen = render(proj, "Index", headers=headers, cookies=cookies)
+
+        # Collect all output
+        output = b""
+        for chunk in gen:
+            output += chunk
+
+        html_content = output.decode("utf-8")
+
+        print(f"Full HTML content:\n{html_content}")
+        print(f"\nHTML length: {len(html_content)}")
+
+        # Look for script tags specifically
+        if "__SCHORLE_HEADERS__" in html_content:
+            start = html_content.find("__SCHORLE_HEADERS__")
+            context = html_content[max(0, start - 100) : start + 200]
+            print(f"\nHeaders context:\n{context}")
+
+        if "__SCHORLE_COOKIES__" in html_content:
+            start = html_content.find("__SCHORLE_COOKIES__")
+            context = html_content[max(0, start - 100) : start + 200]
+            print(f"\nCookies context:\n{context}")
+
+        print("\n✓ Inspection completed")

@@ -1,8 +1,12 @@
+import React from "react";
 import type { JSX, ReactNode, ComponentType, ReactElement } from "react";
 import { ThemeProvider } from "./theme-provider";
 import { Meta } from "./Meta";
 import { PropsProvider, useProps } from "./props";
-type LayoutFC = (props: { children: ReactNode }) => JSX.Element;
+import type { LayoutFC } from "./types";
+import { useHeaders } from "./headers";
+import { useCookies } from "./cookies";
+import { type Dict } from "./types";
 
 function wrapLayouts(Page: ComponentType, layouts: LayoutFC[]): ReactElement {
   const tree = layouts.reduceRight<React.ReactNode>(
@@ -19,4 +23,7 @@ export {
   Meta,
   PropsProvider,
   useProps,
+  useHeaders,
+  useCookies,
+  type Dict,
 };

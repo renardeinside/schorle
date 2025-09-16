@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.datastructures import Headers
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -90,7 +91,12 @@ class Schorle:
         raise FileNotFoundError(f"Page not found: {page}")
 
     def render(
-        self, page: Path, props: dict | BaseModel | None = None
+        self,
+        page: Path,
+        props: dict | BaseModel | None = None,
+        req: Request | None = None,
+        headers: Headers | None = None,
+        cookies: dict[str, str] | None = None,
     ) -> StreamingResponse:
         page_info = self._resolve_page_info(page)
         _bytes = (
@@ -98,6 +104,14 @@ class Schorle:
             if props is not None
             else None
         )
+
+        if req is not None:
+            headers = headers or req.headers
+            cookies = cookies or req.cookies
+        else:
+            headers = headers or Headers()
+            cookies = cookies or {}
+
         return StreamingResponse(
-            render(self.project, page_info, _bytes), status_code=200
+            render(self.project, page_info, _bytes, headers, cookies), status_code=200
         )

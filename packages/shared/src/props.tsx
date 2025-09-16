@@ -1,4 +1,8 @@
-import { createContext, useContext, type PropsWithChildren } from "react";
+import React, {
+  createContext,
+  useContext,
+  type PropsWithChildren,
+} from "react";
 
 const PropsContext = createContext<unknown>(null);
 

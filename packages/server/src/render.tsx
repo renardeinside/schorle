@@ -13,6 +13,9 @@ interface RenderInfo {
   page: string;
   layouts: string[];
   js: string;
+  css: string;
+  headers?: Record<string, string> | null;
+  cookies?: Record<string, string> | null;
 }
 
 export async function render(rawRenderInfo: string) {
@@ -29,7 +32,15 @@ export async function render(rawRenderInfo: string) {
     throw new Error("No render info provided");
   }
 
-  const { page, layouts, js } = renderInfo;
+  const { page, layouts, js, headers, cookies } = renderInfo;
+
+  // Set headers and cookies on global objects for SSR hooks
+  if (headers) {
+    (globalThis as any).__SCHORLE_HEADERS__ = headers;
+  }
+  if (cookies) {
+    (globalThis as any).__SCHORLE_COOKIES__ = cookies;
+  }
 
   const Page = (await import(page)).default;
   const Layouts = await Promise.all(

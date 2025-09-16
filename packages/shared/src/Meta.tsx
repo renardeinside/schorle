@@ -1,3 +1,5 @@
+import React from "react";
+
 export function Meta({ storageKey = "theme" }: { storageKey?: string }) {
   const code = `(function() {
       try {

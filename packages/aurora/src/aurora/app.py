@@ -1,5 +1,5 @@
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from schorle.app import Schorle
 
 app = FastAPI()
@@ -9,5 +9,5 @@ ui.mount(app)
 
 
 @app.get("/")
-def index():
-    return ui.render(Path("Index.tsx"), props=dict(title="Hello, World!"))
+def index(req: Request):
+    return ui.render(Path("Index.tsx"), props=dict(title="Hello, World!"), req=req)
