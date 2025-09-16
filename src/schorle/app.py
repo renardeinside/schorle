@@ -1,17 +1,20 @@
+import json
+import subprocess
 from types import ModuleType
 from fastapi import FastAPI, Request
 from fastapi.datastructures import Headers
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from schorle.cli import build, generate_models
+from schorle.cli import build, generate_api_client, generate_models
 from schorle.dev import DevManager
 from schorle.pages import PagesAccessor, PageReference
 import schorle.pages as pages_module
 from schorle.render import render
-from schorle.utils import cwd, define_if_dev, find_schorle_project
+from schorle.utils import cwd, define_if_dev
+from schorle.manifest import find_schorle_project
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 import msgpack
 from fastapi.routing import _merge_lifespan_context
 
@@ -21,6 +24,7 @@ class Schorle:
         self.project = find_schorle_project(Path.cwd())
 
         self._model_registry: list[ModuleType] = []
+        self._api_schema: dict[str, Any] | None = None
 
         self.project.dev = dev if dev is not None else define_if_dev()
         self.dev_manager: DevManager | None = None
@@ -52,7 +56,18 @@ class Schorle:
     def add_to_model_registry(self, module: ModuleType):
         self._model_registry.append(module)
 
+    def _generate_api_client(self):
+        # dump schema into .schorle/api.json for the CLI command to use
+        self.project.api_client_temp_path.mkdir(parents=True, exist_ok=True)
+        (self.project.api_client_temp_path / "api.json").write_text(
+            json.dumps(self._api_schema, indent=2)
+        )
+        with cwd(self.project.root_path):
+            generate_api_client(app=None)  # .schorle.api.json is generated above
+
     def mount(self, app: FastAPI):
+        self._api_schema = app.openapi()
+
         # mount the static files
         app.mount(
             "/.schorle",
@@ -70,6 +85,7 @@ class Schorle:
                     reload_callbacks=[
                         self._build,
                         self._generate_models,
+                        self._generate_api_client,
                     ],
                 )
             app.websocket_route("/_schorle/dev-indicator")(

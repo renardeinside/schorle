@@ -4,7 +4,36 @@ from pathlib import Path
 import json
 import logging
 
+from tomlkit import parse
+from schorle.utils import templates_path
+
 logger = logging.getLogger(__name__)
+
+
+def find_schorle_project(
+    path: Path, max_iterations: int = 10, left_iterations: int = 0
+) -> SchorleProject:
+    path = path.resolve()
+    if max_iterations == 0 or left_iterations == max_iterations - 1:
+        raise FileNotFoundError(
+            f"pyproject.toml not found after {left_iterations} iterations"
+        )
+    if path.joinpath("pyproject.toml").exists():
+        ## check if [tool.schorle] exists
+        doc = parse(path.joinpath("pyproject.toml").read_text())
+        if "tool" in doc and "schorle" in doc["tool"]:  # type: ignore
+            project_root = Path(doc["tool"]["schorle"]["project_root"])  # type: ignore
+            return SchorleProject(
+                root_path=path,
+                project_root=project_root,
+            )
+        else:
+            return find_schorle_project(
+                path.parent, max_iterations, left_iterations + 1
+            )
+    else:
+        print(f"pyproject.toml not found in {path}, searching in {path.parent}")
+        return find_schorle_project(path.parent, max_iterations, left_iterations + 1)
 
 
 class SchorleProject(BaseModel):
@@ -32,6 +61,27 @@ class SchorleProject(BaseModel):
     @property
     def types_path(self) -> Path:
         return self.project_root / "lib" / "types"
+
+    @property
+    def api_client_path(self) -> Path:
+        return self.project_root / "lib" / "api.ts"
+
+    @property
+    def api_client_temp_path(self) -> Path:
+        """Temporary path to store api.json and orval.config.ts"""
+        return self.schorle_dir / "api"
+
+    @property
+    def orval_config_template_path(self) -> Path:
+        return templates_path / "orval.config.ts"
+
+    @property
+    def user_provided_orval_config_path(self) -> Path:
+        return self.root_path / "orval.config.ts"
+
+    @property
+    def default_orval_config_path(self) -> Path:
+        return self.api_client_temp_path / "orval.config.ts"
 
     @property
     def manifest(self) -> BuildManifest:

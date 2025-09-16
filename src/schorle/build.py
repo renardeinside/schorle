@@ -11,8 +11,8 @@ from schorle.manifest import (
     BuildManifest,
     BuildManifestEntry,
     BuildManifestAssets,
+    SchorleProject,
 )
-from schorle.utils import SchorleProject
 
 template_path: Path = (
     importlib.resources.files("schorle") / "templates" / "entry.tsx.jinja"  # type: ignore

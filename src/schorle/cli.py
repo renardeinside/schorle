@@ -1,17 +1,20 @@
+import json
 from pathlib import Path
 import subprocess
+import shutil
+from fastapi import FastAPI
 import typer
 import importlib.metadata
-import importlib.resources
 from tomlkit import parse, dumps, table
 from schorle.build import build_entrypoints
 from schorle.bun import check_and_prepare_bun
 from schorle.json_schema import generate_schemas
 from schorle.page_system import generate_python_stubs
-from schorle.utils import find_schorle_project, schema_to_ts
+from schorle.utils import schema_to_ts, templates_path
+from schorle.manifest import find_schorle_project
 
 __version__ = importlib.metadata.version("schorle")
-templates_path = importlib.resources.files("schorle").joinpath("templates")
+
 
 app = typer.Typer(
     name="slx",
@@ -183,3 +186,82 @@ def generate_models(
     )
     if ts_schema != current_ts_content:
         output_path.write_text(ts_schema, encoding="utf-8")
+
+
+@app.command("generate-api-client", help="Generate API client from OpenAPI schema")
+def generate_api_client(
+    app: str | None = typer.Argument(
+        help="The name of the FastAPI app to generate the API client for, in format of uvicorn pkg.module:app",
+    ),
+):
+    project = find_schorle_project(Path.cwd())
+    if app is not None:
+        module = importlib.import_module(app.split(":")[0])
+        instance: FastAPI = getattr(module, app.split(":")[1])
+        schema = instance.openapi()
+
+        if not project.api_client_temp_path.exists():
+            project.api_client_temp_path.mkdir(parents=True, exist_ok=True)
+
+        (project.api_client_temp_path / "api.json").write_text(
+            json.dumps(schema, indent=2)
+        )
+    else:
+        typer.echo("No app provided, assuming .schorle/api.json exists")
+
+    # Check if API schema file exists
+    api_schema_path = project.api_client_temp_path / "api.json"
+    if not api_schema_path.exists():
+        typer.echo(f"API schema file not found at {api_schema_path}")
+        typer.echo(
+            "Make sure to run this after the FastAPI app has generated the schema"
+        )
+        raise typer.Exit(code=1)
+
+    typer.echo("Generating API client")
+
+    # Ensure temp path exists
+    project.api_client_temp_path.mkdir(parents=True, exist_ok=True)
+
+    # Determine orval config path
+    if project.user_provided_orval_config_path.exists():
+        orval_config_path = project.user_provided_orval_config_path
+        typer.echo(f"Using user-provided orval config: {orval_config_path}")
+    else:
+        if not project.default_orval_config_path.exists():
+            # copy template
+            project.default_orval_config_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(
+                project.orval_config_template_path,
+                project.default_orval_config_path,
+            )
+            typer.echo("Created default orval config from template")
+        orval_config_path = project.default_orval_config_path
+        typer.echo(f"Using default orval config: {orval_config_path}")
+
+    # Generate client using orval
+    bun_executable = check_and_prepare_bun()
+    try:
+        result = subprocess.run(
+            [
+                str(bun_executable),
+                "x",
+                "orval",
+                "--config",
+                str(orval_config_path),
+                "--output",
+                str(project.api_client_path),
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            text=True,
+        )
+        typer.echo(f"API client generated successfully at {project.api_client_path}")
+        if result.stdout:
+            typer.echo(f"Output: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        typer.echo(f"Error generating API client: {e}")
+        if e.stderr:
+            typer.echo(f"Error details: {e.stderr}")
+        raise typer.Exit(code=1)

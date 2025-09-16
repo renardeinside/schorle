@@ -5,8 +5,9 @@ from pathlib import Path
 import subprocess
 import sys
 from typing import Generator
-from schorle.manifest import SchorleProject
-from tomlkit import parse
+import importlib.resources
+
+templates_path: Path = importlib.resources.files("schorle").joinpath("templates")  # type: ignore
 
 
 @contextlib.contextmanager
@@ -53,30 +54,3 @@ def schema_to_ts(json_schema_str: str, bun_executable: Path) -> str:
         check=True,
     )
     return proc.stdout
-
-
-# searches the directories upwards until it finds a pyproject.toml file
-def find_schorle_project(
-    path: Path, max_iterations: int = 10, left_iterations: int = 0
-) -> SchorleProject:
-    path = path.resolve()
-    if max_iterations == 0 or left_iterations == max_iterations - 1:
-        raise FileNotFoundError(
-            f"pyproject.toml not found after {left_iterations} iterations"
-        )
-    if path.joinpath("pyproject.toml").exists():
-        ## check if [tool.schorle] exists
-        doc = parse(path.joinpath("pyproject.toml").read_text())
-        if "tool" in doc and "schorle" in doc["tool"]:  # type: ignore
-            project_root = Path(doc["tool"]["schorle"]["project_root"])  # type: ignore
-            return SchorleProject(
-                root_path=path,
-                project_root=project_root,
-            )
-        else:
-            return find_schorle_project(
-                path.parent, max_iterations, left_iterations + 1
-            )
-    else:
-        print(f"pyproject.toml not found in {path}, searching in {path.parent}")
-        return find_schorle_project(path.parent, max_iterations, left_iterations + 1)

@@ -1,9 +1,12 @@
 from fastapi import FastAPI, Request
 from schorle.app import Schorle
 from aurora import models
+from aurora.api import api
 from datetime import datetime
 
 app = FastAPI()
+
+app.include_router(api)
 
 ui = Schorle()
 ui.mount(app)

@@ -9,7 +9,7 @@ from typing import IO, Generator, Union
 from fastapi.datastructures import Headers
 from pydantic import BaseModel
 
-from schorle.utils import SchorleProject
+from schorle.manifest import SchorleProject
 from schorle.manifest import PageInfo
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,6 @@ def render(
             _headers = headers.model_dump()
         elif isinstance(headers, Headers):
             _headers = dict(headers)
-            print(f"headers: {_headers}")
     if cookies is not None:
         if isinstance(cookies, BaseModel):
             _cookies = cookies.model_dump()

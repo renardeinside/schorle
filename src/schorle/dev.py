@@ -1,35 +1,49 @@
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable
 from fastapi import WebSocket
 from watchfiles import awatch
 from pathlib import Path
 import time
-from watchfiles.filters import DefaultFilter
+import re
 
 
-class SchorleFilter(DefaultFilter):
+def schorle_filter(change, path: str) -> bool:
     """
-    A filter for schorle-related folders, since this class inherits from [`DefaultFilter`][watchfiles.DefaultFilter]
-    folders like .schorle, node_modules, __pycache__ are ignored
+    Custom filter function for schorle file watching.
+    Returns True if the file should be watched, False if it should be ignored.
     """
+    # Convert Path to string if needed
+    if hasattr(path, "as_posix"):
+        path_str = path.as_posix()
+    else:
+        path_str = str(path)
 
-    def __init__(
-        self,
-        *,
-        ignore_paths: Optional[Sequence[Union[str, Path]]] = None,
-    ) -> None:
-        self.ignore_dirs = list(DefaultFilter.ignore_dirs) + [
-            ".schorle",
-            "node_modules",
-            "__pycache__",
-        ]
-        super().__init__(ignore_paths=ignore_paths)
-        self.ignore_entity_patterns = list(DefaultFilter.ignore_entity_patterns) + [
-            r"^\.schorle$",
-            r"^node_modules$",
-            r"^__pycache__$",
-        ]
+    # Ignore patterns
+    ignore_patterns = [
+        # Standard directories
+        r".*/(\.git|\.schorle|node_modules|__pycache__|\.pytest_cache|\.mypy_cache)(/.*)?$",
+        # Generated API files
+        r".*/lib/api\.ts$",  # lib/api.ts at any level
+        r".*\.schorle/.*",  # anything inside .schorle directory
+        # Build artifacts
+        r".*/dist/.*",
+        r".*\.pyc$",
+        r".*\.pyo$",
+        r".*\.swp$",
+        r".*\.tmp$",
+        # Lock files
+        r".*/package-lock\.json$",
+        r".*/yarn\.lock$",
+        r".*/bun\.lock$",
+    ]
+
+    for pattern in ignore_patterns:
+        if re.match(pattern, path_str):
+            return False
+
+    print(f"[DEBUG] Watching file: {path_str}")
+    return True
 
 
 class DevManager:
@@ -95,7 +109,8 @@ class DevManager:
             pass
 
     async def _watcher(self) -> None:
-        async for _ in awatch(self.root_path, watch_filter=SchorleFilter()):
+        async for changes in awatch(self.root_path, watch_filter=schorle_filter):
+            print(f"[DEBUG] File changes detected: {changes}")
             for cb in list(self._reload_callbacks):
                 try:
                     cb()

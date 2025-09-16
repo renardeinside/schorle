@@ -5,6 +5,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "orval": "^7.11.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
@@ -13,6 +14,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@schorle/server": "link:@schorle/server",
     "@schorle/shared": "link:@schorle/shared",
+    "@tanstack/react-query": "^5.89.0",
     "@types/bun": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

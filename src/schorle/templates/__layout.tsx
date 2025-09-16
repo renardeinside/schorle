@@ -2,6 +2,10 @@ import "@/styles/globals.css";
 import { Meta } from "@schorle/shared";
 import { ThemeProvider } from "@schorle/shared";
 import SchorleDevHelper from "@/components/dev/SchorleDevHelper";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Create a new query client instance
+const queryClient = new QueryClient();
 
 export default function RootLayout({
   children,
@@ -16,7 +20,9 @@ export default function RootLayout({
         <Meta storageKey={storageKey} />
       </head>
       <body>
-        <ThemeProvider storageKey={storageKey}>{children}</ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider storageKey={storageKey}>{children}</ThemeProvider>
+        </QueryClientProvider>
         <SchorleDevHelper />
       </body>
     </html>
