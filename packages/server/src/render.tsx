@@ -64,7 +64,7 @@ export async function render(rawRenderInfo: string) {
 
   // prepares stream with JS injected, CSS is not there yet
   const reactStream = await renderToReadableStream(element, {
-    bootstrapScripts: [js],
+    bootstrapModules: [js],
   });
 
   await reactStream.pipeTo(

@@ -14,15 +14,15 @@ from schorle.manifest import (
     SchorleProject,
 )
 
-template_path: Path = (
-    importlib.resources.files("schorle") / "templates" / "entry.tsx.jinja"  # type: ignore
+client_template_path: Path = (
+    importlib.resources.files("schorle") / "templates" / "client-entry.tsx.jinja"  # type: ignore
 )
 
 
 def get_template() -> jinja2.Template:
     template = jinja2.Environment(
-        loader=jinja2.FileSystemLoader(str(template_path.parent))
-    ).get_template(template_path.name)
+        loader=jinja2.FileSystemLoader(str(client_template_path.parent))
+    ).get_template(client_template_path.name)
     return template
 
 
@@ -67,9 +67,9 @@ def transform_artifacts_to_manifest(
             if artifact["kind"] in ["entry", "entry-point"] and artifact[
                 "path"
             ].endswith(".js"):
-                js_asset = f"/.schorle/dist/entry/{artifact['path']}"
+                js_asset = f"/.schorle/dist/client/{artifact['path']}"
             elif artifact["path"].endswith(".css"):
-                css_asset = f"/.schorle/dist/entry/{artifact['path']}"
+                css_asset = f"/.schorle/dist/client/{artifact['path']}"
 
         # Skip pages without JS assets (shouldn't happen in normal builds)
         if not js_asset:
@@ -118,7 +118,10 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         relative_page_path = page_info.page.relative_to(project.pages_path)
         if relative_page_path.suffix == ".mdx":
             relative_page_path = relative_page_path.with_suffix(".tsx")
-        output_path = project.schorle_dir / ".gen" / relative_page_path
+
+        client_dir = project.schorle_dir / ".gen" / "client"
+        client_dir.mkdir(parents=True, exist_ok=True)
+        output_path = client_dir / relative_page_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"Generating {output_path}")
         with open(output_path, "w") as f:

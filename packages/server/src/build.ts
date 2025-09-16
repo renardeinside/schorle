@@ -36,7 +36,7 @@ export async function build(hydratorPathsRaw: string) {
 
   const result = await Bun.build({
     entrypoints: hydratorPaths,
-    outdir: ".schorle/dist/entry",
+    outdir: ".schorle/dist/client",
     plugins: [
       plugin,
       mdx({
@@ -68,7 +68,7 @@ export async function build(hydratorPathsRaw: string) {
   } else {
     const artifacts = result.outputs.map((o: BuildArtifact) => ({
       kind: o.kind, // "entry" | "chunk" | "asset"
-      path: relative(".schorle/dist/entry", o.path), // nice relative path
+      path: relative(".schorle/dist/client", o.path), // nice relative path
       loader: o.loader ?? null, // "js" | "css" | ...
       bytes: o.size ?? null, // size in bytes
     }));
