@@ -25,7 +25,7 @@ v0:
 - [x] server-side props passing
 - [x] headers/cookies
 - [x] typesafe page names autogen
-- [ ] models autogen
+- [x] models autogen
 - [ ] api client autogen
 - [ ] MDX rendering
 - [ ] components CLI

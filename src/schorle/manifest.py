@@ -30,6 +30,10 @@ class SchorleProject(BaseModel):
         return self.dist_path / "manifest.json"
 
     @property
+    def types_path(self) -> Path:
+        return self.project_root / "lib" / "types"
+
+    @property
     def manifest(self) -> BuildManifest:
         """Read the manifest file fresh every time to avoid caching issues."""
         if not self.manifest_path.exists():

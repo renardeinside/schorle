@@ -1,9 +1,10 @@
+from types import ModuleType
 from fastapi import FastAPI, Request
 from fastapi.datastructures import Headers
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from schorle.cli import build
+from schorle.cli import build, generate_models
 from schorle.dev import DevManager
 from schorle.pages import PagesAccessor, PageReference
 import schorle.pages as pages_module
@@ -18,6 +19,8 @@ from fastapi.routing import _merge_lifespan_context
 class Schorle:
     def __init__(self, dev: bool | None = None) -> None:
         self.project = find_schorle_project(Path.cwd())
+
+        self._model_registry: list[ModuleType] = []
 
         self.project.dev = dev if dev is not None else define_if_dev()
         self.dev_manager: DevManager | None = None
@@ -42,6 +45,13 @@ class Schorle:
         # Also invalidate pages accessor cache
         self._pages = None
 
+    def _generate_models(self):
+        for module in self._model_registry:
+            generate_models(module_name=module.__name__)
+
+    def add_to_model_registry(self, module: ModuleType):
+        self._model_registry.append(module)
+
     def mount(self, app: FastAPI):
         # mount the static files
         app.mount(
@@ -59,7 +69,7 @@ class Schorle:
                     self.project.root_path,
                     reload_callbacks=[
                         self._build,
-                        self._regenerate_stubs,
+                        self._generate_models,
                     ],
                 )
             app.websocket_route("/_schorle/dev-indicator")(
@@ -100,9 +110,6 @@ class Schorle:
         return StreamingResponse(
             render(self.project, page_info, _bytes, headers, cookies), status_code=200
         )
-
-    def _regenerate_stubs(self):
-        pages_module.generate_python_stubs(self.project)
 
     @property
     def pages(self) -> PagesAccessor:

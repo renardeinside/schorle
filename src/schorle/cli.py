@@ -6,8 +6,9 @@ import importlib.resources
 from tomlkit import parse, dumps, table
 from schorle.build import build_entrypoints
 from schorle.bun import check_and_prepare_bun
+from schorle.json_schema import generate_schemas
 from schorle.page_system import generate_python_stubs
-from schorle.utils import find_schorle_project
+from schorle.utils import find_schorle_project, schema_to_ts
 
 __version__ = importlib.metadata.version("schorle")
 templates_path = importlib.resources.files("schorle").joinpath("templates")
@@ -140,3 +141,45 @@ def build(
     build_entrypoints(("bun", "run", "slx-ipc", "build"), project)
     if with_stubs:
         generate_python_stubs(project)
+
+
+@app.command("codegen", help="Generate models from the project")
+def generate_models(
+    module_name: str = typer.Argument(
+        help="The name of the module to generate models for",
+    ),
+):
+    project = find_schorle_project(Path.cwd())
+
+    # generate models
+    bun_executable = check_and_prepare_bun()
+    module = importlib.import_module(module_name)
+    json_schema = generate_schemas(module)
+    ts_schema = schema_to_ts(json_schema, bun_executable)
+
+    project.types_path.mkdir(parents=True, exist_ok=True)
+    output_path = project.types_path / f"{module_name}.d.ts"
+    typer.echo(f"Writing models to {output_path}")
+
+    barrel_file = project.types_path / "index.d.ts"
+    # check if barrel_file exists
+    if not barrel_file.exists():
+        barrel_file.write_text(
+            "\n".join(
+                [
+                    f"export * from './{module_name}.d.ts';",
+                ]
+            )
+        )
+    else:
+        # check if export * from './{module_name}.d.ts'; exists, add it if not
+        if f"export * from './{module_name}.d.ts';" not in barrel_file.read_text():
+            current_content = barrel_file.read_text()
+            barrel_file.write_text(
+                current_content + f"\nexport * from './{module_name}.d.ts';"
+            )
+    current_ts_content = (
+        output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+    )
+    if ts_schema != current_ts_content:
+        output_path.write_text(ts_schema, encoding="utf-8")

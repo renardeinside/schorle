@@ -23,6 +23,8 @@ init-aurora: clean-aurora
     uv run slx build
 
     cp ../../templates/app.py ./src/aurora/app.py
+    cp ../../templates/models.py ./src/aurora/models.py
+    uv run slx codegen aurora.models
 
 
 [working-directory: 'packages/aurora']

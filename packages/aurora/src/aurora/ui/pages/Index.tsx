@@ -2,9 +2,10 @@ import Counter from "@/components/Counter";
 import { useProps } from "@schorle/shared";
 import { useHeaders } from "@schorle/shared";
 import { useCookies } from "@schorle/shared";
+import { Stats } from "@/lib/types";
 
 export default function Index() {
-  const props = useProps();
+  const props = useProps<Stats>();
   const headers = useHeaders();
   const cookies = useCookies();
   return (
