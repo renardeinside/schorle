@@ -24,6 +24,7 @@ def index(req: Request):
         req=req,
     )
 
+
 @app.get("/about")
 def about(req: Request):
     return ui.render(
