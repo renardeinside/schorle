@@ -10,7 +10,7 @@ from schorle.dev import DevManager
 from schorle.pages import PagesAccessor, PageReference
 import schorle.pages as pages_module
 from schorle.render import render
-from schorle.utils import cwd, define_if_dev
+from schorle.utils import cwd, define_if_dev, keys_to_camel_case
 from schorle.manifest import find_schorle_project
 from pathlib import Path
 from typing import Any, Union
@@ -109,11 +109,16 @@ class Schorle:
             page_path = page
 
         page_info = self.project.resolve_page_info(page_path)
-        _bytes = (
-            msgpack.packb(props if isinstance(props, dict) else props.model_dump())
-            if props is not None
-            else None
-        )
+
+        if props is not None:
+            if isinstance(props, BaseModel):
+                _props = props.model_dump()
+            elif isinstance(props, dict):
+                _props = props
+            _props = keys_to_camel_case(_props)
+            _bytes = msgpack.packb(_props)
+        else:
+            _bytes = None
 
         if req is not None:
             headers = headers or req.headers

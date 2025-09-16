@@ -2,9 +2,10 @@ import contextlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
-from typing import Generator
+from typing import Any, Generator, TypeVar
 import importlib.resources
 
 templates_path: Path = importlib.resources.files("schorle").joinpath("templates")  # type: ignore
@@ -54,3 +55,25 @@ def schema_to_ts(json_schema_str: str, bun_executable: Path) -> str:
         check=True,
     )
     return proc.stdout
+
+
+def to_camel_case(s: str) -> str:
+    """Convert snake_case, kebab-case, or spaced string to camelCase."""
+    parts = re.split(r"[_\-\s]+", s)
+    return parts[0].lower() + "".join(word.capitalize() for word in parts[1:])
+
+
+T = TypeVar("T", dict, list, Any)
+
+
+def keys_to_camel_case(obj: T) -> T:
+    """Recursively convert all dict keys to camelCase."""
+    if isinstance(obj, dict):
+        return {
+            to_camel_case(k) if isinstance(k, str) else k: keys_to_camel_case(v)
+            for k, v in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [keys_to_camel_case(item) for item in obj]
+    else:
+        return obj
