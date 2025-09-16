@@ -18,12 +18,28 @@ client_template_path: Path = (
     importlib.resources.files("schorle") / "templates" / "client-entry.tsx.jinja"  # type: ignore
 )
 
+server_template_path: Path = (
+    importlib.resources.files("schorle") / "templates" / "server-entry.tsx.jinja"  # type: ignore
+)
 
-def get_template() -> jinja2.Template:
+
+def get_client_template() -> jinja2.Template:
     template = jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(client_template_path.parent))
     ).get_template(client_template_path.name)
     return template
+
+
+def get_server_template() -> jinja2.Template:
+    template = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(str(server_template_path.parent))
+    ).get_template(server_template_path.name)
+    return template
+
+
+# Legacy function for backward compatibility
+def get_template() -> jinja2.Template:
+    return get_client_template()
 
 
 def transform_artifacts_to_manifest(
@@ -36,9 +52,15 @@ def transform_artifacts_to_manifest(
     """
     manifest_entries = []
 
-    # Group artifacts by their source entry directory
-    entry_artifacts: dict[str, list[dict]] = {}
-    for artifact in artifacts:
+    # Separate client and server artifacts
+    client_artifacts = [
+        a for a in artifacts if a.get("target") == "client" or "target" not in a
+    ]
+    server_artifacts = [a for a in artifacts if a.get("target") == "server"]
+
+    # Group client artifacts by their source entry directory
+    client_entry_artifacts: dict[str, list[dict]] = {}
+    for artifact in client_artifacts:
         artifact_path = artifact["path"]
         # Find which entry this artifact belongs to by checking the directory structure
         # Artifacts are organized under pages/[name]/ structure
@@ -47,9 +69,23 @@ def transform_artifacts_to_manifest(
             path_parts = Path(artifact_path).parts
             if len(path_parts) >= 2:  # pages/[name]/file
                 entry_key = "/".join(path_parts[:2])  # pages/name
-                if entry_key not in entry_artifacts:
-                    entry_artifacts[entry_key] = []
-                entry_artifacts[entry_key].append(artifact)
+                if entry_key not in client_entry_artifacts:
+                    client_entry_artifacts[entry_key] = []
+                client_entry_artifacts[entry_key].append(artifact)
+
+    # Group server artifacts by their source entry directory
+    server_entry_artifacts: dict[str, list[dict]] = {}
+    for artifact in server_artifacts:
+        artifact_path = artifact["path"]
+        # Server artifacts have the same structure under pages/[name]/
+        if artifact_path.startswith("pages/"):
+            # Extract the entry key (e.g., "pages/Index" from "pages/Index/dev.js")
+            path_parts = Path(artifact_path).parts
+            if len(path_parts) >= 2:  # pages/[name]/file
+                entry_key = "/".join(path_parts[:2])  # pages/name
+                if entry_key not in server_entry_artifacts:
+                    server_entry_artifacts[entry_key] = []
+                server_entry_artifacts[entry_key].append(artifact)
 
     # Create manifest entries for each page
     for page_info in page_infos:
@@ -57,13 +93,14 @@ def transform_artifacts_to_manifest(
         relative_page_path = page_info.page.relative_to(project.pages_path)
         entry_key = f"pages/{relative_page_path.with_suffix('')}"
 
-        artifacts_for_page = entry_artifacts.get(entry_key, [])
+        client_artifacts_for_page = client_entry_artifacts.get(entry_key, [])
+        server_artifacts_for_page = server_entry_artifacts.get(entry_key, [])
 
-        # Find JS and CSS assets
+        # Find client JS and CSS assets
         js_asset = None
         css_asset = None
 
-        for artifact in artifacts_for_page:
+        for artifact in client_artifacts_for_page:
             if artifact["kind"] in ["entry", "entry-point"] and artifact[
                 "path"
             ].endswith(".js"):
@@ -71,9 +108,17 @@ def transform_artifacts_to_manifest(
             elif artifact["path"].endswith(".css"):
                 css_asset = f"/.schorle/dist/client/{artifact['path']}"
 
-        # Skip pages without JS assets (shouldn't happen in normal builds)
+        # Find server JS asset
+        server_js_asset = None
+        for artifact in server_artifacts_for_page:
+            if artifact["kind"] in ["entry", "entry-point"] and artifact[
+                "path"
+            ].endswith(".js"):
+                server_js_asset = f"/.schorle/dist/server/{artifact['path']}"
+
+        # Skip pages without client JS assets (shouldn't happen in normal builds)
         if not js_asset:
-            print(f"Warning: No JS asset found for page {page_info.page}")
+            print(f"Warning: No client JS asset found for page {page_info.page}")
             continue
 
         # Create the manifest entry
@@ -85,7 +130,9 @@ def transform_artifacts_to_manifest(
             for layout in page_info.layouts
         ]
 
-        assets = BuildManifestAssets(js=js_asset, css=css_asset)
+        assets = BuildManifestAssets(
+            js=js_asset, css=css_asset, server_js=server_js_asset
+        )
         entry = BuildManifestEntry(page=page_path, layouts=layout_paths, assets=assets)
         manifest_entries.append(entry)
 
@@ -108,8 +155,10 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         shutil.rmtree(project.schorle_dir)
     project.schorle_dir.mkdir(parents=True, exist_ok=True)
 
-    hydrator_entrypoints = []
-    template = get_template()
+    client_entrypoints = []
+    server_entrypoints = []
+    client_template = get_client_template()
+    server_template = get_server_template()
 
     # generate .schorle files
     for page_info in page_infos:
@@ -119,51 +168,75 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         if relative_page_path.suffix == ".mdx":
             relative_page_path = relative_page_path.with_suffix(".tsx")
 
+        # Generate import statements and layout components (shared between client and server)
+        import_statements = []
+        # For MDX files, keep the .mdx extension in the import path
+        page_import_path = page_info.page.relative_to(project.project_root)
+        if page_import_path.suffix == ".mdx":
+            import_statements.append(f"import Page from '@/{page_import_path}';")
+        else:
+            import_statements.append(
+                f"import Page from '@/{page_import_path.with_suffix('')}';"
+            )
+
+        for i, layout in enumerate(page_info.layouts):
+            import_statements.append(
+                f"import Layout{i + 1} from '@/{layout.relative_to(project.project_root).with_suffix('')}';"
+            )
+        import_statements_str = "\n".join(import_statements)
+
+        # populate the const layouts = {{ layout_components }};
+        layout_components_str = (
+            "["
+            + ", ".join(f"Layout{i + 1}" for i in range(len(page_info.layouts)))
+            + "]"
+        )
+
+        # Generate client entry
         client_dir = project.schorle_dir / ".gen" / "client"
         client_dir.mkdir(parents=True, exist_ok=True)
-        output_path = client_dir / relative_page_path
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        print(f"Generating {output_path}")
-        with open(output_path, "w") as f:
-            import_statements = []
-            # For MDX files, keep the .mdx extension in the import path
-            page_import_path = page_info.page.relative_to(project.project_root)
-            if page_import_path.suffix == ".mdx":
-                import_statements.append(f"import Page from '@/{page_import_path}';")
-            else:
-                import_statements.append(
-                    f"import Page from '@/{page_import_path.with_suffix('')}';"
-                )
-
-            for i, layout in enumerate(page_info.layouts):
-                import_statements.append(
-                    f"import Layout{i + 1} from '@/{layout.relative_to(project.project_root).with_suffix('')}';"
-                )
-            import_statements_str = "\n".join(import_statements)
-
-            # populate the const layouts = {{ layout_components }};
-            layout_components_str = (
-                "["
-                + ", ".join(f"Layout{i + 1}" for i in range(len(page_info.layouts)))
-                + "]"
-            )
+        client_output_path = client_dir / relative_page_path
+        client_output_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"Generating client entry: {client_output_path}")
+        with open(client_output_path, "w") as f:
             f.write(
-                template.render(
+                client_template.render(
                     import_statements=import_statements_str,
                     layout_components=layout_components_str,
                 )
             )
-        hydrator_entrypoints.append(output_path)
+        client_entrypoints.append(client_output_path)
+
+        # Generate server entry
+        server_dir = project.schorle_dir / ".gen" / "server"
+        server_dir.mkdir(parents=True, exist_ok=True)
+        server_output_path = server_dir / relative_page_path
+        server_output_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"Generating server entry: {server_output_path}")
+        with open(server_output_path, "w") as f:
+            f.write(
+                server_template.render(
+                    import_statements=import_statements_str,
+                    layout_components=layout_components_str,
+                )
+            )
+        server_entrypoints.append(server_output_path)
     print("Generated all entry files.")
     print("Running bun build...")
     # run bun build on all generated files
+
+    # Create build config with both client and server entrypoints
+    build_config = {
+        "client": [str(p) for p in client_entrypoints],
+        "server": [str(p) for p in server_entrypoints],
+    }
 
     base_env = os.environ.copy()
     base_env["NODE_ENV"] = "development" if project.dev else "production"
     result = subprocess.run(
         [
             *command,
-            json.dumps([str(p) for p in hydrator_entrypoints]),
+            json.dumps(build_config),
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

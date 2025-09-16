@@ -1,0 +1,51 @@
+import { Console as NodeConsole } from "node:console";
+
+// Send all SSR console output to *stderr* (stdout stays HTML-only)
+const ssrConsole = new NodeConsole(process.stderr, process.stderr);
+globalThis.console = ssrConsole as unknown as Console;
+
+import { wrapLayouts } from "@schorle/shared";
+import { renderToReadableStream } from "react-dom/server";
+import { decode } from "msgpackr";
+import { PropsProvider } from "@schorle/shared";
+
+{{ import_statements }}
+
+interface RenderRequest {
+  props?: Uint8Array;
+  headers?: Record<string, string> | null;
+  cookies?: Record<string, string> | null;
+  js: string;
+  css?: string;
+}
+
+export async function render(renderRequest: RenderRequest) {
+  const { props: propsBytes, headers, cookies, js } = renderRequest;
+
+  // Decode props if provided
+  const props = propsBytes && propsBytes.byteLength ? decode(propsBytes) : null;
+
+  // Set headers and cookies on global objects for SSR hooks
+  if (headers) {
+    (globalThis as any).__SCHORLE_HEADERS__ = headers;
+  }
+  if (cookies) {
+    (globalThis as any).__SCHORLE_COOKIES__ = cookies;
+  }
+
+  const layouts = {{ layout_components }};
+  const pageTree = wrapLayouts(Page, layouts);
+
+  const element = <PropsProvider value={props}>{pageTree}</PropsProvider>;
+
+  // Render to readable stream with JS bootstrap modules
+  const reactStream = await renderToReadableStream(element, {
+    bootstrapModules: [js],
+  });
+
+  return reactStream;
+}
+
+// Export for build-time static analysis
+export { Page };
+export const layouts = {{ layout_components }};

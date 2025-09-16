@@ -63,6 +63,7 @@ def test_render_input_types():
                     layouts=layouts,
                     js=manifest_entry.assets.js,
                     css=manifest_entry.assets.css,
+                    server_js=manifest_entry.assets.server_js,
                 )
                 gen_pageinfo = render(proj, page_info)
                 assert gen_pageinfo is not None

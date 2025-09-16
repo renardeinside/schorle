@@ -166,14 +166,24 @@ class SchorleProject(BaseModel):
 
                 page_layout_pairs.append(
                     PageInfo(
-                        page=tsx_file, layouts=layouts, js=assets.js, css=assets.css
+                        page=tsx_file,
+                        layouts=layouts,
+                        js=assets.js,
+                        css=assets.css,
+                        server_js=assets.server_js,
                     )
                 )
             else:
                 # During the entrypoint generation phase, we may not have a manifest yet.
                 # Still collect pages and layouts so we can generate hydrator files.
                 page_layout_pairs.append(
-                    PageInfo(page=tsx_file, layouts=layouts, js=None, css=None)
+                    PageInfo(
+                        page=tsx_file,
+                        layouts=layouts,
+                        js=None,
+                        css=None,
+                        server_js=None,
+                    )
                 )
 
         return page_layout_pairs
@@ -267,6 +277,7 @@ class PageInfo(BaseModel):
     layouts: list[Path]
     js: str | None = None
     css: str | None = None
+    server_js: str | None = None
 
     def __str__(self):
         layout_str = " -> ".join(
@@ -280,6 +291,7 @@ class PageInfo(BaseModel):
 class BuildManifestAssets(BaseModel):
     js: str
     css: str | None = None
+    server_js: str | None = None
 
 
 class BuildManifestEntry(BaseModel):

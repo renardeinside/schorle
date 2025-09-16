@@ -1,6 +1,7 @@
 from pathlib import Path
 from schorle.build import build_entrypoints
-from schorle.utils import cwd, find_schorle_project
+from schorle.utils import cwd
+from schorle.manifest import find_schorle_project
 
 
 def test_build_entrypoints():

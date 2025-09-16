@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { build } from "./build";
-import { render } from "./render";
+import { render, renderBuilt } from "./render";
 
 const [, , command, ...args] = Bun.argv;
 
@@ -21,6 +21,15 @@ if (command === "build") {
     throw new Error("No render info provided");
   }
   await render(renderInfo);
+} else if (command === "render-built") {
+  const serverJsPath = args[0];
+  const renderRequest = args[1];
+  if (!serverJsPath || !renderRequest) {
+    throw new Error(
+      "Server JS path and render request required for render-built",
+    );
+  }
+  await renderBuilt(serverJsPath, renderRequest);
 } else {
   throw new Error(`Unknown command ${command}`);
 }

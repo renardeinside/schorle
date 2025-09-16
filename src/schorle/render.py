@@ -104,15 +104,23 @@ def render(
             layouts=layouts,
             js=manifest_entry.assets.js,
             css=manifest_entry.assets.css,
+            server_js=manifest_entry.assets.server_js,
         )
     else:
         # Path - use legacy path resolution
         page_info = _resolve_page_info(project, page)
 
-    # Compute import paths
-    page_import, layout_imports = _compute_import_uris(project, page_info)
+    # Check if we have a built server JS file
+    if not page_info.server_js:
+        raise RuntimeError(f"No server-side build available for page: {page_info.page}")
 
-    # Prepare render info JSON
+    # Convert server_js URL to local file path
+    # server_js format: "/.schorle/dist/server/pages/Index/hash.js"
+    server_js_path = page_info.server_js.lstrip("/")  # Remove leading /
+    server_js_file = project.root_path / server_js_path
+
+    if not server_js_file.exists():
+        raise FileNotFoundError(f"Server JS file not found: {server_js_file}")
 
     # convert headers and cookies to dicts
     _headers = {}
@@ -128,23 +136,22 @@ def render(
         elif isinstance(cookies, dict):
             _cookies = cookies
 
-    render_info = {
-        "page": page_import,
-        "layouts": layout_imports,
+    # Prepare render request for the built server module
+    render_request = {
+        "headers": _headers if _headers else None,
+        "cookies": _cookies if _cookies else None,
         "js": page_info.js or "",
-        # Included for completeness; the current renderer ignores css
         "css": page_info.css or "",
-        "headers": _headers,
-        "cookies": _cookies,
     }
 
-    # Execute bun command and capture output in stream
+    # Execute bun command to run the built server module
     full_cmd = [
         "bun",
         "run",
         "slx-ipc",
-        "render",
-        json.dumps(render_info),
+        "render-built",
+        str(server_js_file),
+        json.dumps(render_request),
     ]
 
     base_env = os.environ.copy()
@@ -181,18 +188,20 @@ def render(
             decoded = line.decode("utf-8")
             injection = ""
 
-            if render_info["css"]:
-                injection += f"<link rel='stylesheet' href='{render_info['css']}' />\n"
+            if render_request["css"]:
+                injection += (
+                    f"<link rel='stylesheet' href='{render_request['css']}' />\n"
+                )
 
             if props:
                 props_b64 = base64.b64encode(props).decode("utf-8")
                 injection += f"<script id='__SCHORLE_PROPS__' type='application/msgpack'>{props_b64}</script>\n"
 
-            if render_info["headers"]:
-                injection += f"<script id='__SCHORLE_HEADERS__' type='application/json'>{json.dumps(render_info['headers'])}</script>\n"
+            if render_request["headers"]:
+                injection += f"<script id='__SCHORLE_HEADERS__' type='application/json'>{json.dumps(render_request['headers'])}</script>\n"
 
-            if render_info["cookies"]:
-                injection += f"<script id='__SCHORLE_COOKIES__' type='application/json'>{json.dumps(render_info['cookies'])}</script>\n"
+            if render_request["cookies"]:
+                injection += f"<script id='__SCHORLE_COOKIES__' type='application/json'>{json.dumps(render_request['cookies'])}</script>\n"
 
             injected = decoded.replace("</head>", f"{injection}</head>")
             yield injected.encode("utf-8")
