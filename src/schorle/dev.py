@@ -42,7 +42,6 @@ def schorle_filter(change, path: str) -> bool:
         if re.match(pattern, path_str):
             return False
 
-    print(f"[DEBUG] Watching file: {path_str}")
     return True
 
 
@@ -110,7 +109,6 @@ class DevManager:
 
     async def _watcher(self) -> None:
         async for changes in awatch(self.root_path, watch_filter=schorle_filter):
-            print(f"[DEBUG] File changes detected: {changes}")
             for cb in list(self._reload_callbacks):
                 try:
                     cb()

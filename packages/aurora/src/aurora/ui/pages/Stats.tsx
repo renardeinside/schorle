@@ -3,7 +3,6 @@ import { type StatsProps } from "@/lib/types";
 
 export default function Stats() {
   const props = useProps<StatsProps>();
-  console.log(props);
   return (
     <div>
       Stats

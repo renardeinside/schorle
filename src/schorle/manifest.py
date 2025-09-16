@@ -32,7 +32,9 @@ def find_schorle_project(
                 path.parent, max_iterations, left_iterations + 1
             )
     else:
-        print(f"pyproject.toml not found in {path}, searching in {path.parent}")
+        print(
+            f"pyproject.toml not found in {path.absolute()}, searching in {path.parent}"
+        )
         return find_schorle_project(path.parent, max_iterations, left_iterations + 1)
 
 

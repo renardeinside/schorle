@@ -5,6 +5,9 @@ import subprocess
 import shutil
 import jinja2
 import importlib.resources
+from rich.console import Console
+from rich.text import Text
+from rich.panel import Panel
 
 from schorle.manifest import (
     PageInfo,
@@ -13,6 +16,69 @@ from schorle.manifest import (
     BuildManifestAssets,
     SchorleProject,
 )
+
+console = Console()
+
+
+def print_build_info(message: str, style: str = "blue") -> None:
+    """Print build information with consistent styling."""
+    info_text = Text()
+    info_text.append("● ", style="blue bold")
+    info_text.append(message, style=style)
+    console.print(info_text)
+
+
+def print_build_error(error_message: str, details: str | None = None) -> None:
+    """Print build errors in a clean, formatted way."""
+    error_text = Text()
+    error_text.append("✗ ", style="red bold")
+    error_text.append("Build failed: ", style="red bold")
+    error_text.append(error_message, style="red")
+    console.print(error_text)
+
+    if details:
+        # Create a panel for error details
+        console.print(
+            Panel(
+                details.strip(),
+                title="[red]Error Details[/red]",
+                border_style="red",
+                padding=(1, 2),
+            )
+        )
+
+
+def print_build_output(stdout: str, stderr: str) -> None:
+    """Print build output in a clean, formatted way."""
+    if stdout.strip():
+        console.print(
+            Panel(
+                stdout.strip(),
+                title="[green]Build Output[/green]",
+                border_style="green",
+                padding=(1, 2),
+            )
+        )
+
+    if stderr.strip():
+        # Filter out JSON artifacts from stderr for cleaner display
+        stderr_lines = []
+        for line in stderr.strip().split("\n"):
+            line = line.strip()
+            # Skip lines that look like JSON artifacts
+            if not (line.startswith("[") or line.startswith("{")):
+                stderr_lines.append(line)
+
+        if stderr_lines:
+            console.print(
+                Panel(
+                    "\n".join(stderr_lines),
+                    title="[yellow]Build Messages[/yellow]",
+                    border_style="yellow",
+                    padding=(1, 2),
+                )
+            )
+
 
 client_template_path: Path = (
     importlib.resources.files("schorle") / "templates" / "client-entry.tsx.jinja"  # type: ignore
@@ -118,7 +184,10 @@ def transform_artifacts_to_manifest(
 
         # Skip pages without client JS assets (shouldn't happen in normal builds)
         if not js_asset:
-            print(f"Warning: No client JS asset found for page {page_info.page}")
+            print_build_info(
+                f"Warning: No client JS asset found for page {page_info.page}",
+                style="yellow",
+            )
             continue
 
         # Create the manifest entry
@@ -139,16 +208,13 @@ def transform_artifacts_to_manifest(
     return manifest_entries
 
 
-def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None:
+def build_entrypoints(command: tuple[str, ...], project: SchorleProject):
     # Discover pages and layouts using the manifest-aware API. At build time, js/css
     # might be missing; we only need the TSX imports to generate hydrator entrypoints.
     # For entrypoint generation, we do not require a manifest yet.
     page_infos: list[PageInfo] = (
         project.collect_page_infos(require_manifest=False) or []
     )
-
-    for page_info in page_infos:
-        print(f"Page: {page_info}")
 
     # cleanup .schorle dir
     if project.schorle_dir.exists():
@@ -161,6 +227,7 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
     server_template = get_server_template()
 
     # generate .schorle files
+    print_build_info(f"Generating entry files for {len(page_infos)} pages...")
     for page_info in page_infos:
         # put the generated file in .schorle with same relative path
         # But for MDX files, change the extension to .tsx for proper bundling
@@ -197,7 +264,7 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         client_dir.mkdir(parents=True, exist_ok=True)
         client_output_path = client_dir / relative_page_path
         client_output_path.parent.mkdir(parents=True, exist_ok=True)
-        print(f"Generating client entry: {client_output_path}")
+
         with open(client_output_path, "w") as f:
             f.write(
                 client_template.render(
@@ -212,7 +279,7 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         server_dir.mkdir(parents=True, exist_ok=True)
         server_output_path = server_dir / relative_page_path
         server_output_path.parent.mkdir(parents=True, exist_ok=True)
-        print(f"Generating server entry: {server_output_path}")
+
         with open(server_output_path, "w") as f:
             f.write(
                 server_template.render(
@@ -221,9 +288,6 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
                 )
             )
         server_entrypoints.append(server_output_path)
-    print("Generated all entry files.")
-    print("Running bun build...")
-    # run bun build on all generated files
 
     # Create build config with both client and server entrypoints
     build_config = {
@@ -243,11 +307,10 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         env=base_env,
         text=True,
     )
-    if result.returncode != 0:
-        print(result.stderr)
-        raise RuntimeError("Failed to build")
 
-    print("Built all entry files.")
+    if result.returncode != 0:
+        print_build_error("Bun build process failed", result.stderr)
+        raise RuntimeError("Failed to build")
 
     # Parse the JSON artifacts from stdout or stderr
     artifacts = None
@@ -257,7 +320,9 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
         try:
             artifacts = json.loads(result.stdout.strip())
         except json.JSONDecodeError:
-            print("Could not parse JSON from stdout, trying stderr...")
+            print_build_info(
+                "Could not parse JSON from stdout, trying stderr...", style="yellow"
+            )
 
     # Fallback to stderr if stdout failed or was empty
     if artifacts is None and result.stderr.strip():
@@ -273,8 +338,10 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
             pass
 
     if artifacts is None:
-        print(f"Build output - stdout: {result.stdout}")
-        print(f"Build output - stderr: {result.stderr}")
+        print_build_error(
+            "Failed to parse build artifacts JSON from stdout or stderr",
+            f"stdout: {result.stdout}\nstderr: {result.stderr}",
+        )
         raise RuntimeError("Failed to parse build artifacts JSON from stdout or stderr")
 
     # Transform artifacts into the new manifest format
@@ -287,5 +354,3 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
 
     with open(manifest_path, "w") as f:
         f.write(manifest.model_dump_json(indent=2))
-
-    print(f"Generated manifest at {manifest_path}")

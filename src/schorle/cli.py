@@ -2,10 +2,15 @@ import json
 from pathlib import Path
 import subprocess
 import shutil
+import time
 from fastapi import FastAPI
 import typer
 import importlib.metadata
 from tomlkit import parse, dumps, table
+from rich.console import Console
+from rich.spinner import Spinner
+from rich.live import Live
+from rich.text import Text
 from schorle.build import build_entrypoints
 from schorle.bun import check_and_prepare_bun
 from schorle.json_schema import generate_schemas
@@ -15,6 +20,7 @@ from schorle.manifest import find_schorle_project
 
 __version__ = importlib.metadata.version("schorle")
 
+console = Console()
 
 app = typer.Typer(
     name="slx",
@@ -24,7 +30,7 @@ app = typer.Typer(
 
 @app.command(name="version", help="Show the version of the schorle CLI")
 def version():
-    typer.echo(f"Schorle version {__version__}")
+    console.print(f"[blue]●[/blue] Schorle version {__version__}")
 
 
 @app.command(name="init", help="Initialize a new project")
@@ -34,17 +40,19 @@ def init(
         help="The path to the project, usually ui or src/{python_project_name}/ui",
     ),
 ):
-    typer.echo(f"Generating project at {project_path}")
+    console.print(f"[blue]●[/blue] Generating project at {project_path}")
     root_path = Path.cwd()
 
     if project_path.exists():
-        typer.echo(f"Project path {project_path} already exists")
+        console.print(f"[red]✗[/red] Project path {project_path} already exists")
         raise typer.Exit(code=1)
 
     # check if pyproject.toml exists in root_path
     pyproject_toml_path = root_path / "pyproject.toml"
     if not pyproject_toml_path.exists():
-        typer.echo(f"pyproject.toml not found in {root_path}, it will be created")
+        console.print(
+            f"[yellow]⚠[/yellow] pyproject.toml not found in {root_path}, it will be created"
+        )
 
     doc = (
         parse(pyproject_toml_path.read_text())
@@ -129,7 +137,7 @@ def init(
         if to_be_added:
             gitignore_path.write_text("\n".join(to_be_added))
 
-    typer.echo("Project initialized successfully")
+    console.print("[blue]●[/blue] [green]Project initialized successfully[/green]")
 
 
 @app.command(name="build", help="Build the project")
@@ -137,13 +145,40 @@ def build(
     dev: bool = typer.Option(False, help="Build in dev mode"),
     with_stubs: bool = typer.Option(True, help="Generate Python stubs for pages"),
 ):
-    typer.echo("Building project")
     project = find_schorle_project(Path.cwd())
     project.dev = dev
 
-    build_entrypoints(("bun", "run", "slx-ipc", "build"), project)
-    if with_stubs:
-        generate_python_stubs(project)
+    console.print(f"Building project in {'dev' if dev else 'prod'} mode", style="blue")
+
+    # Create spinner with blue dot
+    spinner = Spinner("dots", text="Building project...", style="blue")
+
+    with Live(spinner, console=console, refresh_per_second=10):
+        start_time = time.time()
+
+        # Build entrypoints
+        build_entrypoints(("bun", "run", "slx-ipc", "build"), project)
+
+        # Generate Python stubs if requested
+        if with_stubs:
+            spinner.update(text="Generating Python stubs...")
+            generate_python_stubs(project)
+
+        end_time = time.time()
+        build_time_ms = (end_time - start_time) * 1000
+        spinner.update(text="Build completed successfully", style="green")
+
+    # Show completion message with blue dot and timing
+    success_text = Text()
+    success_text.append("● ", style="blue bold")
+    success_text.append(
+        f"Build completed successfully in {build_time_ms:.1f}ms", style="green"
+    )
+    # show the manifest path
+    console.print(f"Manifest file generated at: {project.manifest_path}", style="blue")
+    console.print(f"Total pages: {len(project.manifest.entries)}", style="blue")
+    # tell how many pages are in the manifest
+    console.print(success_text)
 
 
 @app.command("codegen", help="Generate models from the project")
@@ -154,38 +189,69 @@ def generate_models(
 ):
     project = find_schorle_project(Path.cwd())
 
-    # generate models
-    bun_executable = check_and_prepare_bun()
-    module = importlib.import_module(module_name)
-    json_schema = generate_schemas(module)
-    ts_schema = schema_to_ts(json_schema, bun_executable)
-
-    project.types_path.mkdir(parents=True, exist_ok=True)
-    output_path = project.types_path / f"{module_name}.d.ts"
-    typer.echo(f"Writing models to {output_path}")
-
-    barrel_file = project.types_path / "index.d.ts"
-    # check if barrel_file exists
-    if not barrel_file.exists():
-        barrel_file.write_text(
-            "\n".join(
-                [
-                    f"export * from './{module_name}.d.ts';",
-                ]
-            )
-        )
-    else:
-        # check if export * from './{module_name}.d.ts'; exists, add it if not
-        if f"export * from './{module_name}.d.ts';" not in barrel_file.read_text():
-            current_content = barrel_file.read_text()
-            barrel_file.write_text(
-                current_content + f"\nexport * from './{module_name}.d.ts';"
-            )
-    current_ts_content = (
-        output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+    console.print(
+        f"Generating models for module: [bold]{module_name}[/bold]", style="blue"
     )
-    if ts_schema != current_ts_content:
-        output_path.write_text(ts_schema, encoding="utf-8")
+
+    # Create spinner with blue dot
+    spinner = Spinner(
+        "dots", text="Importing module and generating schemas...", style="blue"
+    )
+
+    with Live(spinner, console=console, refresh_per_second=10):
+        start_time = time.time()
+
+        # Generate models
+        bun_executable = check_and_prepare_bun()
+        module = importlib.import_module(module_name)
+
+        spinner.update(text="Generating JSON schemas...")
+        json_schema = generate_schemas(module)
+
+        spinner.update(text="Converting to TypeScript definitions...")
+        ts_schema = schema_to_ts(json_schema, bun_executable)
+
+        project.types_path.mkdir(parents=True, exist_ok=True)
+        output_path = project.types_path / f"{module_name}.d.ts"
+
+        spinner.update(text="Writing TypeScript definitions...")
+
+        barrel_file = project.types_path / "index.d.ts"
+        # check if barrel_file exists
+        if not barrel_file.exists():
+            barrel_file.write_text(
+                "\n".join(
+                    [
+                        f"export * from './{module_name}.d.ts';",
+                    ]
+                )
+            )
+        else:
+            # check if export * from './{module_name}.d.ts'; exists, add it if not
+            if f"export * from './{module_name}.d.ts';" not in barrel_file.read_text():
+                current_content = barrel_file.read_text()
+                barrel_file.write_text(
+                    current_content + f"\nexport * from './{module_name}.d.ts';"
+                )
+        current_ts_content = (
+            output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+        )
+        if ts_schema != current_ts_content:
+            output_path.write_text(ts_schema, encoding="utf-8")
+
+        end_time = time.time()
+        generation_time_ms = (end_time - start_time) * 1000
+        spinner.update(text="Models generated successfully", style="green")
+
+    # Show completion message with blue dot and timing
+    success_text = Text()
+    success_text.append("● ", style="blue bold")
+    success_text.append(
+        f"Models generated successfully in {generation_time_ms:.1f}ms", style="green"
+    )
+    console.print(f"TypeScript definitions written to: {output_path}", style="blue")
+    console.print(f"Barrel file updated at: {barrel_file}", style="blue")
+    console.print(success_text)
 
 
 @app.command("generate-api-client", help="Generate API client from OpenAPI schema")
@@ -195,53 +261,63 @@ def generate_api_client(
     ),
 ):
     project = find_schorle_project(Path.cwd())
-    if app is not None:
-        module = importlib.import_module(app.split(":")[0])
-        instance: FastAPI = getattr(module, app.split(":")[1])
-        schema = instance.openapi()
 
-        if not project.api_client_temp_path.exists():
-            project.api_client_temp_path.mkdir(parents=True, exist_ok=True)
+    console.print(
+        f"Generating API client{f' from app: [bold]{app}[/bold]' if app else ''}",
+        style="blue",
+    )
 
-        (project.api_client_temp_path / "api.json").write_text(
-            json.dumps(schema, indent=2)
-        )
-    else:
-        typer.echo("No app provided, assuming .schorle/api.json exists")
+    # Create spinner with blue dot
+    spinner = Spinner("dots", text="Preparing API client generation...", style="blue")
 
-    # Check if API schema file exists
-    api_schema_path = project.api_client_temp_path / "api.json"
-    if not api_schema_path.exists():
-        typer.echo(f"API schema file not found at {api_schema_path}")
-        typer.echo(
-            "Make sure to run this after the FastAPI app has generated the schema"
-        )
-        raise typer.Exit(code=1)
+    with Live(spinner, console=console, refresh_per_second=10):
+        start_time = time.time()
 
-    typer.echo("Generating API client")
+        if app is not None:
+            spinner.update(text="Loading FastAPI app and extracting OpenAPI schema...")
+            module = importlib.import_module(app.split(":")[0])
+            instance: FastAPI = getattr(module, app.split(":")[1])
+            schema = instance.openapi()
 
-    # Ensure temp path exists
-    project.api_client_temp_path.mkdir(parents=True, exist_ok=True)
+            if not project.api_client_temp_path.exists():
+                project.api_client_temp_path.mkdir(parents=True, exist_ok=True)
 
-    # Determine orval config path
-    if project.user_provided_orval_config_path.exists():
-        orval_config_path = project.user_provided_orval_config_path
-        typer.echo(f"Using user-provided orval config: {orval_config_path}")
-    else:
-        if not project.default_orval_config_path.exists():
-            # copy template
-            project.default_orval_config_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(
-                project.orval_config_template_path,
-                project.default_orval_config_path,
+            spinner.update(text="Writing OpenAPI schema to file...")
+            (project.api_client_temp_path / "api.json").write_text(
+                json.dumps(schema, indent=2)
             )
-            typer.echo("Created default orval config from template")
-        orval_config_path = project.default_orval_config_path
-        typer.echo(f"Using default orval config: {orval_config_path}")
+        else:
+            spinner.update(text="Using existing API schema file...")
 
-    # Generate client using orval
-    bun_executable = check_and_prepare_bun()
-    try:
+        # Check if API schema file exists
+        api_schema_path = project.api_client_temp_path / "api.json"
+        if not api_schema_path.exists():
+            # Exit the spinner context to show error messages
+            pass  # Will exit the Live context and show error after
+
+        # Ensure temp path exists
+        project.api_client_temp_path.mkdir(parents=True, exist_ok=True)
+
+        # Determine orval config path
+        spinner.update(text="Setting up orval configuration...")
+        if project.user_provided_orval_config_path.exists():
+            orval_config_path = project.user_provided_orval_config_path
+        else:
+            if not project.default_orval_config_path.exists():
+                # copy template
+                project.default_orval_config_path.parent.mkdir(
+                    parents=True, exist_ok=True
+                )
+                shutil.copy(
+                    project.orval_config_template_path,
+                    project.default_orval_config_path,
+                )
+            orval_config_path = project.default_orval_config_path
+
+        # Generate client using orval
+        spinner.update(text="Running orval to generate API client...")
+        bun_executable = check_and_prepare_bun()
+
         result = subprocess.run(
             [
                 str(bun_executable),
@@ -254,17 +330,47 @@ def generate_api_client(
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            check=True,
             text=True,
         )
-        typer.echo(f"API client generated successfully at {project.api_client_path}")
-        if result.stdout:
-            typer.echo(f"Output: {result.stdout}")
-    except subprocess.CalledProcessError as e:
-        typer.echo(f"Error generating API client: {e}")
-        if e.stderr:
-            typer.echo(f"Error details: {e.stderr}")
+
+        end_time = time.time()
+        generation_time_ms = (end_time - start_time) * 1000
+
+        if result.returncode != 0:
+            spinner.update(text="API client generation failed", style="red")
+        else:
+            spinner.update(text="API client generated successfully", style="green")
+
+    # Check for missing schema file outside Live context
+    if not api_schema_path.exists():
+        console.print(f"[red]✗[/red] API schema file not found at {api_schema_path}")
+        console.print(
+            "[yellow]⚠[/yellow] Make sure to run this after the FastAPI app has generated the schema"
+        )
         raise typer.Exit(code=1)
+
+    # Handle subprocess errors outside Live context
+    if result.returncode != 0:
+        console.print(
+            f"[red]✗[/red] Error generating API client after {generation_time_ms:.1f}ms"
+        )
+        if result.stderr:
+            console.print(f"[red]Error details:[/red] {result.stderr}")
+        raise typer.Exit(code=1)
+
+    # Show completion message with blue dot and timing
+    success_text = Text()
+    success_text.append("● ", style="blue bold")
+    success_text.append(
+        f"API client generated successfully in {generation_time_ms:.1f}ms",
+        style="green",
+    )
+    console.print(f"API client generated at: {project.api_client_path}", style="blue")
+    console.print(f"Using orval config: {orval_config_path}", style="blue")
+    if result.stderr:
+        console.print(f"[red]Error details:[/red] {result.stderr}", style="red")
+        raise typer.Exit(code=1)
+    console.print(success_text)
 
 
 add_app = typer.Typer(
