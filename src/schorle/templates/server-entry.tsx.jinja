@@ -1,4 +1,5 @@
 import { Console as NodeConsole } from "node:console";
+import { jsxDEV } from "react/jsx-dev-runtime";
 
 // Send all SSR console output to *stderr* (stdout stays HTML-only)
 const ssrConsole = new NodeConsole(process.stderr, process.stderr);
@@ -36,7 +37,11 @@ export async function render(renderRequest: RenderRequest) {
   const layouts = {{ layout_components }};
   const pageTree = wrapLayouts(Page, layouts);
 
-  const element = <PropsProvider value={props}>{pageTree}</PropsProvider>;
+  const element = (
+    <PropsProvider value={props}>
+      {pageTree}
+    </PropsProvider>
+  );
 
   // Render to readable stream with JS bootstrap modules
   const reactStream = await renderToReadableStream(element, {

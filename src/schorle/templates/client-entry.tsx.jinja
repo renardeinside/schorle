@@ -1,7 +1,7 @@
 import {hydrateRoot} from 'react-dom/client';
 import {wrapLayouts} from '@schorle/shared';
 import { PropsProvider } from "@schorle/shared";
-import {decode} from "msgpackr"
+import {decode} from "msgpackr";
 
 {{ import_statements }}
 
@@ -15,6 +15,7 @@ function readInitialProps() {
 const layouts = {{ layout_components }};
 const pageTree = wrapLayouts(Page, layouts);
 const initialProps = readInitialProps();
+
 const element = (
     <PropsProvider value={initialProps}>
         {pageTree}

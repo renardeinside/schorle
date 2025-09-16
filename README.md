@@ -27,6 +27,8 @@ v0:
 - [x] typesafe page names autogen
 - [x] models autogen
 - [x] api client autogen
-- [ ] MDX rendering
+- [x] MDX rendering
 - [x] components CLI
 - [x] dependencies CLI
+- [ ] make CLI/logging nicer
+- [ ] properly display the build/render errors

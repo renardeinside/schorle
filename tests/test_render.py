@@ -1,3 +1,4 @@
+from fastapi.responses import StreamingResponse
 from schorle.render import render
 from schorle.utils import cwd
 from schorle.manifest import find_schorle_project
@@ -144,13 +145,13 @@ def test_manifest_dynamic_reading():
             print("✓ Original manifest restored")
 
 
-class TestHeaders(BaseModel):
+class SampleHeaders(BaseModel):
     authorization: str
     user_agent: str
     x_custom_header: str
 
 
-class TestCookies(BaseModel):
+class SampleCookies(BaseModel):
     session_id: str
     theme: str
 
@@ -178,7 +179,7 @@ def test_headers_cookies_conversion():
         print(f"Headers as dict: {dict(headers_obj)}")
 
         # Test 2: BaseModel headers
-        headers_model = TestHeaders(
+        headers_model = SampleHeaders(
             authorization="Bearer model-token",
             user_agent="model-agent/1.0",
             x_custom_header="model-value",
@@ -186,7 +187,7 @@ def test_headers_cookies_conversion():
         print(f"Headers model: {headers_model.model_dump()}")
 
         # Test 3: BaseModel cookies
-        cookies_model = TestCookies(session_id="model123", theme="light")
+        cookies_model = SampleCookies(session_id="model123", theme="light")
         print(f"Cookies model: {cookies_model.model_dump()}")
 
         print("\n=== Testing Render Pipeline ===")
@@ -328,7 +329,6 @@ def test_debug_render_subprocess():
 
         # Let's manually replicate what render() does to see the subprocess output
         from schorle.render import _resolve_page_info, _compute_import_uris
-        from schorle.manifest import PageInfo
 
         # Get page info
         page_info = _resolve_page_info(proj, Path("Index.tsx"))
@@ -437,5 +437,6 @@ def test_render_mdx():
     with cwd("packages/aurora"):
         proj = find_schorle_project(Path("."))
         gen = render(proj, "About")
-        response = "\n".join(line.decode("utf-8") for line in gen)
-        assert "This is the about page." in response
+        html = b"".join(gen).decode("utf-8")
+        print(html)
+        assert "This is the about page." in html
