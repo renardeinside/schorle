@@ -24,7 +24,7 @@ v0:
 - [x] dev reload
 - [x] server-side props passing
 - [x] headers/cookies
-- [ ] typesafe page names autogen
+- [x] typesafe page names autogen
 - [ ] models autogen
 - [ ] api client autogen
 - [ ] MDX rendering
