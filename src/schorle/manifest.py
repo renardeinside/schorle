@@ -11,6 +11,7 @@ class SchorleProject(BaseModel):
     root_path: Path
     project_root: Path
     dev: bool | None = None
+    _page_infos: list[PageInfo] | None = None
 
     @property
     def schorle_dir(self) -> Path:
@@ -169,6 +170,38 @@ class SchorleProject(BaseModel):
                 layouts.append(layout_path)
 
         return layouts
+
+    def _invalidate_page_cache(self):
+        """Invalidate cached page info to force fresh reads from the manifest."""
+        self._page_infos = None
+
+    def resolve_page_info(self, page: Path) -> PageInfo:
+        """Resolve a page path to its PageInfo, including assets and layouts."""
+        if self._page_infos is None:
+            self._page_infos = self.collect_page_infos()
+
+        # Normalize to project-relative pages path
+        if page.is_absolute():
+            try:
+                rel_to_project = page.relative_to(self.project_root)
+            except ValueError:
+                rel_to_project = page
+        else:
+            rel_to_project = page
+
+        # If not prefixed with pages/, assume it is relative to pages/
+        if rel_to_project.parts and rel_to_project.parts[0] == "pages":
+            candidate = Path(*rel_to_project.parts[1:])
+        else:
+            candidate = rel_to_project
+
+        # Match by filepath under pages (case-sensitive) ignoring extension
+        for info in self._page_infos or []:
+            rel = info.page.relative_to(self.pages_path)
+            if rel.with_suffix("") == candidate.with_suffix(""):
+                return info
+
+        raise FileNotFoundError(f"Page not found: {page}")
 
 
 class PageInfo(BaseModel):

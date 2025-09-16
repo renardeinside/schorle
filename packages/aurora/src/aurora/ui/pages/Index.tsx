@@ -1,5 +1,3 @@
-"use server";
-
 import Counter from "@/components/Counter";
 import { useProps } from "@schorle/shared";
 import { useHeaders } from "@schorle/shared";
