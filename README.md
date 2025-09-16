@@ -23,7 +23,7 @@ v0:
 
 - [x] dev reload
 - [x] server-side props passing
-- [ ] headers/cookies
+- [x] headers/cookies
 - [ ] typesafe page names autogen
 - [ ] models autogen
 - [ ] api client autogen
