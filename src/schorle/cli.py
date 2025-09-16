@@ -265,3 +265,60 @@ def generate_api_client(
         if e.stderr:
             typer.echo(f"Error details: {e.stderr}")
         raise typer.Exit(code=1)
+
+
+add_app = typer.Typer(
+    name="add",
+    help="Add components or dependencies to the project",
+)
+app.add_typer(add_app, name="add")
+
+
+component_args = {
+    "help": """Add a component to the project.
+
+    This command will run `bun x shadcn@latest add component` with the remaining arguments.
+
+    Example:
+
+    > slx add component button
+    """,
+    "context_settings": {"allow_extra_args": True, "ignore_unknown_options": True},
+}
+
+
+@add_app.command("component", **component_args)  # type: ignore
+@add_app.command("comp", **component_args)  # type: ignore
+@add_app.command("c", **component_args)  # type: ignore
+def add_component(
+    ctx: typer.Context,
+):
+    bun_executable = check_and_prepare_bun()
+    project = find_schorle_project(Path.cwd())
+
+    # run bun x shadcn@latest add component with the remaining arguments
+    subprocess.run(
+        [bun_executable, "x", "shadcn@latest", "add", *ctx.args], cwd=project.root_path
+    )
+
+
+dependency_args = {
+    "help": """Add a dependency to the project.
+
+    This command will run `bun add` with the remaining arguments.
+    """,
+    "context_settings": {"allow_extra_args": True, "ignore_unknown_options": True},
+}
+
+
+@add_app.command("dependency", **dependency_args)  # type: ignore
+@add_app.command("dep", **dependency_args)  # type: ignore
+@add_app.command("d", **dependency_args)  # type: ignore
+def add_dependency(
+    ctx: typer.Context,
+):
+    bun_executable = check_and_prepare_bun()
+    project = find_schorle_project(Path.cwd())
+
+    # run bun add with the remaining arguments
+    subprocess.run([bun_executable, "add", *ctx.args], cwd=project.root_path)

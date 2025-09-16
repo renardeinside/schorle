@@ -1,8 +1,8 @@
 from schorle.render import render
-from schorle.utils import cwd, find_schorle_project
+from schorle.utils import cwd
+from schorle.manifest import find_schorle_project
 from pathlib import Path
 import json
-import tempfile
 import shutil
 import subprocess
 import os
@@ -430,3 +430,11 @@ def test_inspect_html_output():
             print(f"\nCookies context:\n{context}")
 
         print("\n✓ Inspection completed")
+
+
+def test_render_mdx():
+    with cwd("packages/aurora"):
+        proj = find_schorle_project(Path("."))
+        gen = render(proj, "About")
+        response = "\n".join(line.decode("utf-8") for line in gen)
+        assert "This is the about page." in response

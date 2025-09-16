@@ -118,7 +118,10 @@ class SchorleProject(BaseModel):
 
         Returns a list of pairs: (page_path, [layout_paths...])
         """
-        tsx_files = list(self.pages_path.glob("**/*.tsx"))
+
+        relevant_files = list(self.pages_path.glob("**/*.tsx")) + list(
+            self.pages_path.glob("**/*.mdx")
+        )
 
         # Build a lookup from page name to assets using the new manifest
         manifest_lookup: dict[str, BuildManifestAssets] = {}
@@ -133,7 +136,7 @@ class SchorleProject(BaseModel):
                 pass
 
         page_layout_pairs: list[PageInfo] = []
-        for tsx_file in tsx_files:
+        for tsx_file in relevant_files:
             if tsx_file.name.startswith("__"):
                 continue
 
@@ -187,8 +190,7 @@ class SchorleProject(BaseModel):
         """
         try:
             # Always read the manifest fresh to ensure we get the latest content
-            manifest = self.manifest
-            for entry in manifest.entries:
+            for entry in self.manifest.entries:
                 if entry.page == page_name:
                     return entry
             return None
@@ -199,7 +201,9 @@ class SchorleProject(BaseModel):
         """Find the actual page file by page name."""
         potential_files = [
             self.pages_path / f"{page_name}.tsx",
+            self.pages_path / f"{page_name}.mdx",
             self.pages_path / page_name / "index.tsx",
+            self.pages_path / page_name / "index.mdx",
         ]
         for file_path in potential_files:
             if file_path.exists():

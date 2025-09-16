@@ -114,15 +114,24 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject) -> None
     # generate .schorle files
     for page_info in page_infos:
         # put the generated file in .schorle with same relative path
+        # But for MDX files, change the extension to .tsx for proper bundling
         relative_page_path = page_info.page.relative_to(project.pages_path)
+        if relative_page_path.suffix == ".mdx":
+            relative_page_path = relative_page_path.with_suffix(".tsx")
         output_path = project.schorle_dir / ".gen" / relative_page_path
         output_path.parent.mkdir(parents=True, exist_ok=True)
         print(f"Generating {output_path}")
         with open(output_path, "w") as f:
             import_statements = []
-            import_statements.append(
-                f"import Page from '@/{page_info.page.relative_to(project.project_root).with_suffix('')}';"
-            )
+            # For MDX files, keep the .mdx extension in the import path
+            page_import_path = page_info.page.relative_to(project.project_root)
+            if page_import_path.suffix == ".mdx":
+                import_statements.append(f"import Page from '@/{page_import_path}';")
+            else:
+                import_statements.append(
+                    f"import Page from '@/{page_import_path.with_suffix('')}';"
+                )
+
             for i, layout in enumerate(page_info.layouts):
                 import_statements.append(
                     f"import Layout{i + 1} from '@/{layout.relative_to(project.project_root).with_suffix('')}';"

@@ -28,5 +28,5 @@ v0:
 - [x] models autogen
 - [x] api client autogen
 - [ ] MDX rendering
-- [ ] components CLI
-- [ ] dependencies CLI
+- [x] components CLI
+- [x] dependencies CLI

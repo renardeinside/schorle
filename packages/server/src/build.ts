@@ -1,6 +1,7 @@
-import type { BuildArtifact } from "bun";
+import type { BuildArtifact, BunPlugin } from "bun";
 import plugin from "bun-plugin-tailwind";
 import { relative } from "path";
+import mdx from "@mdx-js/esbuild";
 
 export async function build(hydratorPathsRaw: string) {
   if (!hydratorPathsRaw) {
@@ -36,7 +37,14 @@ export async function build(hydratorPathsRaw: string) {
   const result = await Bun.build({
     entrypoints: hydratorPaths,
     outdir: ".schorle/dist/entry",
-    plugins: [plugin],
+    plugins: [
+      plugin,
+      mdx({
+        jsxImportSource: "react",
+        // This ensures MDX files are treated as JSX
+        development: isDev,
+      }) as unknown as BunPlugin,
+    ],
     sourcemap: "inline",
     target: "browser",
     minify: true,

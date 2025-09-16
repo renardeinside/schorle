@@ -25,6 +25,8 @@ init-aurora: clean-aurora
     cp ../../templates/app.py ./src/aurora/app.py
     cp ../../templates/models.py ./src/aurora/models.py
     cp ../../templates/api.py ./src/aurora/api.py
+    cp ../../templates/About.mdx ./src/aurora/ui/pages/About.mdx
+
     uv run slx codegen aurora.models
     uv run slx generate-api-client aurora.app:app
 

@@ -56,23 +56,24 @@ class PagesAccessor:
 
         current_path = self.project.pages_path / self.path_prefix
 
-        # Check if it's a direct page file
-        page_file = current_path / f"{name}.tsx"
-        if page_file.exists():
-            page_ref = PageReference(page_file, self.project)
-            self._cache[name] = page_ref
-            return page_ref
+        # Check if it's a direct page file (support both .tsx and .mdx)
+        for ext in [".tsx", ".mdx"]:
+            page_file = current_path / f"{name}{ext}"
+            if page_file.exists():
+                page_ref = PageReference(page_file, self.project)
+                self._cache[name] = page_ref
+                return page_ref
 
         # Check if it's a directory with pages
         dir_path = current_path / name
         if dir_path.exists() and dir_path.is_dir():
-            # Check if directory has any .tsx files
-            tsx_files = list(dir_path.glob("*.tsx"))
+            # Check if directory has any page files (.tsx or .mdx)
+            page_files = list(dir_path.glob("*.tsx")) + list(dir_path.glob("*.mdx"))
             has_subdirs = any(
                 p.is_dir() for p in dir_path.iterdir() if not p.name.startswith(".")
             )
 
-            if tsx_files or has_subdirs:
+            if page_files or has_subdirs:
                 accessor = PagesAccessor(self.project, self.path_prefix / name)
                 self._cache[name] = accessor
                 return accessor
@@ -88,10 +89,12 @@ class PagesAccessor:
 
         names = []
 
-        # Add page files (without .tsx extension)
-        for tsx_file in current_path.glob("*.tsx"):
-            if not tsx_file.name.startswith("__"):  # Skip layout files
-                names.append(tsx_file.stem)
+        # Add page files (without extension, support both .tsx and .mdx)
+        for page_file in list(current_path.glob("*.tsx")) + list(
+            current_path.glob("*.mdx")
+        ):
+            if not page_file.name.startswith("__"):  # Skip layout files
+                names.append(page_file.stem)
 
         # Add directories with pages
         for item in current_path.iterdir():
@@ -100,9 +103,13 @@ class PagesAccessor:
                 and not item.name.startswith(".")
                 and not item.name.startswith("__")
             ):
-                # Check if directory has any .tsx files or subdirectories
-                has_content = any(item.glob("*.tsx")) or any(
-                    p.is_dir() for p in item.iterdir() if not p.name.startswith(".")
+                # Check if directory has any page files (.tsx or .mdx) or subdirectories
+                has_content = (
+                    any(item.glob("*.tsx"))
+                    or any(item.glob("*.mdx"))
+                    or any(
+                        p.is_dir() for p in item.iterdir() if not p.name.startswith(".")
+                    )
                 )
                 if has_content:
                     names.append(item.name)
@@ -174,8 +181,8 @@ class PythonStubGenerator:
             if item.name.startswith(".") or item.name.startswith("__"):
                 continue
 
-            if item.is_file() and item.suffix == ".tsx":
-                # Add page file
+            if item.is_file() and item.suffix in [".tsx", ".mdx"]:
+                # Add page file (both .tsx and .mdx)
                 tree[item.stem] = "PageReference"
             elif item.is_dir():
                 # Recursively scan subdirectory

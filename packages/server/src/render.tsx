@@ -4,6 +4,17 @@ import { Console as NodeConsole } from "node:console";
 const ssrConsole = new NodeConsole(process.stderr, process.stderr);
 globalThis.console = ssrConsole as unknown as Console;
 
+// Configure MDX handling for server-side rendering
+import { plugin } from "bun";
+import mdx from "@mdx-js/esbuild";
+
+plugin(
+  mdx({
+    jsxImportSource: "react",
+    development: process.env.NODE_ENV !== "production",
+  }) as any,
+);
+
 import { wrapLayouts } from "@schorle/shared";
 import { renderToReadableStream } from "react-dom/server";
 import { decode } from "msgpackr";
