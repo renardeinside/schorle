@@ -242,46 +242,8 @@ class PythonStubGenerator:
         content = self.generate_stub_content()
         output_path.write_text(content)
 
-        # Also write app.pyi for the Schorle class typing
-        app_stub_path = Path(__file__).parent / "app.pyi"
-        if not app_stub_path.exists():
-            self._write_app_stub(app_stub_path)
-
         logger.info(f"Generated Python pages stub file: {output_path}")
         return output_path
-
-    def _write_app_stub(self, output_path: Path) -> None:
-        """Write the app.pyi stub file for Schorle class typing."""
-        content = """# Auto-generated stub file for Schorle app module
-# This provides type checking for ui.pages access
-
-from typing import Union
-from pathlib import Path
-from fastapi import FastAPI, Request
-from fastapi.datastructures import Headers
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-
-from schorle.pages import PagesAccessor, PageReference
-
-class Schorle:
-    def __init__(self, dev: bool | None = None) -> None: ...
-    
-    def mount(self, app: FastAPI) -> None: ...
-    
-    def render(
-        self,
-        page: Union[Path, PageReference],
-        props: dict | BaseModel | None = None,
-        req: Request | None = None,
-        headers: Headers | None = None,
-        cookies: dict[str, str] | None = None,
-    ) -> StreamingResponse: ...
-    
-    @property
-    def pages(self) -> PagesAccessor: ...
-"""
-        output_path.write_text(content)
 
 
 def create_pages_accessor(project: SchorleProject) -> PagesAccessor:

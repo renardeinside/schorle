@@ -6,6 +6,7 @@ import importlib.resources
 from tomlkit import parse, dumps, table
 from schorle.build import build_entrypoints
 from schorle.bun import check_and_prepare_bun
+from schorle.page_system import generate_python_stubs
 from schorle.utils import find_schorle_project
 
 __version__ = importlib.metadata.version("schorle")
@@ -130,9 +131,12 @@ def init(
 @app.command(name="build", help="Build the project")
 def build(
     dev: bool = typer.Option(False, help="Build in dev mode"),
+    with_stubs: bool = typer.Option(True, help="Generate Python stubs for pages"),
 ):
     typer.echo("Building project")
     project = find_schorle_project(Path.cwd())
     project.dev = dev
 
     build_entrypoints(("bun", "run", "slx-ipc", "build"), project)
+    if with_stubs:
+        generate_python_stubs(project)
