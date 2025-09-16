@@ -26,7 +26,7 @@ v0:
 - [x] headers/cookies
 - [x] typesafe page names autogen
 - [x] models autogen
-- [ ] api client autogen
+- [x] api client autogen
 - [ ] MDX rendering
 - [ ] components CLI
 - [ ] dependencies CLI

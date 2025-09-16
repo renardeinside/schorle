@@ -2,7 +2,7 @@ import Counter from "@/components/Counter";
 import { useProps } from "@schorle/shared";
 import { useHeaders } from "@schorle/shared";
 import { useCookies } from "@schorle/shared";
-import { StatsProps } from "@/lib/types";
+import { type StatsProps } from "@/lib/types";
 import { useReadItemsItemsGet } from "@/lib/api";
 
 export default function Index() {

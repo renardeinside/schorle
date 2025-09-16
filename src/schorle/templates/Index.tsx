@@ -1,6 +1,6 @@
 import Counter from "@/components/Counter";
 import { useProps, useHeaders, useCookies } from "@schorle/shared";
-import { StatsProps } from "@/lib/types";
+import { type StatsProps } from "@/lib/types";
 
 export default function Index() {
   const props = useProps<StatsProps>();
