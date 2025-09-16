@@ -4,15 +4,18 @@
  * FastAPI
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useQuery,
+  useSuspenseQuery
+} from '@tanstack/react-query';
 import type {
   QueryFunction,
   QueryKey,
   UseQueryOptions,
   UseQueryResult,
   UseSuspenseQueryOptions,
-  UseSuspenseQueryResult,
-} from "@tanstack/react-query";
+  UseSuspenseQueryResult
+} from '@tanstack/react-query';
 
 export interface HTTPValidationError {
   detail?: ValidationError[];
@@ -33,363 +36,281 @@ export interface ValidationError {
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+      type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+
+
+
 
 /**
  * @summary Read Items
  */
 export type readItemsItemsGetResponse200 = {
-  data: Item[];
-  status: 200;
-};
+  data: Item[]
+  status: 200
+}
 
 export type readItemsItemsGetResponse404 = {
-  data: null;
-  status: 404;
-};
-
-export type readItemsItemsGetResponseComposite =
-  | readItemsItemsGetResponse200
-  | readItemsItemsGetResponse404;
-
+  data: null
+  status: 404
+}
+    
+export type readItemsItemsGetResponseComposite = readItemsItemsGetResponse200 | readItemsItemsGetResponse404;
+    
 export type readItemsItemsGetResponse = readItemsItemsGetResponseComposite & {
   headers: Headers;
-};
+}
 
 export const getReadItemsItemsGetUrl = () => {
-  return `/items/`;
-};
 
-export const readItemsItemsGet = async (
-  options?: RequestInit,
-): Promise<readItemsItemsGetResponse> => {
-  const res = await fetch(getReadItemsItemsGetUrl(), {
+
+  
+
+  return `/items/`
+}
+
+export const readItemsItemsGet = async ( options?: RequestInit): Promise<readItemsItemsGetResponse> => {
+  
+  const res = await fetch(getReadItemsItemsGetUrl(),
+  {      
     ...options,
-    method: "GET",
-  });
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: readItemsItemsGetResponse["data"] = body ? JSON.parse(body) : {};
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+  const data: readItemsItemsGetResponse['data'] = body ? JSON.parse(body) : {}
 
-  return {
-    data,
-    status: res.status,
-    headers: res.headers,
-  } as readItemsItemsGetResponse;
-};
+  return { data, status: res.status, headers: res.headers } as readItemsItemsGetResponse
+}
+
+
 
 export const getReadItemsItemsGetQueryKey = () => {
-  return [`/items/`] as const;
-};
+    return [`/items/`] as const;
+    }
 
-export const getReadItemsItemsGetQueryOptions = <
-  TData = Awaited<ReturnType<typeof readItemsItemsGet>>,
-  TError = null,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof readItemsItemsGet>>,
-    TError,
-    TData
-  >;
-  fetch?: RequestInit;
-}) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+    
+export const getReadItemsItemsGetQueryOptions = <TData = Awaited<ReturnType<typeof readItemsItemsGet>>, TError = null>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readItemsItemsGet>>, TError, TData>, fetch?: RequestInit}
+) => {
 
-  const queryKey = queryOptions?.queryKey ?? getReadItemsItemsGetQueryKey();
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof readItemsItemsGet>>
-  > = ({ signal }) => readItemsItemsGet({ signal, ...fetchOptions });
+  const queryKey =  queryOptions?.queryKey ?? getReadItemsItemsGetQueryKey();
 
-  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof readItemsItemsGet>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type ReadItemsItemsGetQueryResult = NonNullable<
-  Awaited<ReturnType<typeof readItemsItemsGet>>
->;
-export type ReadItemsItemsGetQueryError = null;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readItemsItemsGet>>> = ({ signal }) => readItemsItemsGet({ signal, ...fetchOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readItemsItemsGet>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadItemsItemsGetQueryResult = NonNullable<Awaited<ReturnType<typeof readItemsItemsGet>>>
+export type ReadItemsItemsGetQueryError = null
+
 
 /**
  * @summary Read Items
  */
 
-export function useReadItemsItemsGet<
-  TData = Awaited<ReturnType<typeof readItemsItemsGet>>,
-  TError = null,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof readItemsItemsGet>>,
-    TError,
-    TData
-  >;
-  fetch?: RequestInit;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getReadItemsItemsGetQueryOptions(options);
+export function useReadItemsItemsGet<TData = Awaited<ReturnType<typeof readItemsItemsGet>>, TError = null>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readItemsItemsGet>>, TError, TData>, fetch?: RequestInit}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getReadItemsItemsGetQueryOptions(options)
 
-  query.queryKey = queryOptions.queryKey;
+  const query = useQuery(queryOptions ) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
 
   return query;
 }
 
-export const getReadItemsItemsGetSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof readItemsItemsGet>>,
-  TError = null,
->(options?: {
-  query?: UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof readItemsItemsGet>>,
-    TError,
-    TData
-  >;
-  fetch?: RequestInit;
-}) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getReadItemsItemsGetQueryKey();
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof readItemsItemsGet>>
-  > = ({ signal }) => readItemsItemsGet({ signal, ...fetchOptions });
+export const getReadItemsItemsGetSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof readItemsItemsGet>>, TError = null>( options?: { query?:UseSuspenseQueryOptions<Awaited<ReturnType<typeof readItemsItemsGet>>, TError, TData>, fetch?: RequestInit}
+) => {
 
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof readItemsItemsGet>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 
-export type ReadItemsItemsGetSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof readItemsItemsGet>>
->;
-export type ReadItemsItemsGetSuspenseQueryError = null;
+  const queryKey =  queryOptions?.queryKey ?? getReadItemsItemsGetQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readItemsItemsGet>>> = ({ signal }) => readItemsItemsGet({ signal, ...fetchOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseSuspenseQueryOptions<Awaited<ReturnType<typeof readItemsItemsGet>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadItemsItemsGetSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof readItemsItemsGet>>>
+export type ReadItemsItemsGetSuspenseQueryError = null
+
 
 /**
  * @summary Read Items
  */
 
-export function useReadItemsItemsGetSuspense<
-  TData = Awaited<ReturnType<typeof readItemsItemsGet>>,
-  TError = null,
->(options?: {
-  query?: UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof readItemsItemsGet>>,
-    TError,
-    TData
-  >;
-  fetch?: RequestInit;
-}): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getReadItemsItemsGetSuspenseQueryOptions(options);
+export function useReadItemsItemsGetSuspense<TData = Awaited<ReturnType<typeof readItemsItemsGet>>, TError = null>(
+  options?: { query?:UseSuspenseQueryOptions<Awaited<ReturnType<typeof readItemsItemsGet>>, TError, TData>, fetch?: RequestInit}
+  
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useSuspenseQuery(queryOptions) as UseSuspenseQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
+  const queryOptions = getReadItemsItemsGetSuspenseQueryOptions(options)
 
-  query.queryKey = queryOptions.queryKey;
+  const query = useSuspenseQuery(queryOptions ) as  UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
 
   return query;
 }
+
+
+
 
 /**
  * @summary Read Item
  */
 export type readItemItemsItemIdGetResponse200 = {
-  data: Item;
-  status: 200;
-};
+  data: Item
+  status: 200
+}
 
 export type readItemItemsItemIdGetResponse404 = {
-  data: null;
-  status: 404;
-};
+  data: null
+  status: 404
+}
 
 export type readItemItemsItemIdGetResponse422 = {
-  data: HTTPValidationError;
-  status: 422;
-};
+  data: HTTPValidationError
+  status: 422
+}
+    
+export type readItemItemsItemIdGetResponseComposite = readItemItemsItemIdGetResponse200 | readItemItemsItemIdGetResponse404 | readItemItemsItemIdGetResponse422;
+    
+export type readItemItemsItemIdGetResponse = readItemItemsItemIdGetResponseComposite & {
+  headers: Headers;
+}
 
-export type readItemItemsItemIdGetResponseComposite =
-  | readItemItemsItemIdGetResponse200
-  | readItemItemsItemIdGetResponse404
-  | readItemItemsItemIdGetResponse422;
+export const getReadItemItemsItemIdGetUrl = (itemId: number,) => {
 
-export type readItemItemsItemIdGetResponse =
-  readItemItemsItemIdGetResponseComposite & {
-    headers: Headers;
-  };
 
-export const getReadItemItemsItemIdGetUrl = (itemId: number) => {
-  return `/items/${itemId}`;
-};
+  
 
-export const readItemItemsItemIdGet = async (
-  itemId: number,
-  options?: RequestInit,
-): Promise<readItemItemsItemIdGetResponse> => {
-  const res = await fetch(getReadItemItemsItemIdGetUrl(itemId), {
+  return `/items/${itemId}`
+}
+
+export const readItemItemsItemIdGet = async (itemId: number, options?: RequestInit): Promise<readItemItemsItemIdGetResponse> => {
+  
+  const res = await fetch(getReadItemItemsItemIdGetUrl(itemId),
+  {      
     ...options,
-    method: "GET",
-  });
+    method: 'GET'
+    
+    
+  }
+)
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: readItemItemsItemIdGetResponse["data"] = body
-    ? JSON.parse(body)
-    : {};
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+  const data: readItemItemsItemIdGetResponse['data'] = body ? JSON.parse(body) : {}
 
-  return {
-    data,
-    status: res.status,
-    headers: res.headers,
-  } as readItemItemsItemIdGetResponse;
-};
+  return { data, status: res.status, headers: res.headers } as readItemItemsItemIdGetResponse
+}
 
-export const getReadItemItemsItemIdGetQueryKey = (itemId?: number) => {
-  return [`/items/${itemId}`] as const;
-};
 
-export const getReadItemItemsItemIdGetQueryOptions = <
-  TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-  TError = null | HTTPValidationError,
->(
-  itemId: number,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
+
+export const getReadItemItemsItemIdGetQueryKey = (itemId?: number,) => {
+    return [`/items/${itemId}`] as const;
+    }
+
+    
+export const getReadItemItemsItemIdGetQueryOptions = <TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError = null | HTTPValidationError>(itemId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError, TData>, fetch?: RequestInit}
 ) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getReadItemItemsItemIdGetQueryKey(itemId);
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof readItemItemsItemIdGet>>
-  > = ({ signal }) =>
-    readItemItemsItemIdGet(itemId, { signal, ...fetchOptions });
+  const queryKey =  queryOptions?.queryKey ?? getReadItemItemsItemIdGetQueryKey(itemId);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!itemId,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type ReadItemItemsItemIdGetQueryResult = NonNullable<
-  Awaited<ReturnType<typeof readItemItemsItemIdGet>>
->;
-export type ReadItemItemsItemIdGetQueryError = null | HTTPValidationError;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readItemItemsItemIdGet>>> = ({ signal }) => readItemItemsItemIdGet(itemId, { signal, ...fetchOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(itemId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadItemItemsItemIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof readItemItemsItemIdGet>>>
+export type ReadItemItemsItemIdGetQueryError = null | HTTPValidationError
+
 
 /**
  * @summary Read Item
  */
 
-export function useReadItemItemsItemIdGet<
-  TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-  TError = null | HTTPValidationError,
->(
-  itemId: number,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getReadItemItemsItemIdGetQueryOptions(itemId, options);
+export function useReadItemItemsItemIdGet<TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError = null | HTTPValidationError>(
+ itemId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError, TData>, fetch?: RequestInit}
+  
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
+  const queryOptions = getReadItemItemsItemIdGetQueryOptions(itemId,options)
 
-  query.queryKey = queryOptions.queryKey;
+  const query = useQuery(queryOptions ) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
 
   return query;
 }
 
-export const getReadItemItemsItemIdGetSuspenseQueryOptions = <
-  TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-  TError = null | HTTPValidationError,
->(
-  itemId: number,
-  options?: {
-    query?: UseSuspenseQueryOptions<
-      Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
+
+
+export const getReadItemItemsItemIdGetSuspenseQueryOptions = <TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError = null | HTTPValidationError>(itemId: number, options?: { query?:UseSuspenseQueryOptions<Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError, TData>, fetch?: RequestInit}
 ) => {
-  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getReadItemItemsItemIdGetQueryKey(itemId);
+const {query: queryOptions, fetch: fetchOptions} = options ?? {};
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof readItemItemsItemIdGet>>
-  > = ({ signal }) =>
-    readItemItemsItemIdGet(itemId, { signal, ...fetchOptions });
+  const queryKey =  queryOptions?.queryKey ?? getReadItemItemsItemIdGetQueryKey(itemId);
 
-  return { queryKey, queryFn, ...queryOptions } as UseSuspenseQueryOptions<
-    Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
-};
+  
 
-export type ReadItemItemsItemIdGetSuspenseQueryResult = NonNullable<
-  Awaited<ReturnType<typeof readItemItemsItemIdGet>>
->;
-export type ReadItemItemsItemIdGetSuspenseQueryError =
-  null | HTTPValidationError;
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readItemItemsItemIdGet>>> = ({ signal }) => readItemItemsItemIdGet(itemId, { signal, ...fetchOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseSuspenseQueryOptions<Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadItemItemsItemIdGetSuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof readItemItemsItemIdGet>>>
+export type ReadItemItemsItemIdGetSuspenseQueryError = null | HTTPValidationError
+
 
 /**
  * @summary Read Item
  */
 
-export function useReadItemItemsItemIdGetSuspense<
-  TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-  TError = null | HTTPValidationError,
->(
-  itemId: number,
-  options?: {
-    query?: UseSuspenseQueryOptions<
-      Awaited<ReturnType<typeof readItemItemsItemIdGet>>,
-      TError,
-      TData
-    >;
-    fetch?: RequestInit;
-  },
-): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getReadItemItemsItemIdGetSuspenseQueryOptions(
-    itemId,
-    options,
-  );
+export function useReadItemItemsItemIdGetSuspense<TData = Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError = null | HTTPValidationError>(
+ itemId: number, options?: { query?:UseSuspenseQueryOptions<Awaited<ReturnType<typeof readItemItemsItemIdGet>>, TError, TData>, fetch?: RequestInit}
+  
+ ):  UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const query = useSuspenseQuery(queryOptions) as UseSuspenseQueryResult<
-    TData,
-    TError
-  > & { queryKey: QueryKey };
+  const queryOptions = getReadItemItemsItemIdGetSuspenseQueryOptions(itemId,options)
 
-  query.queryKey = queryOptions.queryKey;
+  const query = useSuspenseQuery(queryOptions ) as  UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
 
   return query;
 }
