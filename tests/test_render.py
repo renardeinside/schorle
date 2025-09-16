@@ -1,4 +1,3 @@
-from fastapi.responses import StreamingResponse
 from schorle.render import render
 from schorle.utils import cwd
 from schorle.manifest import find_schorle_project
