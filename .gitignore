@@ -18,3 +18,4 @@ examples/slx/node_modules
 .pytest_cache/
 .mypy_cache/
 src/schorle/pages.pyi
+.coverage

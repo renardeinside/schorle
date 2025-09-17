@@ -12,105 +12,170 @@ alwaysApply: true
 
 Project uses:
 
-- FastAPI
-- asyncio
-- NextJS
-- shadcn
+- FastAPI for most of the backend operations
+- Typer for CLI
+- pydantic for state 
 
 ## Overview
 
 **Schorle** is a hybrid Python/TypeScript framework that bridges the gap between Python backend development and modern frontend user interfaces. It enables developers to build full-stack applications using Python for business logic while leveraging React/TypeScript for UI components, all within a unified development experience.
 
-## Problem Statement & Solution
-
-Modern Python development lacks the sophisticated frontend development experience available in JavaScript ecosystems. Developers typically face these suboptimal choices:
-
-1. **Server-side rendering** with static HTML (FastAPI/Flask + Jinja2) - Limited interactivity and modern UI patterns
-2. **WebSocket-based frameworks** (Streamlit/Dash/Reflex.dev) - Poor scaling due to per-page connections and limited UI flexibility
-3. **Separate codebases** (FastAPI + React/Next.js) - Increased complexity, duplication, and coordination overhead
-4. **Pure JavaScript solutions** (Next.js) - Loss of Python's ecosystem and development experience
-
-**Schorle's approach:** Provides a unified development model where Python handles application logic and data while TypeScript/React manages UI rendering, connected through a sophisticated Inter-Process Communication (IPC) layer that maintains type safety and performance.
-
-## Schorle – Cursor Instructions (Updated Proxy + UDS Architecture)
+## Schorle – Cursor Instructions (Updated Bun SSR Architecture)
 
 > **TL;DR**  
-> Schorle now **proxies page/API requests to a running Next.js app** (dev & prod), so you can use **almost the full Next.js feature set** (App Router, layouts, routing, Middleware, API routes, HMR, etc.).  
-> **Python remains the entrypoint** and orchestrator. For **Python⇄Next data exchange**, Schorle runs a **Unix Domain Socket (UDS) key-value server**. Python writes data by key; Next fetches it by key using a request header.
+> Schorle now uses **Bun stdin/stdout for building and rendering pages** instead of Next.js. The build step generates **client and server bundles** from template entry files. During rendering, Python passes props (base64), headers, and cookies to the **slx-ipc CLI** and waits for the rendered output. CSS is injected on-the-fly from Python.
 
 ---
 
 ## 0) Ground Rules for Cursor
 
-- **Assume Next.js is the renderer of pages.**
-- **Always proxy** page/API routes from Python → Next.js, preserving headers & methods.
-- **Never touch `/_next/*`** except to proxy it; this path is **Next’s internal** assets/HMR.  
-  - Use `/_next/*` (one underscore) — **do not** invent `/__next/*`.
-- **Data exchange** from Python to Next happens via **SocketStore** + the request header **`x-schorle-props-id`**.
-- **Bun runtime is preferred** to run Next (supports `fetch({ unix })`); fall back to Node + TCP store when Bun/UDS is unavailable.
-- fall back to **TCP** store (named pipes are not supported here).
+- **Bun is the primary runtime** for building and rendering React components via stdin/stdout.
+- **No Next.js** - we use custom Bun-based SSR with template-driven bundling.
+- **Build generates 2 bundles**: client-side and server-side from template entry files.
+- **Rendering uses slx-ipc CLI** with base64-encoded props, headers, and cookies.
+- **CSS injection** happens dynamically from Python during render time.
+- **File watching** triggers rebuilds in development mode.
 
 ## 1) Process Topology
 
-- **Python (FastAPI)**: public HTTP server, owns lifecycle, proxies to Next, runs UDS/TCP **SocketStore**.
-- **Next.js (App Router)**: runs under **Bun** in dev/prod; Python starts/supervises it.
-- **SocketStore (UDS)**: tiny in-memory KV server listening on a **UNIX socket path** (Linux/macOS) or **TCP** fallback (Windows/Node).
+- **Python (FastAPI)**: public HTTP server, owns lifecycle, handles routing, builds bundles, renders pages via slx-ipc.
+- **Bun Build Process**: generates client/server bundles from template entry files.
+- **slx-ipc CLI**: Bun-based rendering process that receives props via stdin and outputs HTML via stdout.
 
 ```bash
 Client ──HTTP──▶ Python (FastAPI)
-│ │
-│ (proxy pages)
-│ ▼
-│ Next.js (HMR, routing, API routes, middleware)
 │
-└──(implicit props)──▶ SocketStore (UDS/TCP) ⇦ Python writes by key, Next reads via fetch
+├── Build Time:
+│   └── Bun Build ──▶ Client Bundle + Server Bundle (from templates)
+│
+└── Render Time:
+    └── slx-ipc CLI (Bun) ──stdin/stdout──▶ SSR HTML
+        ↑
+        └── Props (base64) + Headers + Cookies
 ```
 
-## 2) Python Side – Proxy + Props Injection
+## 2) Build System
 
-### 2.1 Request Flow (what to generate)
+### 2.1 Build Process
 
-- For **every route** that belongs to the Next app (pages, API routes, static assets), **proxy** to Next:
-  - Preserve method, path, query, body, and relevant headers (`cookie`, `authorization`, etc.).
-  - Add/forward `x-forwarded-*` headers.
-- Before proxying a request that requires server-provided props:
-  1. Serialize props (e.g., **MessagePack**).
-  2. Store in **SocketStore** under a **random key**.
-  3. Attach header `x-schorle-props-id: <key>` when proxying to Next
+- **Template Entry Files**: Located in `src/schorle/templates/`
+  - `client-entry.tsx.jinja` - Client-side hydration entry point
+  - `server-entry.tsx.jinja` - Server-side rendering entry point
+- **Build Output**: 
+  - Client bundle: Browser-ready JavaScript for hydration
+  - Server bundle: Node/Bun-compatible bundle for SSR
+- **Triggered by**: File changes in development, explicit build commands in production
 
-## Usage of Server-side props in NextJS
+### 2.2 Bundle Generation
 
-```jsx
-// app/stats/page.tsx (Server Component)
-import { getProps } from "@/lib/store";
+```bash
+# Development
+bun build --target=browser src/templates/client-entry.tsx --outdir=dist/client
+bun build --target=bun src/templates/server-entry.tsx --outdir=dist/server
 
-export default async function StatsPage() {
-  const { totalUsers } = await getProps<{ totalUsers: number }>();
+# Production (with optimizations)
+bun build --target=browser --minify src/templates/client-entry.tsx --outdir=dist/client
+bun build --target=bun --minify src/templates/server-entry.tsx --outdir=dist/server
+```
+
+## 3) Rendering System
+
+### 3.1 slx-ipc CLI Interface
+
+The `slx-ipc` CLI accepts input via stdin and outputs rendered HTML via stdout:
+
+```bash
+echo '{"props": "base64EncodedProps", "headers": {...}, "cookies": {...}}' | slx-ipc render
+```
+
+### 3.2 Props Flow
+
+1. **Python serializes props** to base64 (MessagePack or JSON)
+2. **Combines with headers/cookies** into JSON payload
+3. **Pipes to slx-ipc** via stdin
+4. **slx-ipc renders** using server bundle
+5. **Returns HTML** via stdout to Python
+
+### 3.3 CSS Injection
+
+- **Python maintains CSS registry** of component styles
+- **Injects CSS** directly into HTML during render process
+- **No build-time CSS bundling** - dynamic injection for flexibility
+
+## 4) Usage Patterns
+
+### 4.1 Server-side Component Example
+
+```tsx
+// src/components/StatsPage.tsx
+interface Props {
+  totalUsers: number;
+}
+
+export default function StatsPage({ totalUsers }: Props) {
   return <div>Users: {totalUsers}</div>;
 }
 ```
 
-## Dev vs Prod Behavior
+### 4.2 Python Render Call
 
-### Dev
+```python
+# In Python FastAPI route
+from schorle import Schorle
+from fastapi import FastAPI 
+from pydantic import BaseModel
 
-Python starts Bun + Next dev (HMR enabled).
+class Stats(BaseModel):
+  total_users: int
 
-Proxies:
+ui = Schorle()
+app = FastAPI()
 
-```/_next/* and /_next/webpack-hmr → Next dev```
+ui.mount(app)
 
-All pages are proxied into NextJS.
+@app.get("/")
+def index():
+  return ui.render(ui.pages.About, props=Stats(total_users=100))
 
-File watcher (watchfiles) triggers any registry or metadata refresh you maintain (do not SSR pages in Python).
+```
 
-### Prod
+### 4.3 Example page
 
-Adds `/_next` route to serve static contents.
+On frontend side page will look like this:
 
-The main process is the one which keeps nodeJS running - implemented in `IpcManager`.
+```tsx
 
-## Cross-Platform Notes
+import {useProps} from "@schorle/shared";
+import {Stats} from "@/lib/types"; // Stats type is autogenerated from pydantic models
 
-- UDS: Linux/macOS only. Uses 2 sockets: `/tmp/slx` and `/tmp/slx-store`.
-- Windows: compatability mode via TCP
+export default function Index() {
+  const stats = useProps<Stats>(); 
+
+  // please note totalUsers and not total_users (!)
+  // converted objects and types will have camelCase in JS
+  return (<div> Total users: {stats.totalUsers} </div>)
+}
+```
+
+## 5) Dev vs Prod Behavior
+
+### Dev Mode
+
+- **File watcher** monitors template and component changes
+- **Automatic rebuilds** when files change
+- **Fast rebuild** times due to Bun's performance
+- **Source maps** enabled for debugging
+
+### Prod Mode
+
+- **Pre-built bundles** optimized and minified
+- **Cached rendering** for frequently accessed pages
+- **Static asset serving** for client bundle
+- **Optimized slx-ipc** process pool for concurrent rendering
+
+## 6) Cross-Platform Notes
+
+- **Bun required** for build and rendering processes
+- **slx-ipc CLI** works on Linux/macOS/Windows
+- **No Unix sockets** needed - pure stdin/stdout communication
+- **Fallback to Node.js** not supported - Bun is required

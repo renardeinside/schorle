@@ -25,6 +25,7 @@ console = Console()
 app = typer.Typer(
     name="slx",
     help="Schorle is a framework for building powerful data-driven applications.",
+    pretty_exceptions_short=True,
 )
 
 

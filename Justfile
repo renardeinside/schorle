@@ -1,7 +1,18 @@
 
 stackenblochen:
     bunx prettier . --write
+    uvx ruff check --fix .
     uvx ruff format .
+
+
+fmt: stackenblochen
+
+lint: 
+    uvx ruff check .
+    uv run mypy .
+
+test:
+    uv run pytest . --cov-report html
 
 docs:
     cd docs && yarn dev
@@ -9,10 +20,6 @@ docs:
 clean-aurora:
     mkdir -p packages/aurora
     rm -rf packages/aurora/*
-
-
-install-shadcn-deps:
-    bun add class-variance-authority clsx tailwind-merge lucide-react tw-animate-css
 
 [working-directory: 'packages/aurora']
 init-aurora: clean-aurora

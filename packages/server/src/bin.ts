@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { build } from "./build";
-import { renderBuilt } from "./render";
+import { render } from "./render";
 
 const [, , command, ...args] = Bun.argv;
 
@@ -15,15 +15,13 @@ if (command === "build") {
     throw new Error("No hydrator paths provided");
   }
   await build(hydratorPathsRaw);
-} else if (command === "render-built") {
+} else if (command === "render") {
   const serverJsPath = args[0];
   const renderRequest = args[1];
   if (!serverJsPath || !renderRequest) {
-    throw new Error(
-      "Server JS path and render request required for render-built",
-    );
+    throw new Error("Server JS path and render request required for render");
   }
-  await renderBuilt(serverJsPath, renderRequest);
+  await render(serverJsPath, renderRequest);
 } else {
   throw new Error(`Unknown command ${command}`);
 }

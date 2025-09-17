@@ -304,3 +304,4 @@ class BuildManifestEntry(BaseModel):
 
 class BuildManifest(BaseModel):
     entries: list[BuildManifestEntry]
+    mode: str

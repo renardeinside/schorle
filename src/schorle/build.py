@@ -347,7 +347,9 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject):
     manifest_entries = transform_artifacts_to_manifest(artifacts, page_infos, project)
 
     # Create the manifest and write it
-    manifest = BuildManifest(entries=manifest_entries)
+    manifest = BuildManifest(
+        entries=manifest_entries, mode="development" if project.dev else "production"
+    )
     manifest_path = project.manifest_path
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
 

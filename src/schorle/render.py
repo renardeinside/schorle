@@ -4,6 +4,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
+import time
 from typing import IO, Generator, Union
 
 from fastapi.datastructures import Headers
@@ -77,6 +78,7 @@ def render(
     Returns:
         Generator yielding rendered page bytes
     """
+    start_time = time.time()
 
     # Handle different input types
     if isinstance(page, PageInfo):
@@ -149,7 +151,7 @@ def render(
         "bun",
         "run",
         "slx-ipc",
-        "render-built",
+        "render",
         str(server_js_file),
         json.dumps(render_request),
     ]
@@ -205,5 +207,10 @@ def render(
 
             injected = decoded.replace("</head>", f"{injection}</head>")
             yield injected.encode("utf-8")
+
+    end_time = time.time()
+    logger.debug(
+        f"Rendered page {page_info.page} in {(end_time - start_time) * 1000}ms"
+    )
 
     return injector(completed.stdout)

@@ -13,10 +13,7 @@ interface RenderRequest {
 }
 
 // New render function for built server modules
-export async function renderBuilt(
-  serverJsPath: string,
-  rawRenderRequest: string,
-) {
+export async function render(serverJsPath: string, rawRenderRequest: string) {
   // Read raw bytes from stdin (props)
   const stdinBuf = await new Response(Bun.stdin).arrayBuffer();
   const stdinU8 = new Uint8Array(stdinBuf);

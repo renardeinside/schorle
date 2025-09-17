@@ -30,5 +30,5 @@ v0:
 - [x] MDX rendering
 - [x] components CLI
 - [x] dependencies CLI
-- [ ] make CLI/logging nicer
-- [ ] properly display the build/render errors
+- [x] make CLI/logging nicer
+- [x] properly display the build/render errors
