@@ -227,7 +227,6 @@ def build_entrypoints(command: tuple[str, ...], project: SchorleProject):
     server_template = get_server_template()
 
     # generate .schorle files
-    print_build_info(f"Generating entry files for {len(page_infos)} pages...")
     for page_info in page_infos:
         # put the generated file in .schorle with same relative path
         # But for MDX files, change the extension to .tsx for proper bundling

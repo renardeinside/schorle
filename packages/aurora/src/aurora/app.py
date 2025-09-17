@@ -31,14 +31,3 @@ def about(req: Request):
         ui.pages.About,
         req=req,
     )
-
-
-@app.get("/stats")
-def stats(req: Request):
-    return ui.render(
-        ui.pages.Stats,
-        props=models.StatsProps(
-            total_users=100, last_updated_at=datetime.now().isoformat()
-        ),
-        req=req,
-    )
