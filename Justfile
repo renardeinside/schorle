@@ -41,3 +41,8 @@ init-aurora: clean-aurora
 [working-directory: 'packages/aurora']
 in-aurora *args:
     {{args}}
+
+pwm message:
+    git add .
+    git commit -m "{{message}}"
+    git push
